@@ -1,0 +1,13 @@
+node_modules/
+dist/
+isolate/
+.env
+.env.*
+!.env.example
+*.local
+test-results/
+playwright-report/
+playwright/.cache/
+*.tsbuildinfo
+.DS_Store
+flow-source.zip
