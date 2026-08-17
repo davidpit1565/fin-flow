@@ -148,3 +148,34 @@ test.describe("mobile UX", () => {
     expect(atTop!.y).toBeCloseTo(before!.y, 0);
   });
 });
+
+/** A taller viewport simulating a modern iPhone with dynamic browser chrome (e.g., iPhone 14/15). */
+test.describe("mobile UX - dynamic viewport", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("tabbar stays fixed when visual viewport height changes", async ({ page }) => {
+    await completeOnboarding(page);
+    await addExpense(page, { amount: "5.00", merchant: "Scroll test" });
+    await page.getByRole("button", { name: "Home", exact: true }).click();
+
+    const tabbar = page.locator(".tabbar");
+    const before = await tabbar.boundingBox();
+    expect(before).not.toBeNull();
+
+    // Simulate visual viewport resize (e.g., browser chrome hide/show).
+    // This triggers the dynamic viewport change that previously caused fixed-position elements to shift.
+    await page.evaluate(() => {
+      window.visualViewport?.dispatchEvent(new Event("resize"));
+    });
+
+    // Allow a frame for any layout recalculation.
+    await page.waitForTimeout(50);
+
+    const after = await tabbar.boundingBox();
+    expect(after).not.toBeNull();
+    // Tabbar should not move vertically (allow 1px for sub-pixel rounding).
+    expect(after!.y).toBeCloseTo(before!.y, 1);
+    // Tabbar should still be within viewport bounds.
+    expect(after!.y + after!.height).toBeLessThanOrEqual(844 + 1);
+  });
+});
