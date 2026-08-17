@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeftRight, BarChart3, Home as HomeIcon, Plus, RefreshCcw } from "lucide-react";
 import { useApp } from "./store/AppContext";
 import { NavigationProvider, useNavigation, type Route, type TabId } from "./store/Navigation";
@@ -22,6 +22,8 @@ function App() {
   const [adding, setAdding] = useState(false);
 
   const isDark = useTheme(settings?.theme ?? "system");
+  const currentKey = routeKey(current);
+  const scrollRestoration = useScrollRestoration(currentKey);
 
   if (!ready) return <Splash />;
   if (!settings || !settings.onboarded) return <Onboarding />;
@@ -68,8 +70,10 @@ function App() {
 
   return (
     <div className={`app-frame ${isDark ? "dark" : "light"}`}>
-      <main className="app-scroll" key={routeKey(current)}>
-        <div className="screen-anim">{screen}</div>
+      <main className="app-scroll" ref={scrollRestoration}>
+        <div className="screen-anim" key={currentKey}>
+          {screen}
+        </div>
       </main>
       {activeTab !== "settings" && (
         <TabBar
@@ -84,6 +88,51 @@ function App() {
 
 function routeKey(route: Route): string {
   return JSON.stringify(route);
+}
+
+/**
+ * Remembers each route's scroll offset and restores it when that route is
+ * revisited, instead of always resetting to the top. `.app-scroll` is a
+ * single persistent DOM node (the route's content swaps underneath it), so
+ * without this a list's scroll position would otherwise be lost the moment
+ * you open a detail screen and come back.
+ */
+function useScrollRestoration(key: string) {
+  const elRef = useRef<HTMLElement | null>(null);
+  const positions = useRef<Map<string, number>>(new Map());
+  const activeKey = useRef(key);
+
+  // Runs synchronously after the new route's content is in the DOM but
+  // before paint, so the restored offset is applied before the user sees
+  // anything — no flash of the wrong scroll position.
+  useLayoutEffect(() => {
+    activeKey.current = key;
+    const el = elRef.current;
+    if (el) el.scrollTop = positions.current.get(key) ?? 0;
+  }, [key]);
+
+  const onScroll = useCallback(() => {
+    const el = elRef.current;
+    if (el) positions.current.set(activeKey.current, el.scrollTop);
+  }, []);
+
+  // A ref callback (rather than an effect with `[]` deps) so the listener
+  // attaches whenever the scroll node actually appears — e.g. once the
+  // Splash/Onboarding screens give way to the real app — not only if it
+  // already existed on the very first render.
+  const attachRef = useCallback(
+    (node: HTMLElement | null) => {
+      if (elRef.current) elRef.current.removeEventListener("scroll", onScroll);
+      elRef.current = node;
+      if (node) {
+        node.scrollTop = positions.current.get(activeKey.current) ?? 0;
+        node.addEventListener("scroll", onScroll, { passive: true });
+      }
+    },
+    [onScroll]
+  );
+
+  return attachRef;
 }
 
 function TabBar({ onAdd, onTab }: { onAdd: () => void; onTab: (tab: TabId) => void }) {
