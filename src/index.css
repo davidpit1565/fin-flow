@@ -613,6 +613,24 @@ input[type="date"] {
   overflow: visible;
 }
 
+/* At phone widths, wrap chip options onto new lines instead of hiding them
+   behind horizontal scroll — desktop/tablet keep the scrollable row. */
+@media (max-width: 480px) {
+  .chip-group {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .filter-row {
+    flex-wrap: wrap;
+  }
+
+  .row:has(> .chip-group) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 .chip {
   padding: 8px 14px;
   border-radius: 99px;
@@ -641,6 +659,7 @@ input[type="date"] {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
+  min-width: 0;
 }
 
 .category-chip {
@@ -653,6 +672,7 @@ input[type="date"] {
   border: 1.5px solid var(--border);
   background: var(--surface);
   transition: border-color 0.15s ease, background 0.15s ease;
+  min-width: 0;
 }
 
 .category-chip:hover {
@@ -1061,6 +1081,7 @@ input[type="date"] {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .spend-strip-label {
@@ -1071,6 +1092,9 @@ input[type="date"] {
 .spend-strip-value {
   font-size: 15px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stat-grid {
@@ -1085,6 +1109,7 @@ input[type="date"] {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
 }
 
 .stat-label {
@@ -1096,6 +1121,9 @@ input[type="date"] {
 .stat-value {
   font-size: 17px;
   font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .coming-up {
@@ -1222,6 +1250,7 @@ input[type="date"] {
 
 .search-box {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1962,6 +1991,11 @@ input[type="date"] {
 .settings-toggle-row .row-title,
 .settings-toggle-row .row-sub {
   display: block;
+}
+
+.settings-toggle-row > div:first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .settings-note {
