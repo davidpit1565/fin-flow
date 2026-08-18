@@ -43,7 +43,7 @@ test.describe("transactions", () => {
     await expect(page.locator(".toast")).toContainText("Expense added");
 
     await page.getByRole("button", { name: "Transactions", exact: true }).click();
-    await page.getByRole("button", { name: "Recurring", exact: true }).click();
+    await page.getByRole("radio", { name: "Recurring", exact: true }).click();
     await expect(page.getByText("Netflix Monthly")).toBeVisible();
   });
 
@@ -58,11 +58,11 @@ test.describe("transactions", () => {
     await expect(page.getByText("Uber")).toHaveCount(0);
     await page.getByLabel("Search transactions").fill("");
 
-    await page.getByRole("button", { name: "Income", exact: true }).click();
+    await page.getByRole("radio", { name: "Income", exact: true }).click();
     await expect(page.getByText("Salary")).toBeVisible();
     await expect(page.getByText("Coffee Shop")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Expenses", exact: true }).click();
+    await page.getByRole("radio", { name: "Expenses", exact: true }).click();
     await expect(page.getByText("Coffee Shop")).toBeVisible();
     await expect(page.getByText("Salary")).toHaveCount(0);
   });
@@ -71,5 +71,22 @@ test.describe("transactions", () => {
     await openAddSheet(page);
     await page.locator(".sheet-footer").getByRole("button", { name: "Add expense" }).click();
     await expect(page.getByText("Enter a valid amount.")).toBeVisible();
+  });
+
+  test("ChipGroup exposes accessible single-selection state (regression)", async ({ page }) => {
+    await openAddSheet(page);
+    await page.getByRole("switch", { name: "Recurring transaction" }).click();
+
+    const group = page.getByRole("radiogroup", { name: "Recurring frequency" });
+    await expect(group).toBeVisible();
+
+    const monthly = group.getByRole("radio", { name: "Monthly", exact: true });
+    const weekly = group.getByRole("radio", { name: "Weekly", exact: true });
+    await expect(monthly).toHaveAttribute("aria-checked", "true");
+    await expect(weekly).toHaveAttribute("aria-checked", "false");
+
+    await weekly.click();
+    await expect(weekly).toHaveAttribute("aria-checked", "true");
+    await expect(monthly).toHaveAttribute("aria-checked", "false");
   });
 });

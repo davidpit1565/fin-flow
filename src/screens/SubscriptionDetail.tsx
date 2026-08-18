@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CalendarCheck, CheckCircle2, Pause, Pencil, Play, RefreshCcw, Trash2, XCircle } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
@@ -89,10 +89,20 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
     toast(next === "paused" ? "Subscription paused" : "Subscription resumed");
   };
 
+  // Guards against a double-tap recording two payments and advancing two
+  // billing cycles instead of one. A fixed cooldown, not a state-driven
+  // reset -- React's own render cycle settles faster than a real double-tap.
+  const recordingPayment = useRef(false);
+
   const recordPayment = () => {
+    if (recordingPayment.current) return;
+    recordingPayment.current = true;
     recordSubscriptionPayment(subscription.id);
     haptic("success");
     toast("Payment recorded");
+    setTimeout(() => {
+      recordingPayment.current = false;
+    }, 500);
   };
 
   return (

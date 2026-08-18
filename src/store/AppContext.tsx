@@ -393,6 +393,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return next;
         });
       }
+      // A budget on this category has nowhere to go -- keeping it around would
+      // orphan it (it would reference a category that no longer exists).
+      setBudgets((prev) => {
+        const orphaned = prev.filter((b) => b.categoryId === id);
+        for (const b of orphaned) void storage.remove("budgets", b.id).catch(() => undefined);
+        return prev.filter((b) => b.categoryId !== id);
+      });
     },
     [toast]
   );

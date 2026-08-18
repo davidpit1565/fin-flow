@@ -166,11 +166,13 @@ export function ChipGroup<T extends string>({
   ariaLabel?: string;
 }) {
   return (
-    <div className="chip-group" role="group" aria-label={ariaLabel}>
+    <div className="chip-group" role="radiogroup" aria-label={ariaLabel}>
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
+          role="radio"
+          aria-checked={value === o.value}
           className={`chip ${value === o.value ? "chip-active" : ""}`}
           onClick={() => onChange(o.value)}
         >
