@@ -441,6 +441,16 @@ ul {
   display: none;
 }
 
+/* Below this width the control always overflows (measured: scrollable at
+   every width up to 430px, never at 480px+), so a fade at the trailing
+   edge is a reliable hint that more options sit off-screen, not a false one. */
+@media (max-width: 460px) {
+  .segmented-full {
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+  }
+}
+
 .segmented-full .segmented-item {
   flex: 0 0 auto;
   padding: 9px 14px;
