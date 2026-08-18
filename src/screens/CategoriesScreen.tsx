@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
 import { ICON_SET, iconByName } from "../lib/icons";
@@ -96,7 +96,7 @@ export function CategoriesScreen() {
                 aria-label={`Edit ${c.name}`}
                 onClick={() => setEditing({ id: c.id, name: c.name, icon: c.icon })}
               >
-                <Plus size={15} strokeWidth={2} />
+                <Pencil size={15} strokeWidth={2} />
               </button>
               <button className="icon-btn icon-btn-sm danger" aria-label={`Delete ${c.name}`} onClick={() => void remove(c.id, c.name)}>
                 <Trash2 size={15} strokeWidth={2} />

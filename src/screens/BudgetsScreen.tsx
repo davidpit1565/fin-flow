@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Wallet } from "lucide-react";
+import { Pencil, Plus, Trash2, Wallet } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
 import { budgetStatus } from "../lib/calc";
@@ -222,7 +222,7 @@ function BudgetStatusView({
         </div>
         <div className="budget-item-actions">
           <button className="icon-btn icon-btn-sm" aria-label={`Edit ${name} budget`} onClick={onEdit}>
-            <Plus size={15} strokeWidth={2} />
+            <Pencil size={15} strokeWidth={2} />
           </button>
           <button className="icon-btn icon-btn-sm" aria-label={`Delete ${name} budget`} onClick={onDelete}>
             <Trash2 size={15} strokeWidth={2} />
