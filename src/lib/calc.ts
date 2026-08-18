@@ -271,7 +271,10 @@ export function buildMonthlySummary(
   monthIndex: number
 ): MonthlySummary {
   const from = `${year}-${String(monthIndex + 1).padStart(2, "0")}-01`;
-  const range: DateRange = { from, to: addMonths(from, 1), label: monthLabel(year, monthIndex) };
+  // Last day of this month, inclusive — NOT the 1st of next month, which
+  // would also fall inside the following month's own range (addMonths(from, 1)
+  // used to double-count any transaction dated on the 1st across both months).
+  const range: DateRange = { from, to: prevRangeFrom(new Date(year, monthIndex, 1)), label: monthLabel(year, monthIndex) };
   const prevMonth = new Date(year, monthIndex - 1, 1);
   const prevRange: DateRange = {
     from: `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, "0")}-01`,

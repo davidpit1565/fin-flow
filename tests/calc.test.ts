@@ -156,6 +156,54 @@ describe("buildMonthlySummary", () => {
   });
 });
 
+describe("buildMonthlySummary month-boundary regression", () => {
+  test("a transaction on the 1st of the month counts only in that month, not the previous one", () => {
+    const cats = [cat("food", "Food")];
+    const txns = [txn({ amountCents: 1000, categoryId: "food", date: "2026-08-01" })];
+    const august = buildMonthlySummary(txns, cats, 2026, 7);
+    const july = buildMonthlySummary(txns, cats, 2026, 6);
+    expect(august.spentCents).toBe(1000);
+    expect(july.spentCents).toBe(0);
+  });
+
+  test("a transaction on the last day of the previous month counts only in that month", () => {
+    const cats = [cat("food", "Food")];
+    const txns = [txn({ amountCents: 500, categoryId: "food", date: "2026-07-31" })];
+    const august = buildMonthlySummary(txns, cats, 2026, 7);
+    const july = buildMonthlySummary(txns, cats, 2026, 6);
+    expect(august.spentCents).toBe(0);
+    expect(july.spentCents).toBe(500);
+  });
+
+  test("a normal middle-of-month transaction is counted once", () => {
+    const cats = [cat("food", "Food")];
+    const txns = [txn({ amountCents: 750, categoryId: "food", date: "2026-08-15" })];
+    const august = buildMonthlySummary(txns, cats, 2026, 7);
+    expect(august.spentCents).toBe(750);
+  });
+
+  test("January/December boundary: Jan 1 counts in January, not December", () => {
+    const cats = [cat("food", "Food")];
+    const txns = [txn({ amountCents: 200, categoryId: "food", date: "2027-01-01" })];
+    const january = buildMonthlySummary(txns, cats, 2027, 0);
+    const december = buildMonthlySummary(txns, cats, 2026, 11);
+    expect(january.spentCents).toBe(200);
+    expect(december.spentCents).toBe(0);
+  });
+
+  test("leap-year February 29 stays inside February, not March", () => {
+    const cats = [cat("food", "Food")];
+    const txns = [
+      txn({ amountCents: 100, categoryId: "food", date: "2028-02-29" }),
+      txn({ amountCents: 300, categoryId: "food", date: "2028-03-01" }),
+    ];
+    const february = buildMonthlySummary(txns, cats, 2028, 1);
+    const march = buildMonthlySummary(txns, cats, 2028, 2);
+    expect(february.spentCents).toBe(100);
+    expect(march.spentCents).toBe(300);
+  });
+});
+
 describe("spendingSeries", () => {
   test("7-day range returns 7 daily buckets", () => {
     const range = { from: "2026-08-07", to: "2026-08-13", label: "7d" };
