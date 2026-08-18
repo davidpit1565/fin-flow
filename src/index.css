@@ -1129,6 +1129,21 @@ input[type="date"] {
   white-space: nowrap;
 }
 
+/* At the narrowest supported width, three stat tiles leave too little room
+   for the value at the default size — an ordinary "$0.00/mo" would ellipsize
+   just from three-column arithmetic, not because the amount is actually
+   large. Give it a little more room; overflow protection for genuinely
+   large values stays in place via the ellipsis above. */
+@media (max-width: 340px) {
+  .stat-tile {
+    padding: 14px 8px;
+  }
+
+  .stat-value {
+    font-size: 15px;
+  }
+}
+
 .coming-up {
   padding: 4px 16px;
 }
