@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { completeOnboarding, openSettings } from "./helpers";
+import { collectConsoleErrors, completeOnboarding, openSettings } from "./helpers";
 
 test.describe("budgets", () => {
   test.beforeEach(async ({ page }) => {
@@ -35,5 +35,34 @@ test.describe("budgets", () => {
     await expect(page.locator(".toast")).toContainText("Budget saved");
     await expect(page.getByText("Category budgets")).toBeVisible();
     await expect(page.getByText("Food")).toBeVisible();
+  });
+
+  test("adding category budgets never renders a duplicate category chip (regression)", async ({ page }) => {
+    const errors = collectConsoleErrors(page);
+    await openSettings(page);
+    await page.getByRole("button", { name: "Monthly budgets" }).click();
+
+    // First category budget: the "Add" seed used to duplicate the first
+    // available category into its own chip list (same id twice -> React
+    // duplicate-key warning). Assert the chip appears exactly once.
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(page.locator(".chip-group.wrap").getByRole("button", { name: "Housing", exact: true })).toHaveCount(1);
+    await page.getByLabel("Budget amount").fill("300");
+    await page.getByRole("button", { name: "Housing", exact: true }).click();
+    await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
+    await expect(page.locator(".toast")).toContainText("Budget saved");
+
+    // Second category budget: the seed now points at the next available
+    // category (previously reproduced with "Food"). Same assertion.
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(page.locator(".chip-group.wrap").getByRole("button", { name: "Food", exact: true })).toHaveCount(1);
+    await page.getByLabel("Budget amount").fill("150");
+    await page.getByRole("button", { name: "Food", exact: true }).click();
+    await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
+    await expect(page.locator(".toast")).toContainText("Budget saved");
+
+    await expect(page.getByText("Housing")).toBeVisible();
+    await expect(page.getByText("Food")).toBeVisible();
+    expect(errors.filter((e) => e.includes("same key"))).toEqual([]);
   });
 });

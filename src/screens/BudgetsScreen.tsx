@@ -160,7 +160,10 @@ export function BudgetsScreen() {
             {editing.categoryId !== null && (
               <Field label="Category">
                 <div className="chip-group wrap">
-                  {availableCategories.concat(categories.find((c) => c.id === editing.categoryId) ?? []).map((c) => (
+                  {(availableCategories.some((c) => c.id === editing.categoryId)
+                    ? availableCategories
+                    : availableCategories.concat(categories.find((c) => c.id === editing.categoryId) ?? [])
+                  ).map((c) => (
                     <button
                       key={c.id}
                       className={`chip ${editing.categoryId === c.id ? "chip-active" : ""}`}
