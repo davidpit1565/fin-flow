@@ -77,7 +77,7 @@ export async function addSubscription(
 
   await page.getByLabel("Service name").fill(name);
   await page.getByLabel("Amount").fill(amount);
-  await page.getByRole("button", { name: frequency, exact: true }).click();
+  await page.getByRole("radio", { name: frequency, exact: true }).click();
   if (nextPaymentDate) await page.getByLabel("Next payment").fill(nextPaymentDate);
   await page.getByRole("radio", { name: category, exact: true }).click();
   await page.locator(".sheet-footer").getByRole("button", { name: "Add subscription" }).click();

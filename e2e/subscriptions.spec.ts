@@ -55,4 +55,31 @@ test.describe("subscriptions", () => {
     await page.locator(".sheet-footer").getByRole("button", { name: "Add subscription" }).click();
     await expect(page.getByText("Please enter a service name.")).toBeVisible();
   });
+
+  test("rapid double-click on Record payment only records one payment (regression)", async ({ page }) => {
+    await addSubscription(page, { name: "Netflix", amount: "17.99", nextPaymentDate: todayISO() });
+    await page.getByText("Netflix").click();
+
+    const recordBtn = page.getByRole("button", { name: "Record payment" });
+    await Promise.all([recordBtn.click(), recordBtn.click()]);
+    await expect(page.locator(".toast")).toContainText("Payment recorded");
+
+    const history = page.locator(".section", { hasText: "Payment history" });
+    await expect(history.locator(".row")).toHaveCount(1);
+  });
+
+  test("two genuinely separate payments both record correctly", async ({ page }) => {
+    await addSubscription(page, { name: "Gym", amount: "9.99", frequency: "Weekly", nextPaymentDate: todayISO() });
+    await page.getByText("Gym").click();
+
+    const recordBtn = page.getByRole("button", { name: "Record payment" });
+    await recordBtn.click();
+    await expect(page.locator(".toast")).toContainText("Payment recorded");
+    await page.waitForTimeout(600);
+    await recordBtn.click();
+    await expect(page.locator(".toast")).toContainText("Payment recorded");
+
+    const history = page.locator(".section", { hasText: "Payment history" });
+    await expect(history.locator(".row")).toHaveCount(2);
+  });
 });

@@ -26,6 +26,11 @@ export function CategoriesScreen() {
       toast("Please enter a category name.");
       return;
     }
+    const duplicate = categories.some((c) => c.id !== editing.id && c.name.toLowerCase() === name.toLowerCase());
+    if (duplicate) {
+      toast("A category with this name already exists.");
+      return;
+    }
     if (editing.id) {
       updateCategory(editing.id, { name, icon: editing.icon });
       toast("Category updated");
@@ -37,10 +42,14 @@ export function CategoriesScreen() {
   };
 
   const remove = async (id: string, name: string) => {
+    if (categories.length <= 1) {
+      toast("You need at least one category.");
+      return;
+    }
     const count = usageCount.get(id) ?? 0;
     if (count > 0) {
-      // Requires reassignment.
-      setReassignTarget(id);
+      // Requires reassignment; no destination is chosen yet.
+      setReassignTarget(null);
       const ok = await confirm({
         title: `Reassign ${name}?`,
         message: `${count} ${count === 1 ? "transaction or subscription uses" : "transactions or subscriptions use"} this category. Choose a category to move them to before deleting.`,
