@@ -40,7 +40,7 @@ git clone <this repo> && cd fin-flow
 bun install
 bun run build
 npx cap sync ios
-open ios/App/App.xcworkspace
+open ios/App/App.xcodeproj
 ```
 
 In Xcode: select the `App` target → *Signing & Capabilities* → check "Automatically manage signing" → pick your team (from step 4). Xcode will create the provisioning profile and certificate for you. Then either build/run on a real device or simulator via Xcode's Run button, or use the fastlane lanes below once the Appfile is filled in:
