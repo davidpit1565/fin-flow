@@ -1,6 +1,10 @@
-/** Local notifications. Reminders are scheduled with the Notification Triggers API
- *  (TimestampTrigger) where the browser supports it, and degrade gracefully elsewhere.
- *  Financial data never leaves the device. */
+import { LocalNotifications } from "@capacitor/local-notifications";
+import { isNative } from "./platform";
+
+/** Local notifications. On the native iOS/Android shell these are real scheduled
+ *  system notifications via @capacitor/local-notifications. In a browser/PWA they
+ *  fall back to the web Notification Triggers API where supported, and degrade
+ *  gracefully elsewhere. Financial data never leaves the device either way. */
 
 const DEFAULT_HOUR = 9; // 9:00 AM local time
 
@@ -11,15 +15,43 @@ interface TriggerNotificationOptions {
   timestamp: number;
 }
 
+/** Deterministic 31-bit id from a string tag -- Capacitor's native scheduler needs
+ *  a numeric id, but the rest of the app only ever deals in string tags. */
+function tagToId(tag: string): number {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = (hash * 31 + tag.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) || 1;
+}
+
+let nativePermissionCache: NotificationPermission | "unsupported" = "default";
+if (isNative()) {
+  void LocalNotifications.checkPermissions()
+    .then((r) => {
+      nativePermissionCache = r.display === "granted" || r.display === "denied" ? r.display : "default";
+    })
+    .catch(() => undefined);
+}
+
 export function notificationsSupported(): boolean {
-  return "Notification" in window;
+  return isNative() || "Notification" in window;
 }
 
 export function triggersSupported(): boolean {
-  return "showTrigger" in Notification.prototype;
+  return isNative() || "showTrigger" in Notification.prototype;
 }
 
 export async function requestPermission(): Promise<boolean> {
+  if (isNative()) {
+    try {
+      const r = await LocalNotifications.requestPermissions();
+      nativePermissionCache = r.display === "granted" || r.display === "denied" ? r.display : "default";
+      return r.display === "granted";
+    } catch {
+      return false;
+    }
+  }
   if (!notificationsSupported()) return false;
   if (Notification.permission === "granted") return true;
   if (Notification.permission === "denied") return false;
@@ -32,6 +64,7 @@ export async function requestPermission(): Promise<boolean> {
 }
 
 export function permissionState(): NotificationPermission | "unsupported" {
+  if (isNative()) return nativePermissionCache;
   if (!notificationsSupported()) return "unsupported";
   return Notification.permission;
 }
@@ -50,6 +83,24 @@ async function registration(): Promise<ServiceWorkerRegistration | null> {
 }
 
 export async function scheduleNotification(opts: TriggerNotificationOptions): Promise<boolean> {
+  if (isNative()) {
+    if (nativePermissionCache !== "granted") return false;
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: tagToId(opts.tag),
+            title: opts.title,
+            body: opts.body,
+            schedule: { at: new Date(opts.timestamp) },
+          },
+        ],
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
   if (!triggersSupported() || !notificationsSupported()) return false;
   if (Notification.permission !== "granted") return false;
   try {
@@ -68,6 +119,14 @@ export async function scheduleNotification(opts: TriggerNotificationOptions): Pr
 }
 
 export async function cancelNotifications(tag: string): Promise<void> {
+  if (isNative()) {
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: tagToId(tag) }] });
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
   if (!notificationsSupported() || Notification.permission !== "granted") return;
   try {
     const reg = await registration();
@@ -101,6 +160,13 @@ export function nextMonthSummaryTimestamp(now = new Date()): number {
 
 /** In-app fallback when triggers are unsupported: show a notification right now. */
 export function notifyNow(title: string, body: string): void {
+  if (isNative()) {
+    if (nativePermissionCache !== "granted") return;
+    void LocalNotifications.schedule({
+      notifications: [{ id: tagToId(`${title}-${Date.now()}`), title, body, schedule: { at: new Date(Date.now() + 500) } }],
+    }).catch(() => undefined);
+    return;
+  }
   if (!notificationsSupported() || Notification.permission !== "granted") return;
   try {
     new Notification(title, { body });

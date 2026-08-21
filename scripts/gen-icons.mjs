@@ -1,13 +1,17 @@
 /**
- * Generates the Flow app icon PNGs with pure Node (no dependencies).
- * The icon: a near-black square, a flowing white line, one green dot.
+ * Generates the Flow app icon and iOS icon/splash PNGs with pure Node (no
+ * dependencies). The icon: a near-black square, a flowing white line, one
+ * green dot.
  */
 import { deflateSync } from "node:zlib";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "icons");
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const OUT = join(ROOT, "public", "icons");
+const IOS_APPICON = join(ROOT, "ios", "App", "App", "Assets.xcassets", "AppIcon.appiconset");
+const IOS_SPLASH = join(ROOT, "ios", "App", "App", "Assets.xcassets", "Splash.imageset");
 
 /* ---------- PNG encoding ---------- */
 
@@ -48,6 +52,35 @@ function encodePNG(width, height, rgba) {
   ihdr.writeUInt32BE(height, 4);
   ihdr[8] = 8; // bit depth
   ihdr[9] = 6; // RGBA
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflateSync(raw, { level: 9 })),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+/** Same as encodePNG but drops the alpha channel entirely (RGB truecolor).
+ *  App Store Connect rejects app/marketing icons that carry an alpha channel,
+ *  even when every pixel in it is fully opaque. */
+function encodePNGOpaque(width, height, rgba) {
+  const stride = width * 3;
+  const raw = Buffer.alloc((stride + 1) * height);
+  for (let y = 0; y < height; y++) {
+    raw[y * (stride + 1)] = 0; // filter: none
+    for (let x = 0; x < width; x++) {
+      const src = (y * width + x) * 4;
+      const dst = y * (stride + 1) + 1 + x * 3;
+      raw[dst] = rgba[src];
+      raw[dst + 1] = rgba[src + 1];
+      raw[dst + 2] = rgba[src + 2];
+    }
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 2; // RGB truecolor, no alpha
   return Buffer.concat([
     Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
     chunk("IHDR", ihdr),
@@ -104,12 +137,26 @@ function distToSeg(px, py, ax, ay, bx, by) {
   return Math.hypot(px - cx, py - cy);
 }
 
-function render(size) {
+/** @param {{ glyphScale?: number, glyphOffsetY?: number }} [opts]
+ *  glyphScale shrinks the glyph toward the canvas center (1 = full-bleed icon
+ *  layout); glyphOffsetY nudges it vertically, both in unit-square terms.
+ *  Used to keep the glyph inside the safe zone of a splash image, which iOS
+ *  aspect-fills (and therefore crops) to very different screen ratios. */
+function render(size, opts = {}) {
+  const { glyphScale = 1, glyphOffsetY = 0 } = opts;
   const SS = 2; // supersample
   const S = size * SS;
-  const pts = samplePath();
-  const stroke = 0.078 * S;
-  const dot = { x: 0.664 * S, y: 0.289 * S, r: 0.094 * S };
+  const pts = samplePath().map((p) => ({
+    x: 0.5 + (p.x - 0.5) * glyphScale,
+    y: 0.5 + (p.y - 0.5 + glyphOffsetY) * glyphScale,
+  }));
+  const stroke = 0.078 * S * glyphScale;
+  const dotUnit = { x: 0.664, y: 0.289, r: 0.094 };
+  const dot = {
+    x: (0.5 + (dotUnit.x - 0.5) * glyphScale) * S,
+    y: (0.5 + (dotUnit.y - 0.5 + glyphOffsetY) * glyphScale) * S,
+    r: dotUnit.r * S * glyphScale,
+  };
 
   const pxBuf = Buffer.alloc(size * size * 4);
 
@@ -155,11 +202,37 @@ mkdirSync(OUT, { recursive: true });
 const targets = [
   [192, "icon-192.png"],
   [512, "icon-512.png"],
+  [1024, "icon-1024.png"],
   [180, "apple-touch-icon.png"],
   [32, "favicon-32.png"],
 ];
 
 for (const [size, name] of targets) {
   writeFileSync(join(OUT, name), encodePNG(size, size, render(size)));
-  console.log(`wrote ${name} (${size}x${size})`);
+  console.log(`wrote public/icons/${name} (${size}x${size})`);
+}
+
+// iOS AppIcon: modern single-size (1024x1024) asset catalog entry, no alpha
+// channel (App Store Connect rejects icons that carry one).
+try {
+  mkdirSync(IOS_APPICON, { recursive: true });
+  writeFileSync(join(IOS_APPICON, "AppIcon-512@2x.png"), encodePNGOpaque(1024, 1024, render(1024)));
+  console.log("wrote ios AppIcon-512@2x.png (1024x1024, no alpha)");
+} catch {
+  console.log("skipped iOS AppIcon (ios/ project not present -- run `npx cap add ios` first)");
+}
+
+// iOS launch screen: LaunchScreen.storyboard shows this with contentMode
+// scaleAspectFill, so a full-bleed icon layout would get cropped unpredictably
+// across phone/tablet aspect ratios. Shrink the glyph into a safe centered
+// zone on the same background color instead.
+try {
+  mkdirSync(IOS_SPLASH, { recursive: true });
+  const splash = encodePNGOpaque(2732, 2732, render(2732, { glyphScale: 0.34, glyphOffsetY: 0.02 }));
+  for (const name of ["splash-2732x2732.png", "splash-2732x2732-1.png", "splash-2732x2732-2.png"]) {
+    writeFileSync(join(IOS_SPLASH, name), splash);
+  }
+  console.log("wrote ios splash-2732x2732*.png (3 files, 2732x2732, no alpha)");
+} catch {
+  console.log("skipped iOS splash (ios/ project not present -- run `npx cap add ios` first)");
 }

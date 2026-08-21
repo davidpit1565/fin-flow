@@ -1,0 +1,6 @@
+# Team IDs get filled in once the Apple Developer account exists (see APP_STORE_SUBMISSION.md) --
+# they're visible in the Developer portal / App Store Connect once you're enrolled.
+app_identifier("com.davidpit.flow")
+apple_id("davidpit2008@gmail.com")
+itc_team_id("YOUR_APP_STORE_CONNECT_TEAM_ID")
+team_id("YOUR_DEVELOPER_TEAM_ID")
