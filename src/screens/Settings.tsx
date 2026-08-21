@@ -42,9 +42,9 @@ export function Settings() {
     haptic("warning");
   };
 
-  const onExport = () => {
+  const onExport = async () => {
     try {
-      downloadCSV(
+      await downloadCSV(
         buildCSV({ transactions, subscriptions, categories }),
         `flow-data-${todayISO()}.csv`
       );
@@ -218,7 +218,7 @@ export function Settings() {
 
       <SettingsSection title="Data">
         <Card className="list-card">
-          <SettingsRow label="Export my data" sub="CSV — transactions and subscriptions" icon={Download} onPress={onExport} />
+          <SettingsRow label="Export my data" sub="CSV — transactions and subscriptions" icon={Download} onPress={() => void onExport()} />
           <SettingsRow label="Import data" sub="CSV file from Flow or another tracker" icon={Upload} onPress={() => fileRef.current?.click()} />
           <input
             ref={fileRef}

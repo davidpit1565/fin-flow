@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeftRight, BarChart3, Home as HomeIcon, Plus, RefreshCcw } from "lucide-react";
+import { SplashScreen } from "@capacitor/splash-screen";
+import { StatusBar, Style } from "@capacitor/status-bar";
 import { useApp } from "./store/AppContext";
+import { isNative } from "./lib/platform";
 import { NavigationProvider, useNavigation, type Route, type TabId } from "./store/Navigation";
 import { Onboarding } from "./screens/Onboarding";
 import { Home } from "./screens/Home";
@@ -24,6 +27,13 @@ function App() {
   const isDark = useTheme(settings?.theme ?? "system");
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
+
+  // The native splash screen (Capacitor) stays up until the app's real UI is
+  // ready to paint, so there's no flash of an empty view between the launch
+  // image and the first screen.
+  useEffect(() => {
+    if (ready && isNative()) void SplashScreen.hide();
+  }, [ready]);
 
   if (!ready) return <Splash />;
   if (!settings || !settings.onboarded) return <Onboarding />;
@@ -216,6 +226,9 @@ function useTheme(preference: "system" | "light" | "dark"): boolean {
       const dark = resolve(preference);
       setIsDark(dark);
       document.documentElement.dataset.theme = dark ? "dark" : "light";
+      if (isNative()) {
+        void StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light });
+      }
     };
     apply();
     if (preference === "system") {

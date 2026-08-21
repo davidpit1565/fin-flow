@@ -1,0 +1,18 @@
+Flow is a personal finance app that keeps every number on your device — no account, no server, no data collection.
+
+TRACK SPENDING
+Log expenses and income in seconds. Organize everything by category, search and filter your history, and see exactly where your money goes.
+
+CONTROL SUBSCRIPTIONS
+Keep every recurring subscription in one place. See what's coming up, get a reminder before each payment, and record payments with one tap.
+
+STAY ON BUDGET
+Set an overall monthly budget or budgets per category. Flow tracks how close you are and alerts you before you go over.
+
+SEE THE BIG PICTURE
+Monthly and yearly insights show your spending trends by category, so patterns are easy to spot.
+
+YOUR DATA STAYS YOURS
+Everything is stored privately on your device. Flow makes no network requests and has no backend — your financial information never leaves your phone. Export a full CSV backup any time, right from Settings.
+
+Flow only tracks the subscriptions you tell it about — it never connects to your bank or cancels a real-world subscription on your behalf.

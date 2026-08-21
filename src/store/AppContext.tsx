@@ -33,6 +33,8 @@ import {
 } from "../lib/reminders";
 import { requestPermission } from "../lib/notifications";
 import type { ImportRow } from "../lib/csv";
+import { Haptics, NotificationType } from "@capacitor/haptics";
+import { isNative } from "../lib/platform";
 
 /* ---------- seed / defaults ---------- */
 
@@ -228,6 +230,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const haptic = useCallback((kind: "success" | "warning" = "success") => {
+    if (isNative()) {
+      void (kind === "success"
+        ? Haptics.notification({ type: NotificationType.Success })
+        : Haptics.notification({ type: NotificationType.Warning })
+      ).catch(() => undefined);
+      return;
+    }
     try {
       if (kind === "success") navigator.vibrate?.(8);
       else navigator.vibrate?.([15, 40, 15]);

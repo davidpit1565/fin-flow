@@ -1,5 +1,8 @@
+import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import type { Category, Subscription, Transaction } from "../types";
 import { parseAmountToCents } from "./money";
+import { isNative } from "./platform";
 
 function escapeCell(value: string | number): string {
   const s = String(value);
@@ -55,7 +58,20 @@ export function buildCSV(bundle: ExportBundle): string {
   return toCSV(lines);
 }
 
-export function downloadCSV(content: string, filename: string): void {
+/** Save the export. On the native shell there's no download manager, so the file is
+ *  written to the app's cache and handed to the system share sheet (Save to Files,
+ *  AirDrop, Mail, etc.). In a browser this is a normal blob download. */
+export async function downloadCSV(content: string, filename: string): Promise<void> {
+  if (isNative()) {
+    const written = await Filesystem.writeFile({
+      path: filename,
+      data: content,
+      directory: Directory.Cache,
+      encoding: Encoding.UTF8,
+    });
+    await Share.share({ url: written.uri, dialogTitle: "Save export" });
+    return;
+  }
   const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
