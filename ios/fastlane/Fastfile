@@ -38,7 +38,7 @@ end
 # Prerequisites (all one-time, done once the Apple Developer account exists):
 #   1. bundle init && bundle add fastlane   (run from ios/)
 #   2. Fill in Appfile with the real Apple ID, team ID, and App Store Connect team ID.
-#   3. Create the App ID + App Store Connect record for com.solfaygroup.flow
+#   3. Create the App ID + App Store Connect record for com.davidpit.flow
 #      (either in Xcode's "Signing & Capabilities" with automatic signing, or via
 #      `fastlane match` if multiple people will build/sign this app).
 #   4. bundle exec fastlane beta      # first TestFlight build

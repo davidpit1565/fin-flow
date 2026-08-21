@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.solfaygroup.flow",
+  appId: "com.davidpit.flow",
   appName: "Flow",
   webDir: "dist",
   backgroundColor: "#0e0f11",

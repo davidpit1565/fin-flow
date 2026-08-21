@@ -5,7 +5,7 @@ This tracks everything needed to ship Flow to the App Store. Items marked **[DON
 ## 1. Native app shell — **[DONE]**
 
 - Wrapped the existing web app with [Capacitor](https://capacitorjs.com) (`capacitor.config.ts`), which generated a real Xcode project at `ios/`.
-- Bundle identifier: `com.solfaygroup.flow` — **placeholder, see step 2**.
+- Bundle identifier: `com.davidpit.flow`.
 - App display name: `Flow`.
 - iPhone-only (`TARGETED_DEVICE_FAMILY = "1"`) — the UI is a fixed mobile layout, not iPad-adapted.
 - Portrait-only orientation, matching the app's design.
@@ -17,9 +17,9 @@ This tracks everything needed to ship Flow to the App Store. Items marked **[DON
   - Status bar style and splash screen now use `@capacitor/status-bar` / `@capacitor/splash-screen`, following the app's light/dark theme.
 - App icon and launch screen generated from the existing hand-drawn "Flow" mark (`scripts/gen-icons.mjs`), including the no-alpha 1024×1024 App Store icon Apple's validator requires.
 
-## 2. Decide the bundle identifier — before you register the App ID
+## 2. Bundle identifier — **[DONE]**, but only permanent once registered
 
-`com.solfaygroup.flow` is a placeholder in `capacitor.config.ts` and the Xcode project. It's freely changeable **right now** (just a config value). Once you register it as an App ID in the Apple Developer portal, it becomes **permanent** — you cannot rename it later, only retire it and start over with a new one. Confirm this is the identifier you want before that step.
+`com.davidpit.flow` is set in `capacitor.config.ts` and the Xcode project, matching the personal Apple ID (`davidpit2008@gmail.com`) the Developer account will be enrolled under. It's still freely changeable **right now** (just a config value) — once you register it as an App ID in the Apple Developer portal, it becomes **permanent**: you cannot rename it later, only retire it and start over with a new one. Confirm it once more right before that step.
 
 ## 3. App name collision
 
