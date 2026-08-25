@@ -4,7 +4,7 @@
 
 **Last updated: August 25, 2026**
 
-Flow ("the app") is developed by Solfay Group ("we", "us"). This policy explains how Flow handles your information.
+Flow ("the app") is developed by Actually Works ("we", "us"). This policy explains how Flow handles your information.
 
 ## The short version
 
@@ -43,4 +43,4 @@ If this policy changes, the "Last updated" date above will be updated and the ne
 
 ## Contact
 
-Questions about this policy or the app can be sent to: **davidpit2008@gmail.com**
+Questions about this policy or the app: see the [Support page](https://claude.ai/code/artifact/e250bc59-e7e9-4d41-a7b0-c4c094a13cf0).

@@ -44,7 +44,7 @@ Both URLs are already set in `ios/fastlane/metadata/en-US/privacy_url.txt` and `
 
 **Important — do this before submitting:** these pages are private by default. Open each link, use the **Share** menu on the page, and make it public (or "anyone with the link") — otherwise Apple's reviewer hits a login wall and the app gets rejected. This takes 30 seconds per page but has to be done once, by you, since it's a sharing permission on your account.
 
-If you'd rather host these on your own domain later, the source files are just static HTML — ask and I'll hand them over, or host them at `solfaygroup.com` and update the two `.txt` files above to match.
+If you'd rather host these on your own domain later, the source files are just static HTML — ask and I'll hand them over, then update the two `.txt` files above to match.
 
 ## 6. Apple Developer account (in progress)
 
