@@ -48,7 +48,7 @@ If you'd rather host these on your own domain later, the source files are just s
 
 ## 6. Apple Developer account (in progress)
 
-1. Enroll at [developer.apple.com](https://developer.apple.com) — $99/year, individual or organization (organization requires a D-U-N-S number and takes longer to verify; individual is same-day/next-day).
+1. Enroll at [developer.apple.com](https://developer.apple.com) — $99/year, individual or organization. **Worth knowing:** the App Store listing's public "Developer" byline is your *legal name* on an Individual account — it can only show a company name like "Actually Works" if you enroll as an **Organization**, which needs a D-U-N-S number (free, but can take 1-2 weeks to verify) and takes longer than the same-day Individual path. If showing "Actually Works" as the seller matters, start the D-U-N-S lookup/registration now, since it's the slow part.
 2. In [App Store Connect](https://appstoreconnect.apple.com), create a new app record: platform iOS, name from step 3, primary language, bundle ID from step 2, SKU (any internal string, e.g. `flow-ios-001`).
 3. Fill in `ios/fastlane/Appfile`'s two remaining placeholders (`itc_team_id`, `team_id`) — visible in the Developer portal and App Store Connect once you're enrolled. The Apple ID email is already filled in.
 
