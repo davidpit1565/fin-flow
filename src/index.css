@@ -136,6 +136,102 @@ ul {
   }
 }
 
+.sidebar {
+  display: none;
+  width: 248px;
+  flex-shrink: 0;
+  flex-direction: column;
+  padding: 28px 16px calc(20px + env(safe-area-inset-bottom));
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.sidebar-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  margin-bottom: 28px;
+}
+
+.sidebar-mark span {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sidebar-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 650;
+  font-size: 14.5px;
+  margin-bottom: 22px;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar-add:hover {
+  background: var(--accent-strong);
+}
+
+.sidebar-add:active {
+  transform: scale(0.97);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+  text-align: left;
+}
+
+.sidebar-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.sidebar-item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* Wraps .app-scroll + .tabbar so the adaptive shell can lay the sidebar
+   beside them (see the >=768px rules at the end of this file). At every
+   width this must fill .app-frame's remaining height itself, or its .flex:1
+   child below has no constrained space to flex into. */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .app-scroll {
   flex: 1;
   overflow-y: auto;
@@ -443,8 +539,11 @@ ul {
 
 /* Below this width the control always overflows (measured: scrollable at
    every width up to 430px, never at 480px+), so a fade at the trailing
-   edge is a reliable hint that more options sit off-screen, not a false one. */
-@media (max-width: 460px) {
+   edge is a reliable hint that more options sit off-screen, not a false one.
+   A container query (keyed to .spend-card's own width, set above) rather
+   than a viewport media query, since the adaptive shell can make this card
+   narrow on a wide screen too -- a plain page-width query would miss that. */
+@container (max-width: 460px) {
   .segmented-full {
     -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
     mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
@@ -1056,6 +1155,11 @@ input[type="date"] {
 
 .spend-card {
   padding: 20px;
+  /* The period selector's overflow hint (below) needs to react to this
+     card's own rendered width, not the page viewport -- on the adaptive
+     desktop/tablet shell the card can be narrow in a two-column layout even
+     though the viewport itself is wide. */
+  container-type: inline-size;
 }
 
 .spend-card-top {
@@ -2106,6 +2210,21 @@ input[type="date"] {
   align-items: center;
   justify-content: center;
   margin-bottom: 6px;
+  /* A soft halo makes this the one thing the eye lands on first, instead of
+     a flat icon competing on equal footing with the title text below it. */
+  box-shadow: 0 0 0 14px color-mix(in srgb, var(--accent) 6%, transparent), 0 0 40px 6px color-mix(in srgb, var(--accent) 14%, transparent);
+  animation: onboardIconIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes onboardIconIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .onboarding-title {
@@ -2269,5 +2388,96 @@ input[type="date"] {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Adaptive shell -- tablet portrait and up (iPad, laptop, desktop)
+   Placed last so these overrides always win regardless of any base
+   rule's position earlier in the file.
+   ============================================================ */
+
+@media (min-width: 768px) {
+  .app-frame {
+    max-width: none;
+    flex-direction: row;
+    border: none;
+  }
+
+  .app-main {
+    height: 100%;
+  }
+
+  .tabbar {
+    display: none;
+  }
+
+  .sidebar {
+    display: flex;
+  }
+
+  .app-scroll {
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 28px 40px;
+  }
+
+  .screen {
+    padding-top: 32px;
+  }
+
+  /* A bottom sheet sliding up from the edge of a wide screen reads as a
+     mobile leftover, not a native control -- present it as a centered
+     dialog instead, matching how dialogs already work on this breakpoint. */
+  .sheet-backdrop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .sheet {
+    position: static;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    border-radius: 20px;
+    animation: sheetInDesktop 0.22s cubic-bezier(0.32, 0.9, 0.4, 1) both;
+  }
+}
+
+/* iPad landscape and small laptops and up: there's finally enough width next
+   to the 248px sidebar for a genuine two-column Home layout without
+   squeezing either column below a comfortable reading width. */
+@media (min-width: 1024px) {
+  .app-scroll {
+    max-width: 900px;
+    padding: 0 40px 40px;
+  }
+
+  /* Home: use the extra width for a two-column layout instead of one long
+     scrolling stack -- the hero card and upcoming payments read first (left,
+     wider), category/budget/savings support it (right). minmax(0, ...) lets
+     each column shrink with its content instead of overflowing the grid. */
+  .home-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+}
+
+@keyframes sheetInDesktop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowLeftRight, BarChart3, Home as HomeIcon, Plus, RefreshCcw } from "lucide-react";
+import { ArrowLeftRight, BarChart3, Home as HomeIcon, Plus, RefreshCcw, Settings as SettingsIcon } from "lucide-react";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { useApp } from "./store/AppContext";
 import { isNative } from "./lib/platform";
-import { NavigationProvider, useNavigation, type Route, type TabId } from "./store/Navigation";
+import { NavigationProvider, useNavigation, type AnyTab, type Route, type TabId } from "./store/Navigation";
 import { Onboarding } from "./screens/Onboarding";
 import { Home } from "./screens/Home";
 import { Transactions } from "./screens/Transactions";
@@ -80,17 +80,25 @@ function App() {
 
   return (
     <div className={`app-frame ${isDark ? "dark" : "light"}`}>
-      <main className="app-scroll" ref={scrollRestoration}>
-        <div className="screen-anim" key={currentKey}>
-          {screen}
-        </div>
-      </main>
-      {activeTab !== "settings" && (
-        <TabBar
-          onAdd={() => setAdding(true)}
-          onTab={(tab) => navigate(tab, { tab, name: "root" })}
-        />
-      )}
+      <Sidebar
+        activeTab={activeTab}
+        onAdd={() => setAdding(true)}
+        onTab={(tab) => navigate(tab, { tab, name: "root" })}
+        onSettings={() => navigate("settings", { tab: "settings", name: "settings" })}
+      />
+      <div className="app-main">
+        <main className="app-scroll" ref={scrollRestoration}>
+          <div className="screen-anim" key={currentKey}>
+            {screen}
+          </div>
+        </main>
+        {activeTab !== "settings" && (
+          <TabBar
+            onAdd={() => setAdding(true)}
+            onTab={(tab) => navigate(tab, { tab, name: "root" })}
+          />
+        )}
+      </div>
       {adding && <AddTransactionSheet onClose={() => setAdding(false)} />}
     </div>
   );
@@ -194,6 +202,80 @@ function TabBar({ onAdd, onTab }: { onAdd: () => void; onTab: (tab: TabId) => vo
         >
           <BarChart3 size={22} strokeWidth={activeTab === "insights" ? 2.2 : 1.8} />
           <span>Insights</span>
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+/**
+ * Persistent nav rail shown at tablet-portrait width and up (see the
+ * `min-width: 768px` block in index.css), replacing the bottom TabBar.
+ * Unlike the TabBar, this also carries Settings as a regular nav item --
+ * on a wide screen there's room for it to be always-visible rather than a
+ * screen you push into.
+ */
+function Sidebar({
+  activeTab,
+  onAdd,
+  onTab,
+  onSettings,
+}: {
+  activeTab: AnyTab;
+  onAdd: () => void;
+  onTab: (tab: TabId) => void;
+  onSettings: () => void;
+}) {
+  const { popToRoot } = useNavigation();
+
+  const items: { id: TabId; label: string; icon: typeof HomeIcon }[] = [
+    { id: "home", label: "Home", icon: HomeIcon },
+    { id: "transactions", label: "Transactions", icon: ArrowLeftRight },
+    { id: "subscriptions", label: "Subscriptions", icon: RefreshCcw },
+    { id: "insights", label: "Insights", icon: BarChart3 },
+  ];
+
+  return (
+    <nav className="sidebar" aria-label="Main navigation">
+      <div className="sidebar-mark">
+        <svg width="28" height="28" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+          <rect width="64" height="64" rx="16" fill="var(--accent)" />
+          <path
+            d="M18 42 C 34 44, 42 34, 30 26 C 22 21, 26 14, 42 18"
+            stroke="#ffffff"
+            strokeWidth="5"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <circle cx="42.5" cy="18.5" r="6" fill="#ffffff" />
+        </svg>
+        <span>Flow</span>
+      </div>
+
+      <button className="sidebar-add" onClick={onAdd}>
+        <Plus size={17} strokeWidth={2.4} /> Add transaction
+      </button>
+
+      <div className="sidebar-nav">
+        {items.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            className={`sidebar-item ${activeTab === id ? "active" : ""}`}
+            onClick={() => {
+              if (activeTab === id) popToRoot(id);
+              else onTab(id);
+            }}
+          >
+            <Icon size={19} strokeWidth={activeTab === id ? 2.2 : 1.8} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="sidebar-footer">
+        <button className={`sidebar-item ${activeTab === "settings" ? "active" : ""}`} onClick={onSettings}>
+          <SettingsIcon size={19} strokeWidth={activeTab === "settings" ? 2.2 : 1.8} />
+          Settings
         </button>
       </div>
     </nav>

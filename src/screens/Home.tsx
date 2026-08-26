@@ -146,7 +146,8 @@ export function Home({ onAdd }: { onAdd: () => void }) {
           />
         </div>
       ) : (
-        <>
+        <div className="home-grid">
+        <div className="home-col-main">
           {/* primary spending card */}
           <Card className="spend-card">
             <div className="spend-card-top">
@@ -258,7 +259,9 @@ export function Home({ onAdd }: { onAdd: () => void }) {
               </Card>
             )}
           </section>
+        </div>
 
+        <div className="home-col-side">
           {/* where your money goes */}
           {categoriesThisMonth.length > 0 && (
             <section className="section">
@@ -352,7 +355,8 @@ export function Home({ onAdd }: { onAdd: () => void }) {
               </Card>
             </section>
           )}
-        </>
+        </div>
+        </div>
       )}
     </div>
   );
