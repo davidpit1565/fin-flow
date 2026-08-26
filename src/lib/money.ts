@@ -30,13 +30,19 @@ export function parseAmountToCents(input: string): number | null {
       s = s.replace(/,/g, "");
     }
   }
-  if (!/^\d+(\.\d{1,2})?$/.test(s)) {
-    // Allow things like "12.345" to be treated as 12.345 → rounds to 12.35? Keep strict: 2dp.
-    if (!/^\d+(\.\d+)?$/.test(s)) return null;
-  }
-  const value = Number(s);
-  if (!Number.isFinite(value) || value <= 0) return null;
-  return Math.round(value * 100);
+  if (!/^\d+(\.\d+)?$/.test(s)) return null;
+  // Integer arithmetic only from here -- `Math.round(Number(s) * 100)` looks
+  // equivalent but silently rounds the wrong way for plenty of real amounts
+  // (e.g. "1.005" -> 100.49999999999999 -> 100 instead of 101) because the
+  // decimal value can't be represented exactly as a float.
+  const [intPart, fracPart = ""] = s.split(".");
+  const d1 = fracPart.length > 0 ? Number(fracPart[0]) : 0;
+  const d2 = fracPart.length > 1 ? Number(fracPart[1]) : 0;
+  const d3 = fracPart.length > 2 ? Number(fracPart[2]) : 0;
+  let cents = parseInt(intPart, 10) * 100 + d1 * 10 + d2;
+  if (d3 >= 5) cents += 1;
+  if (!Number.isFinite(cents) || cents <= 0) return null;
+  return cents;
 }
 
 /** Format cents as a display string for a numeric input ("1234.50"). */

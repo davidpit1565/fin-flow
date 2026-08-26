@@ -55,6 +55,7 @@ export function defaultSettings(): UserSettings {
       budgetAlerts: true,
       monthlySummary: true,
     },
+    appLockEnabled: false,
     createdAt: now,
     updatedAt: now,
   };

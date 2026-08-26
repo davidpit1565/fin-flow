@@ -6,6 +6,7 @@ import {
   useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   type TextareaHTMLAttributes,
 } from "react";
@@ -39,21 +40,46 @@ interface SegmentedProps<T extends string> {
 }
 
 export function Segmented<T extends string>({ options, value, onChange, ariaLabel, className }: SegmentedProps<T>) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectedIndex = Math.max(0, options.findIndex((o) => o.value === value));
+
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+    const next = rovingNextIndex(e.key, index, options.length);
+    if (next === null) return;
+    e.preventDefault();
+    onChange(options[next].value);
+    refs.current[next]?.focus();
+  };
+
   return (
     <div className={`segmented ${className ?? ""}`} role="tablist" aria-label={ariaLabel}>
-      {options.map((o) => (
+      {options.map((o, i) => (
         <button
           key={o.value}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
           role="tab"
           aria-selected={value === o.value}
+          tabIndex={i === selectedIndex ? 0 : -1}
           className={`segmented-item ${value === o.value ? "active" : ""}`}
           onClick={() => onChange(o.value)}
+          onKeyDown={(e) => onKeyDown(e, i)}
         >
           {o.label}
         </button>
       ))}
     </div>
   );
+}
+
+/** Roving-tabindex arrow-key navigation shared by Segmented and ChipGroup. */
+function rovingNextIndex(key: string, index: number, length: number): number | null {
+  if (key === "ArrowRight" || key === "ArrowDown") return (index + 1) % length;
+  if (key === "ArrowLeft" || key === "ArrowUp") return (index - 1 + length) % length;
+  if (key === "Home") return 0;
+  if (key === "End") return length - 1;
+  return null;
 }
 
 /* ---------- toggle ---------- */
@@ -165,16 +191,32 @@ export function ChipGroup<T extends string>({
   onChange: (v: T) => void;
   ariaLabel?: string;
 }) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectedIndex = Math.max(0, options.findIndex((o) => o.value === value));
+
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+    const next = rovingNextIndex(e.key, index, options.length);
+    if (next === null) return;
+    e.preventDefault();
+    onChange(options[next].value);
+    refs.current[next]?.focus();
+  };
+
   return (
     <div className="chip-group" role="radiogroup" aria-label={ariaLabel}>
-      {options.map((o) => (
+      {options.map((o, i) => (
         <button
           key={o.value}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
           type="button"
           role="radio"
           aria-checked={value === o.value}
+          tabIndex={i === selectedIndex ? 0 : -1}
           className={`chip ${value === o.value ? "chip-active" : ""}`}
           onClick={() => onChange(o.value)}
+          onKeyDown={(e) => onKeyDown(e, i)}
         >
           {o.label}
         </button>
