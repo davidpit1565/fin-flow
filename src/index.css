@@ -1802,6 +1802,11 @@ input[type="date"] {
   width: 100%;
 }
 
+.detail-actions-danger {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
 .status-chip {
   font-size: 12px;
   font-weight: 650;
