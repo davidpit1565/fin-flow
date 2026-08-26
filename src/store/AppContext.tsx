@@ -612,12 +612,12 @@ function ConfirmView({ opts, onDone }: { opts: ConfirmOptions & { resolve: (v: b
         <h2 id="confirm-title">{opts.title}</h2>
         <p>{opts.message}</p>
         <div className="dialog-actions">
-          <button className="btn btn-secondary" onClick={() => onDone(false)}>
+          <button className="btn btn-secondary" autoFocus={opts.danger} onClick={() => onDone(false)}>
             Cancel
           </button>
           <button
             className={opts.danger ? "btn btn-danger" : "btn btn-primary"}
-            autoFocus
+            autoFocus={!opts.danger}
             onClick={() => onDone(true)}
           >
             {opts.confirmLabel}

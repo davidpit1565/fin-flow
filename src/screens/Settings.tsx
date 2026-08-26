@@ -31,9 +31,13 @@ export function Settings() {
   const { currency } = settings;
 
   const onDeleteAll = async () => {
+    const itemCount = transactions.length + subscriptions.length + budgets.length;
     const ok = await confirm({
       title: "Delete all data?",
-      message: "This removes every transaction, subscription, budget and setting from this device. It cannot be undone.",
+      message:
+        itemCount > 0
+          ? `This permanently deletes ${transactions.length} transaction${transactions.length === 1 ? "" : "s"}, ${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}, and ${budgets.length} budget${budgets.length === 1 ? "" : "s"} from this device, along with every setting. Export a backup first if you might need this later — it cannot be undone.`
+          : "This removes every setting from this device. It cannot be undone.",
       confirmLabel: "Delete everything",
       danger: true,
     });
