@@ -28,6 +28,7 @@ import { advanceSubscriptionDate, monthlyEquivalent } from "../lib/calc";
 import {
   checkBudgetAlerts,
   checkMonthlySummary,
+  clearMonthlySummaryReminder,
   clearSubscriptionReminder,
   syncSubscriptionReminder,
 } from "../lib/reminders";
@@ -496,6 +497,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const deleteAllData = useCallback(async () => {
+    await Promise.all(subscriptions.map((s) => clearSubscriptionReminder(s.id)));
+    await clearMonthlySummaryReminder();
     await Promise.all(
       ["transactions", "subscriptions", "budgets", "categories", "meta"].map((store) => storage.clear(store))
     );
@@ -509,7 +512,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSubscriptions([]);
     setBudgets([]);
     setReady(true);
-  }, []);
+  }, [subscriptions]);
 
   /* ---------- value ---------- */
   const value = useMemo<AppState>(

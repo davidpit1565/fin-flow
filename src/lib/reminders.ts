@@ -43,6 +43,10 @@ export async function clearSubscriptionReminder(id: string): Promise<void> {
   await cancelNotifications(tagForSubscription(id));
 }
 
+export async function clearMonthlySummaryReminder(): Promise<void> {
+  await cancelNotifications(tagForMonthlySummary());
+}
+
 export async function resyncAllReminders(
   subscriptions: Subscription[],
   settings: UserSettings

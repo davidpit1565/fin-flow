@@ -263,12 +263,7 @@ export function Settings() {
           <SettingsRow label="Privacy Policy" icon={Shield} onPress={() => push({ tab: "settings", name: "privacy" })} />
           <SettingsRow label="Terms of Use" icon={Scale} onPress={() => push({ tab: "settings", name: "terms" })} />
           <SettingsRow label="Help & Support" icon={LifeBuoy} onPress={() => push({ tab: "settings", name: "support" })} />
-          <SettingsRow
-            label="App lock with Face ID"
-            sub="Not available on the web — your data stays in your browser"
-            icon={Lock}
-            last
-          />
+          <SettingsRow label="App lock with Face ID" sub="Coming in a future update" icon={Lock} last />
         </Card>
       </SettingsSection>
 
