@@ -1,10 +1,12 @@
-import { useRef, useState } from "react";
-import { ChevronRight, Download, FolderCog, LifeBuoy, Lock, Scale, Shield, Trash2, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronRight, Download, FolderCog, LifeBuoy, Scale, Shield, Trash2, Upload } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
+import { authenticateWithBiometrics, checkBiometryAvailable } from "../lib/appLock";
 import { CURRENCIES, symbolFor } from "../lib/currency";
 import { buildCSV, downloadCSV, fileToText, parseImportCSV } from "../lib/csv";
 import { notificationsSupported, permissionState, requestPermission, triggersSupported } from "../lib/notifications";
+import { isNative } from "../lib/platform";
 import { resyncAllReminders } from "../lib/reminders";
 import { todayISO } from "../lib/dates";
 import { Card, ChipGroup, ScreenHeader, Sheet, Toggle } from "../components/ui";
@@ -25,10 +27,36 @@ export function Settings() {
   } = useApp();
   const { back, push } = useNavigation();
   const [showCurrency, setShowCurrency] = useState(false);
+  const [biometryAvailable, setBiometryAvailable] = useState<boolean | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isNative()) return;
+    let cancelled = false;
+    void checkBiometryAvailable().then((available) => {
+      if (!cancelled) setBiometryAvailable(available);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!settings) return null;
   const { currency } = settings;
+
+  const onToggleAppLock = async (next: boolean) => {
+    if (!next) {
+      updateSettings({ appLockEnabled: false });
+      return;
+    }
+    const ok = await authenticateWithBiometrics("Confirm Face ID to turn on app lock");
+    if (!ok) {
+      toast("Couldn't verify Face ID — app lock not enabled");
+      return;
+    }
+    updateSettings({ appLockEnabled: true });
+    toast("App lock enabled");
+  };
 
   const onDeleteAll = async () => {
     const itemCount = transactions.length + subscriptions.length + budgets.length;
@@ -263,7 +291,26 @@ export function Settings() {
           <SettingsRow label="Privacy Policy" icon={Shield} onPress={() => push({ tab: "settings", name: "privacy" })} />
           <SettingsRow label="Terms of Use" icon={Scale} onPress={() => push({ tab: "settings", name: "terms" })} />
           <SettingsRow label="Help & Support" icon={LifeBuoy} onPress={() => push({ tab: "settings", name: "support" })} />
-          <SettingsRow label="App lock with Face ID" sub="Coming in a future update" icon={Lock} last />
+          <div className="settings-toggle-row">
+            <div>
+              <span className="row-title">App lock with Face ID</span>
+              <span className="row-sub">
+                {!isNative()
+                  ? "Not available in the browser"
+                  : biometryAvailable === null
+                    ? "Checking…"
+                    : biometryAvailable
+                      ? "Require Face ID to open Flow"
+                      : "Set up Face ID in iOS Settings first"}
+              </span>
+            </div>
+            <Toggle
+              checked={settings.appLockEnabled ?? false}
+              onChange={(v) => void onToggleAppLock(v)}
+              label="App lock with Face ID"
+              disabled={!isNative() || !biometryAvailable}
+            />
+          </div>
         </Card>
       </SettingsSection>
 

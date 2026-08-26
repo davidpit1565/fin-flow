@@ -89,4 +89,28 @@ test.describe("transactions", () => {
     await expect(weekly).toHaveAttribute("aria-checked", "true");
     await expect(monthly).toHaveAttribute("aria-checked", "false");
   });
+
+  test("ChipGroup supports roving-tabindex arrow-key navigation (regression)", async ({ page }) => {
+    await openAddSheet(page);
+    await page.getByRole("switch", { name: "Recurring transaction" }).click();
+
+    const group = page.getByRole("radiogroup", { name: "Recurring frequency" });
+    const daily = group.getByRole("radio", { name: "Daily", exact: true });
+    const weekly = group.getByRole("radio", { name: "Weekly", exact: true });
+    const monthly = group.getByRole("radio", { name: "Monthly", exact: true });
+
+    // Only the checked option is a tab stop; the rest are out of the tab order.
+    await expect(monthly).toHaveAttribute("tabindex", "0");
+    await expect(weekly).toHaveAttribute("tabindex", "-1");
+
+    await monthly.focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(weekly).toBeFocused();
+    await expect(weekly).toHaveAttribute("aria-checked", "true");
+    await expect(monthly).toHaveAttribute("aria-checked", "false");
+
+    await page.keyboard.press("ArrowLeft");
+    await expect(daily).toBeFocused();
+    await expect(daily).toHaveAttribute("aria-checked", "true");
+  });
 });

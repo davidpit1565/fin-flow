@@ -17,6 +17,7 @@ This tracks everything needed to ship Flow to the App Store. Items marked **[DON
   - Status bar style and splash screen use `@capacitor/status-bar` / `@capacitor/splash-screen`, following the app's light/dark theme.
   - Keyboard resize mode is `"native"`, so the tab bar and layout track the keyboard the same way they do on the web.
 - App icon and launch screen generated from the hand-drawn "Flow" mark (`scripts/gen-icons.mjs`) — the full explicit iPhone **and** iPad size set (not the single-1024 "universal" format, which failed to render on a real device during testing), plus the no-alpha 1024×1024 App Store icon Apple's validator requires.
+- Optional app lock (Settings → App lock with Face ID) via `@aparajita/capacitor-biometric-auth`, with a `NSFaceIDUsageDescription` string in `Info.plist`. Unavailable on the web build (no real biometric hardware access from a browser) and gracefully hidden/disabled there. **Not yet verified on a real device** — `npx cap sync ios` runs clean and registers the plugin in `Package.swift`, and typecheck/build/full test suite all pass, but the actual Face ID prompt needs a real device or simulator with biometrics enrolled, which this Linux environment can't provide. Test this once you're in Xcode: enable the toggle in Settings (should prompt Face ID before turning on), background and resume the app (should re-lock), and force-quit and relaunch (should lock on cold start).
 
 ## 2. Bundle identifier — **[DONE]**, but only permanent once registered
 

@@ -68,5 +68,7 @@
 	<string>UIStatusBarStyleDefault</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Flow uses Face ID to lock the app so only you can see your financial data.</string>
 </dict>
 </plist>

@@ -22,6 +22,9 @@ export interface UserSettings {
   dateFormat: DateFormatPreference;
   theme: ThemePreference;
   notifications: NotificationSettings;
+  /** Optional: absent on settings created before this field existed, which
+   *  should be treated the same as `false` -- app lock off by default. */
+  appLockEnabled?: boolean;
   createdAt: number;
   updatedAt: number;
 }

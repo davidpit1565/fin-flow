@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeftRight, BarChart3, Home as HomeIcon, Plus, RefreshCcw, Settings as SettingsIcon } from "lucide-react";
+import { App as CapacitorApp } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { useApp } from "./store/AppContext";
+import { authenticateWithBiometrics } from "./lib/appLock";
 import { isNative } from "./lib/platform";
 import { NavigationProvider, useNavigation, type AnyTab, type Route, type TabId } from "./store/Navigation";
 import { Onboarding } from "./screens/Onboarding";
@@ -27,6 +29,8 @@ function App() {
   const isDark = useTheme(settings?.theme ?? "system");
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
+  const settingsLoaded = ready && (settings?.onboarded ?? false);
+  const { locked, unlock } = useAppLock(settings?.appLockEnabled ?? false, settingsLoaded);
 
   // The native splash screen (Capacitor) stays up until the app's real UI is
   // ready to paint, so there's no flash of an empty view between the launch
@@ -37,6 +41,7 @@ function App() {
 
   if (!ready) return <Splash />;
   if (!settings || !settings.onboarded) return <Onboarding />;
+  if (locked) return <LockScreen onUnlock={unlock} />;
 
   const screen = (() => {
     switch (current.tab) {
@@ -285,17 +290,92 @@ function Sidebar({
 function Splash() {
   return (
     <div className="splash">
-      <svg width="72" height="72" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <rect width="64" height="64" rx="16" fill="var(--accent)" />
-        <path
-          d="M18 42 C 34 44, 42 34, 30 26 C 22 21, 26 14, 42 18"
-          stroke="#ffffff"
-          strokeWidth="5"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <circle cx="42.5" cy="18.5" r="6" fill="#ffffff" />
-      </svg>
+      <FlowMark />
+    </div>
+  );
+}
+
+function FlowMark() {
+  return (
+    <svg width="72" height="72" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <rect width="64" height="64" rx="16" fill="var(--accent)" />
+      <path
+        d="M18 42 C 34 44, 42 34, 30 26 C 22 21, 26 14, 42 18"
+        stroke="#ffffff"
+        strokeWidth="5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <circle cx="42.5" cy="18.5" r="6" fill="#ffffff" />
+    </svg>
+  );
+}
+
+/** Locks the app behind Face ID/Touch ID (native only) once per cold start
+ *  when app lock is enabled, and again every time the app returns from the
+ *  background -- not when the setting is merely toggled on mid-session,
+ *  since enabling it just required a successful Face ID check in Settings. */
+function useAppLock(enabled: boolean, settingsLoaded: boolean): { locked: boolean; unlock: () => void } {
+  const [locked, setLocked] = useState(false);
+  const initializedRef = useRef(false);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+
+  useEffect(() => {
+    if (settingsLoaded && !initializedRef.current) {
+      initializedRef.current = true;
+      if (isNative() && enabledRef.current) setLocked(true);
+    }
+  }, [settingsLoaded]);
+
+  useEffect(() => {
+    if (!isNative()) return undefined;
+    let wasBackground = false;
+    const handlePromise = CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive) {
+        wasBackground = true;
+      } else if (wasBackground) {
+        wasBackground = false;
+        if (enabledRef.current) setLocked(true);
+      }
+    });
+    return () => {
+      void handlePromise.then((handle) => handle.remove());
+    };
+  }, []);
+
+  const unlock = useCallback(() => setLocked(false), []);
+  return { locked: enabled && locked, unlock };
+}
+
+function LockScreen({ onUnlock }: { onUnlock: () => void }) {
+  const [authenticating, setAuthenticating] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const tryUnlock = useCallback(async () => {
+    setAuthenticating(true);
+    setFailed(false);
+    const ok = await authenticateWithBiometrics("Unlock Flow");
+    setAuthenticating(false);
+    if (ok) onUnlock();
+    else setFailed(true);
+  }, [onUnlock]);
+
+  // Prompt automatically as soon as the lock screen appears, with a manual
+  // fallback button for when the user dismisses it or it fails.
+  useEffect(() => {
+    void tryUnlock();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="lock-screen">
+      <FlowMark />
+      <p className="lock-screen-title">Flow is locked</p>
+      {failed && <p className="lock-screen-hint">Face ID didn't confirm it's you.</p>}
+      <button className="btn btn-primary btn-lg" onClick={() => void tryUnlock()} disabled={authenticating}>
+        {authenticating ? "Checking…" : "Unlock with Face ID"}
+      </button>
     </div>
   );
 }

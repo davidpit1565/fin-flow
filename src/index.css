@@ -10,7 +10,7 @@
   --surface-3: #e7e7ec;
   --text: #1c1c1f;
   --text-secondary: #6d6d76;
-  --text-tertiary: #a1a1ab;
+  --text-tertiary: #6f6f78;
   --border: rgba(20, 20, 24, 0.08);
   --border-strong: rgba(20, 20, 24, 0.16);
   --accent: #0e8a5c;
@@ -35,7 +35,7 @@
   --surface-3: #282a2f;
   --text: #f2f3f5;
   --text-secondary: #a3a5ad;
-  --text-tertiary: #696b73;
+  --text-tertiary: #82838b;
   --border: rgba(255, 255, 255, 0.09);
   --border-strong: rgba(255, 255, 255, 0.18);
   --accent: #34c98a;
@@ -276,6 +276,32 @@ ul {
   justify-content: center;
   background: var(--bg);
   animation: fadeIn 0.4s ease both;
+}
+
+.lock-screen {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  background: var(--bg);
+  animation: fadeIn 0.4s ease both;
+}
+
+.lock-screen-title {
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--text);
+  margin: 4px 0 0;
+}
+
+.lock-screen-hint {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  margin: 0;
 }
 
 @keyframes fadeIn {
