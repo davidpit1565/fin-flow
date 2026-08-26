@@ -180,7 +180,7 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
 
       <div className="detail-actions detail-actions-column">
         {status !== "cancelled" && (
-          <button className="btn btn-secondary" onClick={togglePause}>
+          <button className="btn btn-ghost" onClick={togglePause}>
             {status === "paused" ? (
               <>
                 <Play size={16} strokeWidth={2} /> Resume
@@ -208,9 +208,11 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
             <RefreshCcw size={16} strokeWidth={2} /> Reactivate
           </button>
         )}
-        <button className="btn btn-danger-outline" onClick={() => void doDelete()}>
-          <Trash2 size={16} strokeWidth={2} /> Delete
-        </button>
+        <div className="detail-actions-danger">
+          <button className="btn btn-danger-outline" onClick={() => void doDelete()}>
+            <Trash2 size={16} strokeWidth={2} /> Delete
+          </button>
+        </div>
       </div>
 
       <p className="sub-disclaimer">Flow only tracks this subscription. It never cancels your real-world subscription.</p>

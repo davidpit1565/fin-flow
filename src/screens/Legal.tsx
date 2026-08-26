@@ -138,10 +138,10 @@ export function SupportScreen() {
           <p>Flow keeps your data on your device, so most issues are solved by rechecking what was entered. If something looks wrong in the app, tell us what you expected to see.</p>
         </LegalSection>
 
-        <a className="btn btn-secondary btn-block" href="mailto:support@flow.app?subject=Flow%20support">
+        <a className="btn btn-secondary btn-block" href="mailto:davidpit2008@gmail.com?subject=Flow%20support">
           <Mail size={17} strokeWidth={2} /> Contact support
         </a>
-        <a className="btn btn-secondary btn-block" href="mailto:support@flow.app?subject=Report%20a%20problem%20in%20Flow">
+        <a className="btn btn-secondary btn-block" href="mailto:davidpit2008@gmail.com?subject=Report%20a%20problem%20in%20Flow">
           Report a problem
         </a>
       </div>

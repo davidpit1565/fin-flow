@@ -340,9 +340,9 @@ export function recurringDue(transaction: Transaction, now = todayISO()): boolea
   );
 }
 
-export function nextOccurrenceAfter(transaction: Transaction): string | null {
+export function nextOccurrenceAfter(transaction: Transaction, now = todayISO()): string | null {
   if (!transaction.frequency || !transaction.nextOccurrence) return null;
-  const base = transaction.nextOccurrence < todayISO() ? todayISO() : transaction.nextOccurrence;
+  const base = transaction.nextOccurrence < now ? now : transaction.nextOccurrence;
   switch (transaction.frequency) {
     case "daily":
       return addDays(base, 1);
