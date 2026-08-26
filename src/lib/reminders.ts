@@ -123,14 +123,13 @@ export async function checkBudgetAlerts(
 export async function checkMonthlySummary(settings: UserSettings, transactions: Transaction[]): Promise<void> {
   if (!settings.notifications.enabled || !settings.notifications.monthlySummary) return;
   const now = new Date();
-  const thisKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   try {
-    const last = await storage.get<{ key: string; key2: string }>("meta", "lastSummaryMonth");
-    if (last?.key2 === thisKey) return;
     // Summary covers the previous completed month only.
     const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
     const prevKey = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+    const last = await storage.get<{ key: string; key2: string }>("meta", "lastSummaryMonth");
+    if (last?.key2 === prevKey) return;
     const from = `${prevKey}-01`;
     const to = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
     let spent = 0;

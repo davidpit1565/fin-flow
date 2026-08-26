@@ -252,9 +252,13 @@ describe("recurring transactions", () => {
   });
 
   test("nextOccurrenceAfter advances by frequency", () => {
-    expect(nextOccurrenceAfter(txn({ frequency: "daily", nextOccurrence: "2026-08-13" }))).toBe("2026-08-14");
-    expect(nextOccurrenceAfter(txn({ frequency: "weekly", nextOccurrence: "2026-08-13" }))).toBe("2026-08-20");
-    expect(nextOccurrenceAfter(txn({ frequency: "monthly", nextOccurrence: "2026-08-13" }))).toBe("2026-09-13");
+    expect(nextOccurrenceAfter(txn({ frequency: "daily", nextOccurrence: "2026-08-13" }), "2026-08-13")).toBe("2026-08-14");
+    expect(nextOccurrenceAfter(txn({ frequency: "weekly", nextOccurrence: "2026-08-13" }), "2026-08-13")).toBe("2026-08-20");
+    expect(nextOccurrenceAfter(txn({ frequency: "monthly", nextOccurrence: "2026-08-13" }), "2026-08-13")).toBe("2026-09-13");
+  });
+
+  test("nextOccurrenceAfter catches up to today when nextOccurrence is in the past", () => {
+    expect(nextOccurrenceAfter(txn({ frequency: "daily", nextOccurrence: "2026-08-01" }), "2026-08-13")).toBe("2026-08-14");
   });
 });
 
