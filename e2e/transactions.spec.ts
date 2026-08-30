@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { addExpense, addIncome, completeOnboarding, openAddSheet } from "./helpers";
+import { addExpense, addIncome, completeOnboarding, openAddSheet, seedTransactions } from "./helpers";
 
 test.describe("transactions", () => {
   test.beforeEach(async ({ page }) => {
@@ -139,5 +139,29 @@ test.describe("transactions", () => {
     await page.keyboard.press("ArrowLeft");
     await expect(daily).toBeFocused();
     await expect(daily).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("a large history renders incrementally instead of mounting every row at once (regression)", async ({ page }) => {
+    await seedTransactions(page, 400);
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Your finances" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Transactions", exact: true }).click();
+    await expect(page.locator(".txn-groups")).toBeVisible();
+
+    const initialRows = await page.locator(".txn-groups .row").count();
+    expect(initialRows).toBeLessThan(100);
+    expect(initialRows).toBeGreaterThan(0);
+
+    // Scrolling to the bottom of the shared scroll container loads more.
+    for (let i = 0; i < 6; i++) {
+      await page.evaluate(() => {
+        const el = document.querySelector(".app-scroll");
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+      await page.waitForTimeout(120);
+    }
+    const grownRows = await page.locator(".txn-groups .row").count();
+    expect(grownRows).toBe(400);
   });
 });

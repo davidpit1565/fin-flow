@@ -15,6 +15,59 @@ export function tomorrowISO(): string {
   return localISO(d);
 }
 
+/** Seeds `count` synthetic expense transactions directly into IndexedDB --
+ *  far faster than adding each one through the UI, for tests that need a
+ *  realistic amount of data (e.g. checking rendering performance/windowing).
+ *  Call after onboarding has completed, since it reads the seeded default
+ *  categories. Does not update the app's in-memory state -- reload the page
+ *  after calling this. */
+export async function seedTransactions(page: Page, count: number) {
+  await page.evaluate((n) => {
+    function req<T>(r: IDBRequest<T>): Promise<T> {
+      return new Promise((resolve, reject) => {
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+    }
+    return new Promise<void>((resolve, reject) => {
+      const openReq = indexedDB.open("flow-db");
+      openReq.onsuccess = async () => {
+        try {
+          const db = openReq.result;
+          const cats = await req<{ id: string }[]>(db.transaction("categories", "readonly").objectStore("categories").getAll());
+          const catPool = cats.map((c) => c.id);
+          const putTx = db.transaction("transactions", "readwrite");
+          const store = putTx.objectStore("transactions");
+          for (let i = 0; i < n; i++) {
+            const date = `2025-${String(1 + (i % 12)).padStart(2, "0")}-${String(1 + (i % 27)).padStart(2, "0")}`;
+            store.put({
+              id: `e2e-seed-${i}`,
+              type: "expense",
+              amountCents: 500 + (i % 5000),
+              categoryId: catPool[i % catPool.length],
+              merchant: `Merchant ${i % 50}`,
+              date,
+              subscriptionId: null,
+              notes: "",
+              recurring: false,
+              frequency: null,
+              nextOccurrence: null,
+              paymentMethod: null,
+              createdAt: Date.now() - i * 1000,
+              updatedAt: Date.now() - i * 1000,
+            });
+          }
+          putTx.oncomplete = () => resolve();
+          putTx.onerror = () => reject(putTx.error);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      openReq.onerror = () => reject(openReq.error);
+    });
+  }, count);
+}
+
 /** Drive the real onboarding flow to its end. */
 export async function completeOnboarding(page: Page) {
   await page.goto("/");
