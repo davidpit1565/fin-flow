@@ -10,7 +10,7 @@ test.describe("budgets", () => {
     await openSettings(page);
     await page.getByRole("button", { name: "Monthly budgets" }).click();
     await expect(page.getByRole("heading", { name: "Budgets", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Set monthly budget" }).click();
+    await page.getByRole("button", { name: "Add budget" }).click();
     await page.getByLabel("Budget amount").fill("1500");
     await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
     await expect(page.locator(".toast")).toContainText("Budget saved");
@@ -79,12 +79,37 @@ test.describe("budgets", () => {
     await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
     await expect(page.locator(".toast")).toContainText("Budget saved");
 
-    const addOverall = page.getByRole("button", { name: "Add monthly budget" });
+    const addOverall = page.getByRole("button", { name: "Add overall budget" });
     await expect(addOverall).toBeVisible();
     await addOverall.click();
     await page.getByLabel("Budget amount").fill("2000");
     await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
     await expect(page.locator(".toast")).toContainText("Budget saved");
     await expect(page.locator(".budget-card")).toContainText("2,000.00");
+  });
+
+  test("creates a daily overall budget and labels it accordingly", async ({ page }) => {
+    await openSettings(page);
+    await page.getByRole("button", { name: "Monthly budgets" }).click();
+    await page.getByRole("button", { name: "Add budget" }).click();
+    await page.getByRole("tab", { name: "Daily" }).click();
+    await page.getByLabel("Budget amount").fill("50");
+    await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
+    await expect(page.locator(".toast")).toContainText("Budget saved");
+    await expect(page.getByText("Daily budget")).toBeVisible();
+    await expect(page.locator(".budget-card")).toContainText("50.00");
+  });
+
+  test("creates a weekly category budget and shows its period tag", async ({ page }) => {
+    await openSettings(page);
+    await page.getByRole("button", { name: "Monthly budgets" }).click();
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await page.getByRole("tab", { name: "Weekly" }).click();
+    await page.getByLabel("Budget amount").fill("75");
+    await page.getByRole("button", { name: "Food", exact: true }).click();
+    await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
+    await expect(page.locator(".toast")).toContainText("Budget saved");
+    const foodRow = page.locator(".budget-item", { hasText: "Food" });
+    await expect(foodRow.getByText("Weekly", { exact: true })).toBeVisible();
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   activeSubscriptions,
   advanceSubscriptionDate,
+  budgetPeriodStart,
   budgetStatus,
   buildMonthlySummary,
   categoryTotals,
@@ -110,6 +111,36 @@ describe("budget warnings", () => {
     const status = budgetStatus(catBudget, txns, month);
     expect(status.level).toBe("close");
     expect(status.spentCents).toBe(8500);
+  });
+
+  test("budgetPeriodStart resolves the range for each period", () => {
+    expect(budgetPeriodStart("daily", month, "monday")).toBe("2026-08-13");
+    expect(budgetPeriodStart("weekly", month, "monday")).toBe("2026-08-10"); // Thursday -> Monday
+    expect(budgetPeriodStart("weekly", month, "sunday")).toBe("2026-08-09"); // Thursday -> Sunday
+    expect(budgetPeriodStart("monthly", month, "monday")).toBe("2026-08-01");
+    expect(budgetPeriodStart(undefined, month, "monday")).toBe("2026-08-01"); // absent = monthly
+  });
+
+  test("daily budgets only count today's spending", () => {
+    const dailyBudget = { id: "d", categoryId: null, amountCents: 5000, period: "daily" as const, createdAt: 1, updatedAt: 1 };
+    const txns = [
+      txn({ amountCents: 2000, date: "2026-08-13" }),
+      txn({ amountCents: 9999, date: "2026-08-12" }), // yesterday: excluded
+    ];
+    const status = budgetStatus(dailyBudget, txns, month, "monday");
+    expect(status.spentCents).toBe(2000);
+    expect(status.level).toBe("ok");
+  });
+
+  test("weekly budgets count spending since the start of the week", () => {
+    const weeklyBudget = { id: "w", categoryId: null, amountCents: 5000, period: "weekly" as const, createdAt: 1, updatedAt: 1 };
+    const txns = [
+      txn({ amountCents: 1000, date: "2026-08-10" }), // Monday, in-week
+      txn({ amountCents: 1500, date: "2026-08-13" }), // Thursday (`month`), in-week
+      txn({ amountCents: 9999, date: "2026-08-09" }), // previous Sunday: excluded under Monday start
+    ];
+    const status = budgetStatus(weeklyBudget, txns, month, "monday");
+    expect(status.spentCents).toBe(2500);
   });
 });
 

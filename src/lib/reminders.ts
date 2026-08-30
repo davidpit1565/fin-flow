@@ -1,6 +1,6 @@
 import type { Budget, Category, Subscription, Transaction, UserSettings } from "../types";
 import { budgetStatus, monthKey } from "./calc";
-import { todayISO } from "./dates";
+import { startOfWeek, todayISO } from "./dates";
 import { formatMoney } from "./currency";
 import {
   cancelNotifications,
@@ -57,7 +57,7 @@ export async function resyncAllReminders(
 /* ---------- budget alerts ---------- */
 
 interface AlertState {
-  [budgetId: string]: { month: string; level: string };
+  [budgetId: string]: { period: string; level: string };
 }
 
 async function readAlertState(): Promise<AlertState> {
@@ -69,6 +69,21 @@ async function readAlertState(): Promise<AlertState> {
 }
 
 const ALERT_LEVELS = ["close", "high", "reached", "over"] as const;
+
+/** Identifies "which period is this" for alert de-duplication -- a daily
+ *  budget must be able to alert again on a new day even if it already hit
+ *  "over" today, unlike a monthly budget re-checked later the same month. */
+function budgetPeriodKey(budget: Budget, now: string, startWeekOn: UserSettings["startWeekOn"]): string {
+  switch (budget.period) {
+    case "daily":
+      return now;
+    case "weekly":
+      return startOfWeek(now, startWeekOn);
+    case "monthly":
+    default:
+      return monthKey(now);
+  }
+}
 
 export async function checkBudgetAlerts(
   budgets: Budget[],
@@ -82,18 +97,20 @@ export async function checkBudgetAlerts(
   ) {
     return;
   }
-  const month = monthKey(todayISO());
+  const now = todayISO();
   const state = await readAlertState();
   let changed = false;
   for (const budget of budgets) {
-    const status = budgetStatus(budget, transactions);
+    const status = budgetStatus(budget, transactions, now, settings.startWeekOn);
+    const periodKey = budgetPeriodKey(budget, now, settings.startWeekOn);
     const levelIndex = ALERT_LEVELS.indexOf(status.level as (typeof ALERT_LEVELS)[number]);
     const stored = state[budget.id];
-    const storedIndex = stored && stored.month === month ? ALERT_LEVELS.indexOf(stored.level as never) : -1;
+    const storedIndex = stored && stored.period === periodKey ? ALERT_LEVELS.indexOf(stored.level as never) : -1;
     if (levelIndex < 0 || storedIndex >= levelIndex) continue;
+    const periodLabel = budget.period === "daily" ? "daily" : budget.period === "weekly" ? "weekly" : "monthly";
     const name = budget.categoryId
       ? categories.find((c) => c.id === budget.categoryId)?.name ?? "category"
-      : "monthly budget";
+      : `${periodLabel} budget`;
     const diff = Math.abs(status.remainingCents);
     let message: string;
     switch (status.level) {
@@ -109,8 +126,9 @@ export async function checkBudgetAlerts(
       default:
         message = `You're ${formatMoney(diff, settings.currency)} over your ${name} budget.`;
     }
-    notifyNow(name === "monthly budget" ? "Monthly budget" : name, message);
-    state[budget.id] = { month, level: status.level };
+    const title = budget.categoryId ? name : `${periodLabel[0].toUpperCase()}${periodLabel.slice(1)} budget`;
+    notifyNow(title, message);
+    state[budget.id] = { period: periodKey, level: status.level };
     changed = true;
   }
   if (changed) {

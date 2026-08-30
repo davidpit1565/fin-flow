@@ -36,6 +36,17 @@ export function startOfMonth(iso: string): string {
   return iso.slice(0, 8) + "01";
 }
 
+/** First day of the calendar week containing `iso`, honoring the user's
+ *  start-of-week preference. Uses local calendar arithmetic (via `Date`'s
+ *  own setters), so it stays correct across DST transitions. */
+export function startOfWeek(iso: string, startWeekOn: "monday" | "sunday" = "monday"): string {
+  const d = parseISO(iso);
+  const day = d.getDay(); // 0 = Sunday ... 6 = Saturday
+  const diff = startWeekOn === "monday" ? (day === 0 ? 6 : day - 1) : day;
+  d.setDate(d.getDate() - diff);
+  return toISO(d);
+}
+
 export function startOfMonthDate(year: number, month: number): Date {
   return new Date(year, month, 1);
 }

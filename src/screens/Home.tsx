@@ -78,7 +78,8 @@ export function Home({ onAdd }: { onAdd: () => void }) {
   );
 
   const overallBudget = budgets.find((b) => b.categoryId === null);
-  const overallStatus = overallBudget ? budgetStatus(overallBudget, transactions) : null;
+  const overallPeriod = overallBudget?.period ?? "monthly";
+  const overallStatus = overallBudget && settings ? budgetStatus(overallBudget, transactions, undefined, settings.startWeekOn) : null;
 
   const savingsCandidates = useMemo(
     () => activeSubscriptions(subscriptions).filter((s) => s.usage === "rarely" || s.usage === "unused"),
@@ -97,22 +98,25 @@ export function Home({ onAdd }: { onAdd: () => void }) {
     };
   }, [spend, currency]);
 
+  const budgetPeriodLabel = overallPeriod === "daily" ? "daily" : overallPeriod === "weekly" ? "weekly" : "monthly";
+  const budgetPeriodRemainingPhrase = overallPeriod === "daily" ? "today" : overallPeriod === "weekly" ? "this week" : "this month";
+
   const budgetCopy = useMemo(() => {
     if (!overallStatus) return null;
     const { percent, level, remainingCents } = overallStatus;
     if (level === "over") {
       return {
         tone: "over" as const,
-        text: `You've exceeded your monthly budget by ${formatMoney(-remainingCents, currency)}.`,
+        text: `You've exceeded your ${budgetPeriodLabel} budget by ${formatMoney(-remainingCents, currency)}.`,
       };
     }
-    if (level === "reached") return { tone: "over" as const, text: "You've reached your monthly budget." };
+    if (level === "reached") return { tone: "over" as const, text: `You've reached your ${budgetPeriodLabel} budget.` };
     if (level === "high")
-      return { tone: "warn" as const, text: `You've used ${Math.round(percent)}% of your monthly budget.` };
+      return { tone: "warn" as const, text: `You've used ${Math.round(percent)}% of your ${budgetPeriodLabel} budget.` };
     if (level === "close")
-      return { tone: "warn" as const, text: "You're getting close to your monthly budget." };
-    return { tone: "ok" as const, text: `${formatMoney(remainingCents, currency)} remaining this month` };
-  }, [overallStatus, currency]);
+      return { tone: "warn" as const, text: `You're getting close to your ${budgetPeriodLabel} budget.` };
+    return { tone: "ok" as const, text: `${formatMoney(remainingCents, currency)} remaining ${budgetPeriodRemainingPhrase}` };
+  }, [overallStatus, currency, budgetPeriodLabel, budgetPeriodRemainingPhrase]);
 
   const empty = totalTransactions === 0 && subscriptions.length === 0 && budgets.length === 0;
 
@@ -287,7 +291,7 @@ export function Home({ onAdd }: { onAdd: () => void }) {
           {overallBudget && overallStatus ? (
             <section className="section">
               <div className="section-head">
-                <h2 className="section-title">Monthly budget</h2>
+                <h2 className="section-title">{budgetPeriodLabel[0].toUpperCase()}{budgetPeriodLabel.slice(1)} budget</h2>
                 <button className="section-action" onClick={() => push({ tab: "settings", name: "budgets" })}>
                   Manage <ChevronRight size={14} strokeWidth={2.2} />
                 </button>
@@ -307,7 +311,7 @@ export function Home({ onAdd }: { onAdd: () => void }) {
             <section className="section">
               <Card className="card-soft">
                 <p className="card-soft-text">
-                  Set a monthly budget to keep an eye on your spending.{" "}
+                  Set a budget to keep an eye on your spending.{" "}
                   <button className="link" onClick={() => push({ tab: "settings", name: "budgets" })}>
                     Set budget
                   </button>
