@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { addDays, addMonths, diffDays, relativeDay, sameMonth, toISO } from "../src/lib/dates";
+import { addDays, addMonths, diffDays, relativeDay, sameMonth, startOfWeek, toISO } from "../src/lib/dates";
 
 describe("relativeDay", () => {
   const now = "2026-08-13";
@@ -47,5 +47,23 @@ describe("diffDays and sameMonth", () => {
 describe("toISO", () => {
   test("round-trips local dates", () => {
     expect(toISO(new Date(2026, 0, 5))).toBe("2026-01-05");
+  });
+});
+
+describe("startOfWeek", () => {
+  test("Monday-start finds the preceding (or same) Monday", () => {
+    expect(startOfWeek("2026-08-13", "monday")).toBe("2026-08-10"); // Thursday
+    expect(startOfWeek("2026-08-10", "monday")).toBe("2026-08-10"); // already Monday
+    expect(startOfWeek("2026-08-09", "monday")).toBe("2026-08-03"); // Sunday wraps back
+  });
+  test("Sunday-start finds the preceding (or same) Sunday", () => {
+    expect(startOfWeek("2026-08-13", "sunday")).toBe("2026-08-09"); // Thursday
+    expect(startOfWeek("2026-08-09", "sunday")).toBe("2026-08-09"); // already Sunday
+    expect(startOfWeek("2026-08-10", "sunday")).toBe("2026-08-09"); // Monday
+  });
+  test("stays correct across a DST transition", () => {
+    // 2026-03-08 is a DST spring-forward day in the US.
+    expect(startOfWeek("2026-03-10", "monday")).toBe("2026-03-09");
+    expect(startOfWeek("2026-03-10", "sunday")).toBe("2026-03-08");
   });
 });

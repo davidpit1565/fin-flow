@@ -6,8 +6,9 @@ import type {
   Subscription,
   Transaction,
   UpcomingPayment,
+  WeekStart,
 } from "../types";
-import { addDays, addMonths, diffDays, lastMonths, monthLabel, parseISO, relativeDay, shortDate, todayISO } from "./dates";
+import { addDays, addMonths, diffDays, lastMonths, monthLabel, parseISO, relativeDay, shortDate, startOfMonth, startOfWeek, todayISO } from "./dates";
 
 /* ---------- periods ---------- */
 
@@ -211,8 +212,28 @@ export interface BudgetStatus {
   level: "ok" | "close" | "high" | "reached" | "over";
 }
 
-export function budgetStatus(budget: Budget, transactions: Transaction[], month = todayISO()): BudgetStatus {
-  const range: DateRange = { from: `${month.slice(0, 7)}-01`, to: month, label: month };
+/** Start of the current period-to-date range for a budget's period
+ *  ("monthly" when unset, for budgets created before periods existed). */
+export function budgetPeriodStart(period: Budget["period"], now: string, startWeekOn: WeekStart): string {
+  switch (period) {
+    case "daily":
+      return now;
+    case "weekly":
+      return startOfWeek(now, startWeekOn);
+    case "monthly":
+    default:
+      return startOfMonth(now);
+  }
+}
+
+export function budgetStatus(
+  budget: Budget,
+  transactions: Transaction[],
+  now = todayISO(),
+  startWeekOn: WeekStart = "monday"
+): BudgetStatus {
+  const from = budgetPeriodStart(budget.period, now, startWeekOn);
+  const range: DateRange = { from, to: now, label: now };
   const spentCents = budget.categoryId
     ? expensesInRange(
         transactions.filter((t) => t.categoryId === budget.categoryId),

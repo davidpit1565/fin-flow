@@ -90,11 +90,16 @@ export interface Category {
   createdAt: number;
 }
 
+export type BudgetPeriod = "daily" | "weekly" | "monthly";
+
 export interface Budget {
   id: string;
-  /** categoryId = null means the overall monthly budget. */
+  /** categoryId = null means the overall budget for the period. */
   categoryId: string | null;
   amountCents: number;
+  /** Optional: absent on budgets created before this field existed, which
+   *  should be treated the same as "monthly". */
+  period?: BudgetPeriod;
   createdAt: number;
   updatedAt: number;
 }

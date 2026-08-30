@@ -10,6 +10,7 @@ import {
 } from "react";
 import type {
   Budget,
+  BudgetPeriod,
   Category,
   CurrencyCode,
   PaymentMethod,
@@ -127,8 +128,8 @@ interface AppState {
   addCategory: (name: string, icon: string) => Category;
   updateCategory: (id: string, patch: Partial<Category>) => void;
   deleteCategory: (id: string, reassignToId: string | null) => void;
-  addBudget: (categoryId: string | null, amountCents: number) => void;
-  updateBudget: (id: string, amountCents: number) => void;
+  addBudget: (categoryId: string | null, amountCents: number, period?: BudgetPeriod) => void;
+  updateBudget: (id: string, amountCents: number, period?: BudgetPeriod) => void;
   deleteBudget: (id: string) => void;
   updateSettings: (patch: Partial<UserSettings>) => void;
   completeOnboarding: (patch: Partial<UserSettings>) => void;
@@ -429,11 +430,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /* ---------- budget actions ---------- */
   const addBudget = useCallback(
-    (categoryId: string | null, amountCents: number) => {
+    (categoryId: string | null, amountCents: number, period: BudgetPeriod = "monthly") => {
       setBudgets((prev) => {
         const existing = prev.find((b) => b.categoryId === categoryId);
         if (existing) {
-          const updated = { ...existing, amountCents, updatedAt: Date.now() };
+          const updated = { ...existing, amountCents, period, updatedAt: Date.now() };
           void storage.put("budgets", updated).catch(() => toast("Something went wrong. Please try again."));
           return prev.map((b) => (b.id === existing.id ? updated : b));
         }
@@ -441,6 +442,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           id: crypto.randomUUID(),
           categoryId,
           amountCents,
+          period,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
@@ -452,9 +454,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const updateBudget = useCallback(
-    (id: string, amountCents: number) => {
+    (id: string, amountCents: number, period: BudgetPeriod = "monthly") => {
       setBudgets((prev) => {
-        const next = prev.map((b) => (b.id === id ? { ...b, amountCents, updatedAt: Date.now() } : b));
+        const next = prev.map((b) => (b.id === id ? { ...b, amountCents, period, updatedAt: Date.now() } : b));
         const updated = next.find((b) => b.id === id);
         if (updated) void storage.put("budgets", updated).catch(() => toast("Something went wrong. Please try again."));
         return next;
