@@ -4,10 +4,25 @@ import type { Category, Subscription, Transaction } from "../types";
 import { parseAmountToCents } from "./money";
 import { isNative } from "./platform";
 
+/** A cell starting with one of these can be interpreted as a formula by
+ *  Excel/Sheets/Numbers when the exported file is later opened there --
+ *  "CSV injection" -- letting an arbitrary merchant/notes value someone
+ *  typed (or a maliciously crafted import) run as a formula, e.g. pulling
+ *  in a remote URL. A leading single quote is the standard, widely
+ *  supported way to force spreadsheet apps to read the cell as literal text. */
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+
 function escapeCell(value: string | number): string {
-  const s = String(value);
+  let s = String(value);
+  if (FORMULA_TRIGGER.test(s)) s = `'${s}`;
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
+}
+
+/** Reverses the formula-injection guard above when re-importing a
+ *  Flow-exported CSV, so a merchant/notes value round-trips unchanged. */
+function unguardFormulaCell(s: string): string {
+  return s.startsWith("'") && FORMULA_TRIGGER.test(s.slice(1)) ? s.slice(1) : s;
 }
 
 function toCSV(rows: (string | number)[][]): string {
@@ -167,10 +182,10 @@ export function parseImportCSV(text: string, categories: Category[]): { rows: Im
       type: isExpense ? "expense" : "income",
       amountCents,
       categoryId: category?.id ?? categories.find((c) => c.name === "Other")?.id ?? categories[0].id,
-      merchant: (merchant ?? "").trim(),
+      merchant: unguardFormulaCell((merchant ?? "").trim()),
       date,
       subscriptionId: null,
-      notes: (notes ?? "").trim(),
+      notes: unguardFormulaCell((notes ?? "").trim()),
       recurring: /^y/i.test(recurring ?? ""),
       frequency: (["daily", "weekly", "monthly", "yearly"] as const).find((f) => f === frequency?.trim().toLowerCase()) ?? null,
       nextOccurrence: null,

@@ -10,6 +10,7 @@ import {
   recurringDue,
   spendingSeries,
   spendingWithComparison,
+  suggestCategoryForMerchant,
   subscriptionMonthlyTotal,
   subscriptionYearlyTotal,
   upcomingPayments,
@@ -259,6 +260,29 @@ describe("recurring transactions", () => {
 
   test("nextOccurrenceAfter catches up to today when nextOccurrence is in the past", () => {
     expect(nextOccurrenceAfter(txn({ frequency: "daily", nextOccurrence: "2026-08-01" }), "2026-08-13")).toBe("2026-08-14");
+  });
+});
+
+describe("suggestCategoryForMerchant", () => {
+  test("suggests the category most often used for a matching merchant", () => {
+    const transactions = [
+      txn({ merchant: "Netflix", categoryId: "subs" }),
+      txn({ merchant: "Netflix", categoryId: "subs" }),
+      txn({ merchant: "Netflix", categoryId: "food" }), // one stray miscategorization
+    ];
+    expect(suggestCategoryForMerchant("Netflix", transactions)).toBe("subs");
+  });
+
+  test("matches case- and whitespace-insensitively", () => {
+    const transactions = [txn({ merchant: "  Netflix  ", categoryId: "subs" })];
+    expect(suggestCategoryForMerchant("netflix", transactions)).toBe("subs");
+  });
+
+  test("returns null for a new merchant or empty input", () => {
+    const transactions = [txn({ merchant: "Netflix", categoryId: "subs" })];
+    expect(suggestCategoryForMerchant("Spotify", transactions)).toBeNull();
+    expect(suggestCategoryForMerchant("", transactions)).toBeNull();
+    expect(suggestCategoryForMerchant("   ", transactions)).toBeNull();
   });
 });
 

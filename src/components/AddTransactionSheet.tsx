@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { PaymentMethod, RecurringFrequency, Transaction, TransactionType } from "../types";
 import { useApp } from "../store/AppContext";
 import { addDays, addMonths, todayISO } from "../lib/dates";
+import { suggestCategoryForMerchant } from "../lib/calc";
 import { Button, ChipGroup, DateInput, Field, FormError, NumericInput, Segmented, Sheet, TextArea, TextInput, Toggle } from "./ui";
 import { CategoryPicker } from "./CategoryPicker";
 
@@ -33,7 +34,7 @@ function defaultNextOccurrence(date: string, frequency: RecurringFrequency): str
 }
 
 export function AddTransactionSheet({ initial, onClose }: { initial?: Transaction | null; onClose: () => void }) {
-  const { categories, addTransaction, updateTransaction, toast, haptic } = useApp();
+  const { categories, transactions, addTransaction, updateTransaction, toast, haptic } = useApp();
   const isEdit = !!initial;
 
   const defaultCategory = useMemo(() => categories.find((c) => c.name === "Other") ?? categories[0], [categories]);
@@ -41,6 +42,8 @@ export function AddTransactionSheet({ initial, onClose }: { initial?: Transactio
   const [amountCents, setAmountCents] = useState<number | null>(initial?.amountCents ?? null);
   const [type, setType] = useState<TransactionType>(initial?.type ?? "expense");
   const [categoryId, setCategoryId] = useState<string | null>(initial?.categoryId ?? defaultCategory?.id ?? null);
+  const [categoryTouched, setCategoryTouched] = useState(isEdit);
+  const [categorySuggested, setCategorySuggested] = useState(false);
   const [merchant, setMerchant] = useState(initial?.merchant ?? "");
   const [date, setDate] = useState(initial?.date ?? todayISO());
   const [notes, setNotes] = useState(initial?.notes ?? "");
@@ -112,8 +115,15 @@ export function AddTransactionSheet({ initial, onClose }: { initial?: Transactio
           />
         </Field>
 
-        <Field label="Category">
-          <CategoryPicker value={categoryId} onChange={setCategoryId} />
+        <Field label="Category" hint={categorySuggested ? "Suggested from your past entries with this merchant" : undefined}>
+          <CategoryPicker
+            value={categoryId}
+            onChange={(v) => {
+              setCategoryId(v);
+              setCategoryTouched(true);
+              setCategorySuggested(false);
+            }}
+          />
         </Field>
 
         <div className="field-grid">
@@ -123,6 +133,14 @@ export function AddTransactionSheet({ initial, onClose }: { initial?: Transactio
               placeholder="Optional"
               value={merchant}
               onChange={(e) => setMerchant(e.target.value)}
+              onBlur={() => {
+                if (isEdit || categoryTouched) return;
+                const suggestion = suggestCategoryForMerchant(merchant, transactions);
+                if (suggestion && suggestion !== categoryId) {
+                  setCategoryId(suggestion);
+                  setCategorySuggested(true);
+                }
+              }}
               autoComplete="off"
             />
           </Field>

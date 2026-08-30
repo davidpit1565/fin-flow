@@ -40,6 +40,32 @@ describe("CSV export/import round-trip", () => {
     expect(parsed.rows[0].merchant).toBe("Store, Inc.");
     expect(parsed.rows[0].notes).toBe("line1\nline2");
   });
+
+  test("neutralizes formula-triggering merchant/notes on export, and round-trips the original text back (regression: CSV injection)", () => {
+    const transactions = [
+      txn({ id: "t4", merchant: "=1+1", notes: "@SUM(A1:A9)", amountCents: 1000 }),
+      txn({ id: "t5", merchant: "+HYPERLINK(\"http://evil\")", notes: "-2+3", amountCents: 2000 }),
+    ];
+    const csv = buildCSV({ transactions, subscriptions: [], categories });
+    // The raw CSV text must not contain a bare formula-triggering cell --
+    // every such value is guarded with a leading single quote.
+    expect(csv).not.toMatch(/,=1\+1,/);
+    expect(csv).toContain("'=1+1");
+
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.rows.length).toBe(2);
+    expect(parsed.rows.find((r) => r.amountCents === 1000)?.merchant).toBe("=1+1");
+    expect(parsed.rows.find((r) => r.amountCents === 1000)?.notes).toBe("@SUM(A1:A9)");
+    expect(parsed.rows.find((r) => r.amountCents === 2000)?.merchant).toBe('+HYPERLINK("http://evil")');
+    expect(parsed.rows.find((r) => r.amountCents === 2000)?.notes).toBe("-2+3");
+  });
+
+  test("a merchant that genuinely starts with an apostrophe is untouched", () => {
+    const transactions = [txn({ id: "t6", merchant: "'Round Midnight Records", amountCents: 500 })];
+    const csv = buildCSV({ transactions, subscriptions: [], categories });
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.rows[0].merchant).toBe("'Round Midnight Records");
+  });
 });
 
 describe("CSV import validation", () => {

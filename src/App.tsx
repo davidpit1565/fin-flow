@@ -22,7 +22,7 @@ import { PrivacyScreen, SupportScreen, TermsScreen } from "./screens/Legal";
 import { AddTransactionSheet } from "./components/AddTransactionSheet";
 
 function App() {
-  const { ready, settings } = useApp();
+  const { ready, loadError, retryLoad, settings } = useApp();
   const { current, activeTab, navigate } = useNavigation();
   const [adding, setAdding] = useState(false);
 
@@ -31,6 +31,7 @@ function App() {
   const scrollRestoration = useScrollRestoration(currentKey);
   const settingsLoaded = ready && (settings?.onboarded ?? false);
   const { locked, unlock } = useAppLock(settings?.appLockEnabled ?? false, settingsLoaded);
+  const privacyShielded = usePrivacyShield();
 
   // The native splash screen (Capacitor) stays up until the app's real UI is
   // ready to paint, so there's no flash of an empty view between the launch
@@ -39,6 +40,7 @@ function App() {
     if (ready && isNative()) void SplashScreen.hide();
   }, [ready]);
 
+  if (loadError) return <LoadErrorScreen onRetry={retryLoad} />;
   if (!ready) return <Splash />;
   if (!settings || !settings.onboarded) return <Onboarding />;
   if (locked) return <LockScreen onUnlock={unlock} />;
@@ -105,6 +107,11 @@ function App() {
         )}
       </div>
       {adding && <AddTransactionSheet onClose={() => setAdding(false)} />}
+      {privacyShielded && (
+        <div className="privacy-shield">
+          <FlowMark />
+        </div>
+      )}
     </div>
   );
 }
@@ -295,6 +302,26 @@ function Splash() {
   );
 }
 
+/** Shown when the initial load from local storage fails outright -- e.g.
+ *  Safari Private Browsing blocks IndexedDB entirely, or the database is
+ *  corrupted. Without this, a failed load left the app stuck on the splash
+ *  screen forever with no explanation and no way forward. */
+function LoadErrorScreen({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="lock-screen">
+      <FlowMark />
+      <p className="lock-screen-title">Flow couldn't load your data</p>
+      <p className="lock-screen-hint">
+        This can happen in private browsing mode, or if your browser's storage is blocked. Try again, or switch to
+        regular browsing mode.
+      </p>
+      <button className="btn btn-primary btn-lg" onClick={onRetry}>
+        Try again
+      </button>
+    </div>
+  );
+}
+
 function FlowMark() {
   return (
     <svg width="72" height="72" viewBox="0 0 64 64" fill="none" aria-hidden="true">
@@ -346,6 +373,26 @@ function useAppLock(enabled: boolean, settingsLoaded: boolean): { locked: boolea
 
   const unlock = useCallback(() => setLocked(false), []);
   return { locked: enabled && locked, unlock };
+}
+
+/** Covers the screen the instant the app leaves the foreground (native only),
+ *  independent of whether app lock is on. iOS snapshots whatever is on
+ *  screen for the app-switcher card the moment the app backgrounds -- without
+ *  this, real balances and transactions would sit in that snapshot in plain
+ *  view, which would defeat the point of the Face ID lock at the one moment
+ *  it matters most (and leaks data even for users who never turn lock on). */
+function usePrivacyShield(): boolean {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    if (!isNative()) return undefined;
+    const handlePromise = CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+      setHidden(!isActive);
+    });
+    return () => {
+      void handlePromise.then((handle) => handle.remove());
+    };
+  }, []);
+  return hidden;
 }
 
 function LockScreen({ onUnlock }: { onUnlock: () => void }) {

@@ -367,3 +367,29 @@ export function advanceSubscriptionDate(sub: Subscription): string {
       return addMonths(sub.nextPaymentDate, 12);
   }
 }
+
+/** Suggests a category for a new transaction from the user's own history --
+ *  entirely on-device, no network call and no data ever leaving the
+ *  device, matching how the rest of the app works. Looks at past
+ *  transactions with the exact same (case/whitespace-insensitive) merchant
+ *  name and returns whichever category was used most often for it, so one
+ *  stray miscategorization doesn't override an established pattern. Returns
+ *  null when the merchant is new or there's nothing to learn from yet. */
+export function suggestCategoryForMerchant(merchant: string, transactions: Transaction[]): string | null {
+  const key = merchant.trim().toLowerCase();
+  if (!key) return null;
+  const counts = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.merchant.trim().toLowerCase() !== key) continue;
+    counts.set(t.categoryId, (counts.get(t.categoryId) ?? 0) + 1);
+  }
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [categoryId, count] of counts) {
+    if (count > bestCount) {
+      best = categoryId;
+      bestCount = count;
+    }
+  }
+  return best;
+}

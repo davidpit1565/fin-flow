@@ -46,7 +46,16 @@ function openDB(): Promise<IDBDatabase> {
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 function db(): Promise<IDBDatabase> {
-  if (!dbPromise) dbPromise = openDB();
+  if (!dbPromise) {
+    // Clear the cache on failure too, or a transient open error (or a
+    // blocked IndexedDB that later becomes available, e.g. leaving private
+    // browsing) would poison every future call with the same stale
+    // rejection forever, even after a caller explicitly retries.
+    dbPromise = openDB().catch((err: unknown) => {
+      dbPromise = null;
+      throw err;
+    });
+  }
   return dbPromise;
 }
 
