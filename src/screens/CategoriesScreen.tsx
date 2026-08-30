@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
 import { ICON_SET, iconByName } from "../lib/icons";
-import { Button, Card, Field, IconBadge, ScreenHeader, Sheet, TextInput } from "../components/ui";
+import { Button, Card, Field, IconBadge, ScreenHeader, Sheet, TextInput, rovingNextIndex } from "../components/ui";
 
 export function CategoriesScreen() {
   const { categories, transactions, subscriptions, addCategory, updateCategory, deleteCategory, confirm, toast, haptic } = useApp();
@@ -11,6 +11,7 @@ export function CategoriesScreen() {
   const [editing, setEditing] = useState<{ id: string | null; name: string; icon: string } | null>(null);
   const [reassignTarget, setReassignTarget] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const iconRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const usageCount = useMemo(() => {
     const map = new Map<string, number>();
@@ -135,19 +136,36 @@ export function CategoriesScreen() {
             </Field>
             <Field label="Icon">
               <div className="icon-grid" role="radiogroup" aria-label="Category icon">
-                {ICON_SET.map(({ name, icon: Icon }) => (
-                  <button
-                    key={name}
-                    type="button"
-                    role="radio"
-                    aria-checked={editing.icon === name}
-                    className={`icon-option ${editing.icon === name ? "icon-option-active" : ""}`}
-                    onClick={() => setEditing({ ...editing, icon: name })}
-                    aria-label={name}
-                  >
-                    <Icon size={19} strokeWidth={1.8} />
-                  </button>
-                ))}
+                {(() => {
+                  const selectedIconIndex = Math.max(
+                    0,
+                    ICON_SET.findIndex((opt) => opt.name === editing.icon)
+                  );
+                  return ICON_SET.map(({ name, icon: Icon }, i) => (
+                    <button
+                      key={name}
+                      ref={(el) => {
+                        iconRefs.current[i] = el;
+                      }}
+                      type="button"
+                      role="radio"
+                      aria-checked={editing.icon === name}
+                      tabIndex={i === selectedIconIndex ? 0 : -1}
+                      className={`icon-option ${editing.icon === name ? "icon-option-active" : ""}`}
+                      onClick={() => setEditing({ ...editing, icon: name })}
+                      onKeyDown={(e) => {
+                        const next = rovingNextIndex(e.key, i, ICON_SET.length);
+                        if (next === null) return;
+                        e.preventDefault();
+                        setEditing({ ...editing, icon: ICON_SET[next].name });
+                        iconRefs.current[next]?.focus();
+                      }}
+                      aria-label={name}
+                    >
+                      <Icon size={19} strokeWidth={1.8} />
+                    </button>
+                  ));
+                })()}
               </div>
             </Field>
           </div>

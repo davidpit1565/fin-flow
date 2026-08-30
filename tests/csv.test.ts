@@ -13,7 +13,7 @@ describe("CSV export/import round-trip", () => {
       txn({ id: "t2", amountCents: 240000, merchant: "Salary", categoryId: "other", type: "income", date: "2026-08-01" }),
     ];
     const subscriptions = [sub({ id: "s1", name: "Netflix", amountCents: 1799, frequency: "monthly", categoryId: "subs", nextPaymentDate: "2026-08-20" })];
-    const csv = buildCSV({ transactions, subscriptions, categories });
+    const csv = buildCSV({ transactions, subscriptions, categories, currency: "USD" });
 
     const parsed = parseImportCSV(csv, categories);
     expect(parsed.errors).toEqual([]);
@@ -34,7 +34,7 @@ describe("CSV export/import round-trip", () => {
 
   test("round-trips quoted fields with commas", () => {
     const transactions = [txn({ id: "t3", merchant: "Store, Inc.", notes: "line1\nline2", amountCents: 1234 })];
-    const csv = buildCSV({ transactions, subscriptions: [], categories });
+    const csv = buildCSV({ transactions, subscriptions: [], categories, currency: "USD" });
     const parsed = parseImportCSV(csv, categories);
     expect(parsed.rows.length).toBe(1);
     expect(parsed.rows[0].merchant).toBe("Store, Inc.");
@@ -46,7 +46,7 @@ describe("CSV export/import round-trip", () => {
       txn({ id: "t4", merchant: "=1+1", notes: "@SUM(A1:A9)", amountCents: 1000 }),
       txn({ id: "t5", merchant: "+HYPERLINK(\"http://evil\")", notes: "-2+3", amountCents: 2000 }),
     ];
-    const csv = buildCSV({ transactions, subscriptions: [], categories });
+    const csv = buildCSV({ transactions, subscriptions: [], categories, currency: "USD" });
     // The raw CSV text must not contain a bare formula-triggering cell --
     // every such value is guarded with a leading single quote.
     expect(csv).not.toMatch(/,=1\+1,/);
@@ -60,9 +60,24 @@ describe("CSV export/import round-trip", () => {
     expect(parsed.rows.find((r) => r.amountCents === 2000)?.notes).toBe("-2+3");
   });
 
+  test("exports the real currency code, not a placeholder string (regression)", () => {
+    const transactions = [txn({ id: "t7", merchant: "Cafe", amountCents: 500 })];
+    const subscriptions = [sub({ id: "s2", name: "Netflix", amountCents: 1799, currency: "EUR" })];
+    const csv = buildCSV({ transactions, subscriptions, categories, currency: "ILS" });
+
+    expect(csv).not.toContain("app currency");
+    // Transactions use the app-wide currency setting (they don't store their own).
+    const txnLine = csv.split("\r\n").find((l) => l.startsWith("2026-08-05,Cafe"));
+    expect(txnLine).toContain(",ILS,");
+    // Subscriptions store their own currency, which can differ from the
+    // app's current setting if it was changed after the subscription was added.
+    const subLine = csv.split("\r\n").find((l) => l.startsWith("Netflix,"));
+    expect(subLine).toContain(",EUR,");
+  });
+
   test("a merchant that genuinely starts with an apostrophe is untouched", () => {
     const transactions = [txn({ id: "t6", merchant: "'Round Midnight Records", amountCents: 500 })];
-    const csv = buildCSV({ transactions, subscriptions: [], categories });
+    const csv = buildCSV({ transactions, subscriptions: [], categories, currency: "USD" });
     const parsed = parseImportCSV(csv, categories);
     expect(parsed.rows[0].merchant).toBe("'Round Midnight Records");
   });
