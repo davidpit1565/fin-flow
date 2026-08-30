@@ -65,4 +65,26 @@ test.describe("budgets", () => {
     await expect(page.getByText("Food")).toBeVisible();
     expect(errors.filter((e) => e.includes("same key"))).toEqual([]);
   });
+
+  test("can still add a monthly budget after a category budget already exists (regression)", async ({ page }) => {
+    await openSettings(page);
+    await page.getByRole("button", { name: "Monthly budgets" }).click();
+
+    // Add a category budget first, without ever setting an overall one --
+    // this used to leave no way to ever create the overall budget, since
+    // its only "create" button lived inside the now-hidden empty state.
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await page.getByLabel("Budget amount").fill("300");
+    await page.getByRole("button", { name: "Food", exact: true }).click();
+    await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
+    await expect(page.locator(".toast")).toContainText("Budget saved");
+
+    const addOverall = page.getByRole("button", { name: "Add monthly budget" });
+    await expect(addOverall).toBeVisible();
+    await addOverall.click();
+    await page.getByLabel("Budget amount").fill("2000");
+    await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
+    await expect(page.locator(".toast")).toContainText("Budget saved");
+    await expect(page.locator(".budget-card")).toContainText("2,000.00");
+  });
 });

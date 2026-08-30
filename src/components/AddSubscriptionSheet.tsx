@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { PaymentMethod, Subscription, SubscriptionFrequency, SubscriptionUsage } from "../types";
 import { useApp } from "../store/AppContext";
 import { todayISO } from "../lib/dates";
+import { reminderTimestamp } from "../lib/notifications";
 import { Button, ChipGroup, DateInput, Field, FormError, NumericInput, Sheet, TextArea, TextInput, Toggle } from "./ui";
 import { CategoryPicker } from "./CategoryPicker";
 
@@ -59,6 +60,10 @@ export function AddSubscriptionSheet({ initial, onClose }: { initial?: Subscript
   const [error, setError] = useState<string | null>(null);
 
   if (!settings) return null;
+
+  const selectedReminderDays = reminderValueToDays(reminderValue);
+  const reminderAlreadyPassed =
+    reminderToggle && selectedReminderDays !== null && reminderTimestamp(nextPaymentDate, selectedReminderDays) <= Date.now();
 
   const save = () => {
     if (!name.trim()) {
@@ -150,7 +155,14 @@ export function AddSubscriptionSheet({ initial, onClose }: { initial?: Subscript
           {reminderToggle && (
             <div className="recurring-opts">
               <ChipGroup options={REMINDERS} value={reminderValue} onChange={setReminderValue} ariaLabel="Reminder timing" />
-              <p className="field-hint">Reminders are sent at 9:00 AM local time.</p>
+              {reminderAlreadyPassed ? (
+                <p className="field-hint field-hint-warn">
+                  This reminder time has already passed for the selected next payment date, so it won't be sent. Pick a later
+                  payment date or a shorter reminder window.
+                </p>
+              ) : (
+                <p className="field-hint">Reminders are sent at 9:00 AM local time.</p>
+              )}
             </div>
           )}
         </div>

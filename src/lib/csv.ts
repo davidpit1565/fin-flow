@@ -1,6 +1,6 @@
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
-import type { Category, Subscription, Transaction } from "../types";
+import type { Category, CurrencyCode, Subscription, Transaction } from "../types";
 import { parseAmountToCents } from "./money";
 import { isNative } from "./platform";
 
@@ -33,6 +33,7 @@ export interface ExportBundle {
   transactions: Transaction[];
   subscriptions: Subscription[];
   categories: Category[];
+  currency: CurrencyCode;
 }
 
 export function buildCSV(bundle: ExportBundle): string {
@@ -46,7 +47,7 @@ export function buildCSV(bundle: ExportBundle): string {
       t.date,
       t.merchant,
       (t.amountCents / 100).toFixed(2),
-      "app currency",
+      bundle.currency,
       bundle.categories.find((c) => c.id === t.categoryId)?.name ?? "",
       t.type,
       t.notes,
@@ -57,11 +58,12 @@ export function buildCSV(bundle: ExportBundle): string {
   }
   lines.push([]);
   lines.push(["# Subscriptions"]);
-  lines.push(["Service", "Amount", "Frequency", "Next payment", "Status", "Category", "Notes", "Reminder days"]);
+  lines.push(["Service", "Amount", "Currency", "Frequency", "Next payment", "Status", "Category", "Notes", "Reminder days"]);
   for (const s of bundle.subscriptions) {
     lines.push([
       s.name,
       (s.amountCents / 100).toFixed(2),
+      s.currency,
       s.frequency,
       s.nextPaymentDate,
       s.status,

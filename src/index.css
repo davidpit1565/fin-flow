@@ -647,6 +647,10 @@ ul {
   line-height: 1.45;
 }
 
+.field-hint-warn {
+  color: var(--warn);
+}
+
 .input {
   width: 100%;
   height: 48px;

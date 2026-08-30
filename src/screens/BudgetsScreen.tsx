@@ -78,21 +78,40 @@ export function BudgetsScreen() {
         />
       )}
 
-      {overall && (
+      {budgets.length > 0 && (
         <section className="section">
-          <h2 className="section-title">Overall</h2>
-          <Card className="budget-card">
-            <BudgetStatusView
-              budgetId={overall.id}
-              name="Monthly budget"
-              currency={currency}
-              onEdit={() => {
-                setEditing({ categoryId: null, current: overall.amountCents });
-                setAmountCents(overall.amountCents);
-              }}
-              onDelete={() => void removeBudget(overall)}
-            />
-          </Card>
+          <div className="section-head">
+            <h2 className="section-title">Overall</h2>
+            {!overall && (
+              <button
+                className="section-action"
+                onClick={() => {
+                  setEditing({ categoryId: null, current: 0 });
+                  setAmountCents(null);
+                }}
+              >
+                <Plus size={15} strokeWidth={2.2} /> Add monthly budget
+              </button>
+            )}
+          </div>
+          {overall ? (
+            <Card className="budget-card">
+              <BudgetStatusView
+                budgetId={overall.id}
+                name="Monthly budget"
+                currency={currency}
+                onEdit={() => {
+                  setEditing({ categoryId: null, current: overall.amountCents });
+                  setAmountCents(overall.amountCents);
+                }}
+                onDelete={() => void removeBudget(overall)}
+              />
+            </Card>
+          ) : (
+            <Card className="card-soft">
+              <p className="card-soft-text">Set a limit for your overall monthly spending. Use the “Add” button above.</p>
+            </Card>
+          )}
         </section>
       )}
 

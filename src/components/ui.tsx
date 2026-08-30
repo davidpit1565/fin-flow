@@ -73,8 +73,9 @@ export function Segmented<T extends string>({ options, value, onChange, ariaLabe
   );
 }
 
-/** Roving-tabindex arrow-key navigation shared by Segmented and ChipGroup. */
-function rovingNextIndex(key: string, index: number, length: number): number | null {
+/** Roving-tabindex arrow-key navigation shared by Segmented, ChipGroup, and
+ *  any other same-role button group (e.g. CategoryPicker). */
+export function rovingNextIndex(key: string, index: number, length: number): number | null {
   if (key === "ArrowRight" || key === "ArrowDown") return (index + 1) % length;
   if (key === "ArrowLeft" || key === "ArrowUp") return (index - 1 + length) % length;
   if (key === "Home") return 0;

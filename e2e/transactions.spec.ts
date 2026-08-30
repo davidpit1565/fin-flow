@@ -141,6 +141,24 @@ test.describe("transactions", () => {
     await expect(daily).toHaveAttribute("aria-checked", "true");
   });
 
+  test("CategoryPicker supports roving-tabindex arrow-key navigation (regression)", async ({ page }) => {
+    await openAddSheet(page);
+    const group = page.getByRole("radiogroup", { name: "Category" });
+    const other = group.getByRole("radio", { name: "Other", exact: true });
+    const personal = group.getByRole("radio", { name: "Personal", exact: true });
+
+    // "Other" is the default category, so it's the only tab stop to start.
+    await expect(other).toHaveAttribute("aria-checked", "true");
+    await expect(other).toHaveAttribute("tabindex", "0");
+    await expect(personal).toHaveAttribute("tabindex", "-1");
+
+    await other.focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(personal).toBeFocused();
+    await expect(personal).toHaveAttribute("aria-checked", "true");
+    await expect(other).toHaveAttribute("aria-checked", "false");
+  });
+
   test("a large history renders incrementally instead of mounting every row at once (regression)", async ({ page }) => {
     await seedTransactions(page, 400);
     await page.reload();

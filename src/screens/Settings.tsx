@@ -77,7 +77,7 @@ export function Settings() {
   const onExport = async () => {
     try {
       await downloadCSV(
-        buildCSV({ transactions, subscriptions, categories }),
+        buildCSV({ transactions, subscriptions, categories, currency }),
         `flow-data-${todayISO()}.csv`
       );
       toast("Export ready");

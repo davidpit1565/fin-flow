@@ -82,4 +82,25 @@ test.describe("subscriptions", () => {
     const history = page.locator(".section", { hasText: "Payment history" });
     await expect(history.locator(".row")).toHaveCount(2);
   });
+
+  test("warns when a reminder would already be in the past instead of silently dropping it (regression)", async ({ page }) => {
+    await page.getByRole("button", { name: "Subscriptions" }).click();
+    await page.locator(".sub-toolbar").getByRole("button", { name: "Add subscription" }).click();
+
+    await page.getByLabel("Service name").fill("Streaming");
+    await page.getByLabel("Amount").fill("9.99");
+    await page.getByLabel("Next payment").fill(tomorrowISO());
+
+    // The reminder toggle defaults to on (with "None" selected) for a new subscription.
+    await expect(page.getByText("Reminders are sent at 9:00 AM local time.")).toBeVisible();
+
+    // A 7-day-before reminder for a payment due tomorrow has already passed.
+    await page.getByRole("radio", { name: "7 days", exact: true }).click();
+    await expect(page.getByText(/already passed/)).toBeVisible();
+
+    // Same day is still in the future -- the warning clears.
+    await page.getByRole("radio", { name: "Same day", exact: true }).click();
+    await expect(page.getByText(/already passed/)).toHaveCount(0);
+    await expect(page.getByText("Reminders are sent at 9:00 AM local time.")).toBeVisible();
+  });
 });
