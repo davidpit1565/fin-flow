@@ -110,6 +110,8 @@ export interface ConfirmOptions {
 
 interface AppState {
   ready: boolean;
+  loadError: boolean;
+  retryLoad: () => void;
   settings: UserSettings | null;
   categories: Category[];
   transactions: Transaction[];
@@ -141,6 +143,8 @@ const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -153,6 +157,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /* ---------- load ---------- */
   useEffect(() => {
     let cancelled = false;
+    setLoadError(false);
     (async () => {
       let s = await storage.get<UserSettings>("settings", "user");
       if (!s) {
@@ -180,11 +185,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSubscriptions(subs);
       setBudgets(bdgs);
       setReady(true);
-    })();
+    })().catch(() => {
+      // Local storage (IndexedDB) is unavailable or broken -- e.g. Safari
+      // Private Browsing blocks it outright. Without this, the app hangs on
+      // the splash screen forever with no explanation and no way out.
+      if (!cancelled) setLoadError(true);
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadAttempt]);
+
+  const retryLoad = useCallback(() => setLoadAttempt((n) => n + 1), []);
 
   /* ---------- post-load side effects ---------- */
   const readyRef = useRef(false);
@@ -519,6 +531,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppState>(
     () => ({
       ready,
+      loadError,
+      retryLoad,
       settings,
       categories,
       transactions,
@@ -547,6 +561,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }),
     [
       ready,
+      loadError,
+      retryLoad,
       settings,
       categories,
       transactions,

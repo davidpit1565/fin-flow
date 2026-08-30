@@ -41,6 +41,12 @@ describe("parseAmountToCents", () => {
     expect(parseAmountToCents("0")).toBeNull();
   });
 
+  test("rejects absurdly large amounts instead of silently corrupting into an imprecise number (regression)", () => {
+    expect(parseAmountToCents("999999999999999999999999999999")).toBeNull();
+    expect(parseAmountToCents("10000000000.00")).toBeNull(); // just over the cap
+    expect(parseAmountToCents("9999999999.99")).toBe(999999999999); // exactly at the cap
+  });
+
   test("rounds a third decimal digit correctly despite float representation error (regression)", () => {
     // Math.round(Number(s) * 100) used to get several of these wrong --
     // e.g. 1.005 * 100 === 100.49999999999999 in IEEE 754, which rounds

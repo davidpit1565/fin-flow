@@ -1,5 +1,13 @@
 /** Money helpers. Amounts are integer cents everywhere. */
 
+/** Far more than any real personal-finance figure needs ($9,999,999,999.99),
+ *  but low enough to keep every downstream calculation (sums, ×12 for a
+ *  yearly equivalent, chart scales) safely inside Number.MAX_SAFE_INTEGER.
+ *  Without a cap, a very long digit string parses into a numerically
+ *  imprecise `cents` value that silently corrupts totals and charts instead
+ *  of failing loudly. */
+const MAX_CENTS = 999_999_999_999;
+
 /** Parse a user-typed amount ("12,345.67" or "12.345,67") into cents. Returns null if invalid. */
 export function parseAmountToCents(input: string): number | null {
   const raw = input.trim();
@@ -41,7 +49,7 @@ export function parseAmountToCents(input: string): number | null {
   const d3 = fracPart.length > 2 ? Number(fracPart[2]) : 0;
   let cents = parseInt(intPart, 10) * 100 + d1 * 10 + d2;
   if (d3 >= 5) cents += 1;
-  if (!Number.isFinite(cents) || cents <= 0) return null;
+  if (!Number.isFinite(cents) || cents <= 0 || cents > MAX_CENTS) return null;
   return cents;
 }
 

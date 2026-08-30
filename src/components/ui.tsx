@@ -348,8 +348,30 @@ export function Sheet({
   onCloseRef.current = onClose;
 
   useLayoutEffect(() => {
+    // `aria-modal="true"` on the sheet promises keyboard focus stays inside
+    // it, but nothing enforced that -- Tab could walk out into the app
+    // underneath the backdrop (reachable on iPad/desktop with a physical
+    // keyboard, now that both are fully supported), letting a keyboard user
+    // land on and activate a control that's visually hidden behind the sheet.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== "Tab" || !ref.current) return;
+      const focusables = Array.from(
+        ref.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      ).filter((el) => !el.hasAttribute("disabled") && el.offsetParent !== null);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
 
@@ -361,6 +383,18 @@ export function Sheet({
     const scroller = document.querySelector<HTMLElement>(".app-scroll");
     const prevFocus = document.activeElement as HTMLElement | null;
     const prevTop = scroller ? scroller.scrollTop : 0;
+
+    // Start focus inside the sheet so the trap above has something to work
+    // with from the very first Tab press, instead of leaving focus wherever
+    // it was on the page underneath. Some sheets already autoFocus a specific
+    // field (e.g. the amount input on Add transaction) -- respect that
+    // instead of yanking focus over to the close button.
+    if (!ref.current?.contains(document.activeElement)) {
+      const firstFocusable = ref.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      (firstFocusable ?? ref.current)?.focus({ preventScroll: true });
+    }
 
     const preventScroll = (e: Event) => {
       const target = e.target as Node | null;
@@ -403,7 +437,7 @@ export function Sheet({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={ariaLabel ?? title} ref={ref}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={ariaLabel ?? title} ref={ref} tabIndex={-1}>
         <div className="sheet-grabber" aria-hidden="true" />
         <div className="sheet-header">
           <h2 className="sheet-title">{title}</h2>

@@ -90,6 +90,33 @@ test.describe("transactions", () => {
     await expect(monthly).toHaveAttribute("aria-checked", "false");
   });
 
+  test("suggests a category from past entries for the same merchant (on-device, no confirmation needed to change it)", async ({ page }) => {
+    await addExpense(page, { amount: "4.50", category: "Food", merchant: "Corner Cafe" });
+
+    await openAddSheet(page);
+    await page.getByLabel("Amount").fill("5.00");
+    await page.getByLabel("Merchant").fill("Corner Cafe");
+    // Blur the merchant field without touching the category picker.
+    await page.getByLabel("Amount").focus();
+
+    await expect(page.getByRole("radio", { name: "Food", exact: true })).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByText("Suggested from your past entries with this merchant")).toBeVisible();
+
+    // Overriding it is a plain, unconfirmed click -- no special friction.
+    await page.getByRole("radio", { name: "Transport", exact: true }).click();
+    await expect(page.getByText("Suggested from your past entries with this merchant")).toHaveCount(0);
+
+    await page.locator(".sheet-footer").getByRole("button", { name: "Add expense" }).click();
+    await expect(page.locator(".toast")).toContainText("Expense added");
+  });
+
+  test("does not suggest a category for a brand-new merchant with no history", async ({ page }) => {
+    await openAddSheet(page);
+    await page.getByLabel("Merchant").fill("Never Seen Before Inc");
+    await page.getByLabel("Amount").focus();
+    await expect(page.getByText("Suggested from your past entries with this merchant")).toHaveCount(0);
+  });
+
   test("ChipGroup supports roving-tabindex arrow-key navigation (regression)", async ({ page }) => {
     await openAddSheet(page);
     await page.getByRole("switch", { name: "Recurring transaction" }).click();
