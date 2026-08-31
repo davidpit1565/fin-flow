@@ -16,6 +16,8 @@ import { goals } from "./goals";
 import { netWorth } from "./netWorth";
 import { debts } from "./debts";
 import { yearInReview } from "./yearInReview";
+import { subscriptions } from "./subscriptions";
+import { budgets } from "./budgets";
 
 /** Typed against `En` so TypeScript fails the build the moment a Hebrew
  *  namespace is missing a key the English one has (or has an extra one) --
@@ -38,4 +40,6 @@ export const he: typeof En = {
   netWorth,
   debts,
   yearInReview,
+  subscriptions,
+  budgets,
 };

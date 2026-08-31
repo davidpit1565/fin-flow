@@ -2,7 +2,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { ChevronRight, Repeat, Trash2 } from "lucide-react";
 import type { Category, CurrencyCode, Subscription, Transaction } from "../types";
 import { iconByName } from "../lib/icons";
-import { frequencyLabel, monthlyEquivalent } from "../lib/calc";
+import { monthlyEquivalent } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
 import { shortDate } from "../lib/dates";
 import { useT } from "../lib/i18n";
@@ -224,7 +224,7 @@ export function SubscriptionRow({
           ? {
               label: t.common.delete,
               onPress: onDelete,
-              ariaLabel: `Delete ${subscription.name}`,
+              ariaLabel: t.subscriptions.deleteAriaLabel(subscription.name),
             }
           : undefined
       }
@@ -234,13 +234,12 @@ export function SubscriptionRow({
         <div className="row-main">
           <span className="row-title">{subscription.name}</span>
           <span className="row-sub">
-            {paused ? "Paused · " : cancelled ? "Cancelled · " : ""}
-            {frequencyLabel(subscription.frequency)} · next {shortDate(subscription.nextPaymentDate, { includeYear: true })}
+            {t.subscriptions.rowMeta(subscription.status, subscription.frequency, shortDate(subscription.nextPaymentDate, { includeYear: true }))}
           </span>
         </div>
         <div className="row-end">
           <span className="row-amount">{formatMoney(subscription.amountCents, currency)}</span>
-          <span className="row-sub">{formatMoney(monthlyEquivalent(subscription), currency)}/mo</span>
+          <span className="row-sub">{t.subscriptions.monthlyEquivalentInline(formatMoney(monthlyEquivalent(subscription), currency))}</span>
         </div>
       </div>
     </SwipeRow>

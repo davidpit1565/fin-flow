@@ -20,6 +20,8 @@ import { goals } from "./goals";
 import { netWorth } from "./netWorth";
 import { debts } from "./debts";
 import { yearInReview } from "./yearInReview";
+import { subscriptions } from "./subscriptions";
+import { budgets } from "./budgets";
 
 export const en = {
   common,
@@ -39,4 +41,6 @@ export const en = {
   netWorth,
   debts,
   yearInReview,
+  subscriptions,
+  budgets,
 };

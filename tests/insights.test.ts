@@ -5,6 +5,7 @@ import {
   detectUnusedSubscriptions,
   generateMonthlyNarrative,
 } from "../src/lib/insights";
+import { insights as narrativeDictionary } from "../src/lib/i18n/en/insights";
 import { cat, installGlobals, sub, txn } from "./helpers";
 
 installGlobals("en-US");
@@ -104,7 +105,7 @@ describe("generateMonthlyNarrative", () => {
   const now = "2026-08-15";
 
   test("returns an encouraging default message when there's nothing to say yet", () => {
-    const sentences = generateMonthlyNarrative([], [], cats, [], now);
+    const sentences = generateMonthlyNarrative([], [], cats, [], narrativeDictionary, now);
     expect(sentences.length).toBeGreaterThan(0);
     expect(sentences.length).toBeLessThanOrEqual(5);
     expect(sentences[0].length).toBeGreaterThan(0);
@@ -115,7 +116,7 @@ describe("generateMonthlyNarrative", () => {
       txn({ amountCents: 3000, categoryId: "housing", date: "2026-08-05" }),
       txn({ amountCents: 1000, categoryId: "food", date: "2026-08-06" }),
     ];
-    const sentences = generateMonthlyNarrative(txns, [], cats, [], now);
+    const sentences = generateMonthlyNarrative(txns, [], cats, [], narrativeDictionary, now);
     expect(sentences.some((s) => s.includes("Housing") && s.includes("75%"))).toBe(true);
   });
 
@@ -125,7 +126,7 @@ describe("generateMonthlyNarrative", () => {
       sub({ id: "b", usage: "regular", amountCents: 3000, frequency: "monthly" }),
     ];
     const txns = [txn({ amountCents: 1000, categoryId: "food", date: "2026-08-05" })];
-    const sentences = generateMonthlyNarrative(txns, subs, cats, [], now);
+    const sentences = generateMonthlyNarrative(txns, subs, cats, [], narrativeDictionary, now);
     expect(sentences.some((s) => s.includes("OldGym"))).toBe(true);
   });
 
@@ -136,14 +137,14 @@ describe("generateMonthlyNarrative", () => {
       txn({ amountCents: 3000, categoryId: "food", date: "2026-07-10" }),
       txn({ amountCents: 8000, categoryId: "food", date: "2026-08-05" }),
     ];
-    const sentences = generateMonthlyNarrative(txns, [], cats, [], now);
+    const sentences = generateMonthlyNarrative(txns, [], cats, [], narrativeDictionary, now);
     expect(sentences.some((s) => s.includes("Food") && s.includes("up about"))).toBe(true);
   });
 
   test("mentions budget adherence when budgets exist", () => {
     const txns = [txn({ amountCents: 1000, categoryId: "food", date: "2026-08-05" })];
     const budgets = [{ id: "b1", categoryId: null, amountCents: 100000, createdAt: 1, updatedAt: 1 }];
-    const sentences = generateMonthlyNarrative(txns, [], cats, budgets, now);
+    const sentences = generateMonthlyNarrative(txns, [], cats, budgets, narrativeDictionary, now);
     expect(sentences.some((s) => s.includes("within all"))).toBe(true);
   });
 
@@ -154,7 +155,7 @@ describe("generateMonthlyNarrative", () => {
       txn({ amountCents: 3000, categoryId: "food", date: "2026-07-10" }),
       txn({ amountCents: 8000, categoryId: "food", date: "2026-08-05" }),
     ];
-    const sentences = generateMonthlyNarrative(txns, subs, cats, budgets, now);
+    const sentences = generateMonthlyNarrative(txns, subs, cats, budgets, narrativeDictionary, now);
     expect(sentences.length).toBeGreaterThanOrEqual(2);
     expect(sentences.length).toBeLessThanOrEqual(5);
   });

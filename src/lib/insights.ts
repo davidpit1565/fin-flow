@@ -3,7 +3,7 @@
  *  number here is computed from the `transactions` / `subscriptions` /
  *  `categories` / `budgets` arrays passed in, exactly like src/lib/calc.ts. */
 
-import type { Budget, Category, Subscription, Transaction } from "../types";
+import type { Budget, Category, Subscription, SubscriptionUsage, Transaction } from "../types";
 import {
   activeSubscriptions,
   budgetStatus,
@@ -110,18 +110,38 @@ export function detectSpendingAnomalies(
 /** Below this, a month-over-month change isn't worth calling out in prose. */
 const NARRATIVE_MOM_THRESHOLD_PERCENT = 5;
 
-/** Builds a short list of plain-English sentences entirely from numbers
- *  computed above and in calc.ts -- nothing here is fabricated. This
- *  function has no currency code available (its signature is currency-free
- *  on purpose, so it stays a pure derivation over domain data), so every
- *  sentence expresses amounts as a percentage rather than formatted money;
- *  the screen that renders these already shows the real currency figures
- *  alongside them via the other cards. */
+/** The exact set of sentence-builders `generateMonthlyNarrative` needs. This
+ *  function is a pure derivation with no React context, so it can't call
+ *  `useT()` itself -- the screen passes its dictionary's `insights` namespace
+ *  in instead (see src/lib/i18n/en/insights.ts), keeping the "which sentence
+ *  applies, in what order" logic pure and testable while the actual wording
+ *  lives in the dictionary like everything else in the app. */
+export interface NarrativeDictionary {
+  narrativeTopCategory: (categoryName: string, sharePercent: number) => string;
+  narrativeSpendingChange: (percent: number, direction: "more" | "less") => string;
+  narrativeBudgetOver: (overCount: number, totalCount: number) => string;
+  narrativeBudgetWithinAll: (totalCount: number) => string;
+  /** `usage` is only ever "unused" or "rarely" in practice (that's exactly
+   *  what `detectUnusedSubscriptions` filters to), but typed as the full
+   *  enum since `.filter` doesn't narrow the array element type here. */
+  narrativeUnusedSubscription: (name: string, usage: SubscriptionUsage, percentOfSubs: number) => string;
+  narrativeSpendingAnomaly: (categoryName: string, percentIncrease: number) => string;
+  narrativeEmptyDefault: string;
+}
+
+/** Builds a short list of sentences entirely from numbers computed above and
+ *  in calc.ts -- nothing here is fabricated. This function has no currency
+ *  code available (its signature is currency-free on purpose, so it stays a
+ *  pure derivation over domain data), so every sentence expresses amounts as
+ *  a percentage rather than formatted money; the screen that renders these
+ *  already shows the real currency figures alongside them via the other
+ *  cards. */
 export function generateMonthlyNarrative(
   transactions: Transaction[],
   subscriptions: Subscription[],
   categories: Category[],
   budgets: Budget[],
+  t: NarrativeDictionary,
   now = todayISO()
 ): string[] {
   const nowDate = parseISO(now);
@@ -132,22 +152,20 @@ export function generateMonthlyNarrative(
     const topCategory = categories.find((c) => c.id === thisMonth.topCategoryId);
     if (topCategory) {
       const share = Math.round((thisMonth.topCategoryCents / thisMonth.spentCents) * 100);
-      sentences.push(`${topCategory.name} is your biggest expense this month, making up ${share}% of your spending so far.`);
+      sentences.push(t.narrativeTopCategory(topCategory.name, share));
     }
   }
 
   if (thisMonth.vsPreviousPercent !== null && Math.abs(thisMonth.vsPreviousPercent) >= NARRATIVE_MOM_THRESHOLD_PERCENT) {
     const direction = thisMonth.vsPreviousPercent > 0 ? "more" : "less";
-    sentences.push(`You've spent about ${Math.round(Math.abs(thisMonth.vsPreviousPercent))}% ${direction} than last month so far.`);
+    sentences.push(t.narrativeSpendingChange(Math.round(Math.abs(thisMonth.vsPreviousPercent)), direction));
   }
 
   if (budgets.length > 0) {
     const statuses = budgets.map((b) => budgetStatus(b, transactions, now));
     const overCount = statuses.filter((s) => s.level === "over" || s.level === "reached").length;
     sentences.push(
-      overCount > 0
-        ? `You're over budget on ${overCount} of your ${budgets.length} budget${budgets.length === 1 ? "" : "s"} this month.`
-        : `You're within all ${budgets.length} of your budgets so far this month.`
+      overCount > 0 ? t.narrativeBudgetOver(overCount, budgets.length) : t.narrativeBudgetWithinAll(budgets.length)
     );
   }
 
@@ -157,18 +175,18 @@ export function generateMonthlyNarrative(
     const top = unused[0];
     if (subTotal > 0) {
       const percentOfSubs = Math.round((top.potentialSavingsCents / subTotal) * 100);
-      sentences.push(`${top.subscription.name} looks ${top.subscription.usage} -- dropping it could cut your subscription costs by about ${percentOfSubs}%.`);
+      sentences.push(t.narrativeUnusedSubscription(top.subscription.name, top.subscription.usage, percentOfSubs));
     }
   }
 
   const anomalies = detectSpendingAnomalies(transactions, categories, now);
   if (anomalies.length > 0) {
     const worst = anomalies[0];
-    sentences.push(`${worst.category.name} spending is up about ${Math.round(worst.percentIncrease)}% versus your recent average.`);
+    sentences.push(t.narrativeSpendingAnomaly(worst.category.name, Math.round(worst.percentIncrease)));
   }
 
   if (sentences.length === 0) {
-    return ["Add a few transactions this month to start seeing personalized insights here."];
+    return [t.narrativeEmptyDefault];
   }
   return sentences.slice(0, 5);
 }

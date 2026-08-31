@@ -113,8 +113,8 @@ export function Insights() {
     [transactions, subscriptions, budgets]
   );
   const narrative = useMemo(
-    () => generateMonthlyNarrative(transactions, subscriptions, categories, budgets),
-    [transactions, subscriptions, categories, budgets]
+    () => generateMonthlyNarrative(transactions, subscriptions, categories, budgets, t.insights),
+    [transactions, subscriptions, categories, budgets, t]
   );
   const unusedSubs = useMemo(() => detectUnusedSubscriptions(subscriptions), [subscriptions]);
   const anomalies = useMemo(() => detectSpendingAnomalies(transactions, categories), [transactions, categories]);
@@ -147,13 +147,13 @@ export function Insights() {
                 <p className="spend-label">{t.insights.financialHealth}</p>
                 <span className="health-score">{health.score}</span>
               </div>
-              <span className={`health-tier health-tier-${health.tier.replace(/\s+/g, "-")}`}>{health.tier}</span>
+              <span className={`health-tier health-tier-${health.tier.replace(/\s+/g, "-")}`}>{t.insights.healthTier(health.tier)}</span>
             </div>
             <ul className="health-factors">
               {health.factors.map((f) => (
                 <li key={f.label}>
                   <div className="health-factor-row">
-                    <span className="stat-label">{f.label}</span>
+                    <span className="stat-label">{t.insights.factorLabel(f.label)}</span>
                     <span className="row-sub">{t.insights.points(Math.round(f.contribution))}</span>
                   </div>
                   <ProgressBar percent={factorPercent(f)} />
