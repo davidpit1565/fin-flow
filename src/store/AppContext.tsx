@@ -39,6 +39,7 @@ import {
 } from "../lib/reminders";
 import { requestPermission } from "../lib/notifications";
 import type { ImportRow } from "../lib/csv";
+import type { BackupPayload } from "../lib/backup";
 import { Haptics, NotificationType } from "@capacitor/haptics";
 import { isNative } from "../lib/platform";
 
@@ -153,6 +154,7 @@ interface AppState {
   completeOnboarding: (patch: Partial<UserSettings>) => void;
   importTransactions: (rows: ImportRow[]) => number;
   deleteAllData: () => Promise<void>;
+  restoreBackup: (payload: BackupPayload) => Promise<void>;
   toast: (message: string) => void;
   confirm: (opts: ConfirmOptions) => Promise<boolean>;
   haptic: (kind?: "success" | "warning") => void;
@@ -682,6 +684,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setReady(true);
   }, [subscriptions]);
 
+  /** Wipe every store and replace it wholesale with a decrypted backup's
+   *  contents. Unlike deleteAllData, this does NOT reseed default
+   *  categories/settings -- the backup already carries the real data that
+   *  belongs in their place. */
+  const restoreBackup = useCallback(
+    async (payload: BackupPayload) => {
+      await Promise.all(subscriptions.map((s) => clearSubscriptionReminder(s.id)));
+      await clearMonthlySummaryReminder();
+      await Promise.all(
+        ["transactions", "subscriptions", "budgets", "categories", "meta", "goals", "netWorthItems", "debts"].map((store) =>
+          storage.clear(store)
+        )
+      );
+      await storage.put("settings", payload.settings);
+      await Promise.all([
+        ...payload.categories.map((c) => storage.put("categories", c)),
+        ...payload.transactions.map((t) => storage.put("transactions", t)),
+        ...payload.subscriptions.map((s) => storage.put("subscriptions", s)),
+        ...payload.budgets.map((b) => storage.put("budgets", b)),
+        ...payload.goals.map((g) => storage.put("goals", g)),
+        ...payload.netWorthItems.map((i) => storage.put("netWorthItems", i)),
+        ...payload.debts.map((d) => storage.put("debts", d)),
+      ]);
+      setSettings(payload.settings);
+      setCategories(payload.categories);
+      setTransactions(payload.transactions);
+      setSubscriptions(payload.subscriptions);
+      setBudgets(payload.budgets);
+      setGoals(payload.goals);
+      setNetWorthItems(payload.netWorthItems);
+      setDebts(payload.debts);
+      setReady(true);
+    },
+    [subscriptions]
+  );
+
   /* ---------- value ---------- */
   const value = useMemo<AppState>(
     () => ({
@@ -724,6 +762,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       completeOnboarding,
       importTransactions,
       deleteAllData,
+      restoreBackup,
       toast,
       confirm,
       haptic,
@@ -768,6 +807,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       completeOnboarding,
       importTransactions,
       deleteAllData,
+      restoreBackup,
       toast,
       confirm,
       haptic,
