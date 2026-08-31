@@ -6,7 +6,7 @@ import { monthlyEquivalent, yearlyEquivalent } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
 import { longDate, shortDate } from "../lib/dates";
 import { iconByName } from "../lib/icons";
-import { relativeDayLabel, useT } from "../lib/i18n";
+import { categoryDisplayName, relativeDayLabel, useT } from "../lib/i18n";
 import { Card, IconBadge, ScreenHeader } from "../components/ui";
 import { AddSubscriptionSheet } from "../components/AddSubscriptionSheet";
 
@@ -136,7 +136,7 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
             <span className="equiv-value">{formatMoney(yearlyEquivalent(subscription), currency)}</span>
           </div>
         </div>
-        <DetailRow label={t.subscriptions.categoryFieldLabel} value={category?.name ?? t.subscriptions.emptyDash} />
+        <DetailRow label={t.subscriptions.categoryFieldLabel} value={category ? categoryDisplayName(t, category) : t.subscriptions.emptyDash} />
         <DetailRow label={t.subscriptions.nextPaymentLabel} value={longDate(subscription.nextPaymentDate)} />
         <DetailRow
           label={t.subscriptions.paymentMethodFieldLabel}

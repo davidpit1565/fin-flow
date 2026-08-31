@@ -1,6 +1,38 @@
 import type { categories as CategoriesEn } from "../en/categories";
 
 export const categories: typeof CategoriesEn = {
+  systemName: (name) => {
+    switch (name) {
+      case "Housing":
+        return "דיור";
+      case "Food":
+        return "אוכל";
+      case "Groceries":
+        return "מכולת";
+      case "Transport":
+        return "תחבורה";
+      case "Shopping":
+        return "קניות";
+      case "Entertainment":
+        return "בידור";
+      case "Health":
+        return "בריאות";
+      case "Travel":
+        return "נסיעות";
+      case "Education":
+        return "השכלה";
+      case "Bills":
+        return "חשבונות";
+      case "Subscriptions":
+        return "מנויים";
+      case "Personal":
+        return "אישי";
+      case "Other":
+        return "אחר";
+      default:
+        return name;
+    }
+  },
   itemCount: (count: number) => `${count} ${count === 1 ? "תנועה" : "תנועות"}`,
   screenTitle: "קטגוריות",
   screenSubtitle: "שנה שם, החלף אייקון, או הוסף קטגוריה משלך",

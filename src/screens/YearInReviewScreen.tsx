@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, PartyPopper } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
-import { useT } from "../lib/i18n";
+import { categoryDisplayName, useT } from "../lib/i18n";
 import { buildYearInReview } from "../lib/yearInReview";
 import { formatMoney } from "../lib/currency";
 import { shortDate } from "../lib/dates";
@@ -99,7 +99,7 @@ export function YearInReviewScreen() {
           {review.topCategory && (
             <Card className="insight-tile">
               <span className="stat-label">{t.yearInReview.topCategoryLabel}</span>
-              <span className="insight-tile-title">{review.topCategory.category.name}</span>
+              <span className="insight-tile-title">{categoryDisplayName(t, review.topCategory.category)}</span>
               <span className="insight-tile-value">
                 {t.yearInReview.topCategoryValue(formatMoney(review.topCategory.spentCents, currency), topSharePercent)}
               </span>

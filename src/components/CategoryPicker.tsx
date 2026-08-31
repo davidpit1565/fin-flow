@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useApp } from "../store/AppContext";
-import { useT } from "../lib/i18n";
+import { categoryDisplayName, useT } from "../lib/i18n";
 import { iconByName } from "../lib/icons";
 import { Check } from "lucide-react";
 import { rovingNextIndex } from "./ui";
@@ -55,7 +55,7 @@ export function CategoryPicker({
                 </span>
               )}
             </span>
-            <span className="category-chip-name">{c.name}</span>
+            <span className="category-chip-name">{categoryDisplayName(t, c)}</span>
           </button>
         );
       })}

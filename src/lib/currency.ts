@@ -59,24 +59,28 @@ export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
   ILS: "₪",
 };
 
-function makeFormatter(currency: CurrencyCode) {
+function makeFormatter(currency: CurrencyCode, signDisplay?: "exceptZero") {
   try {
     return new Intl.NumberFormat(appLocale(), {
       style: "currency",
       currency,
       currencyDisplay: "narrowSymbol",
+      ...(signDisplay ? { signDisplay } : {}),
     });
   } catch {
-    return new Intl.NumberFormat("en", { style: "currency", currency });
+    return new Intl.NumberFormat("en", { style: "currency", currency, ...(signDisplay ? { signDisplay } : {}) });
   }
 }
 
-/** Format cents as currency, e.g. €1,247.80. */
+/** Format cents as currency, e.g. €1,247.80. Pass a genuinely negative
+ *  `cents` for a negative amount -- `opts.sign` uses Intl's own
+ *  `signDisplay` to add a "+"/"−" as part of the same bidi-aware formatted
+ *  string, rather than concatenating a bare sign character onto it (which
+ *  visually detaches from the number under RTL: see rows.tsx/
+ *  TransactionDetail.tsx callers). */
 export function formatMoney(cents: number, currency: CurrencyCode, opts?: { sign?: boolean }): string {
-  const nf = makeFormatter(currency);
-  let s = nf.format(cents / 100);
-  if (opts?.sign && cents > 0) s = `+${s}`;
-  return s;
+  const nf = makeFormatter(currency, opts?.sign ? "exceptZero" : undefined);
+  return nf.format(cents / 100);
 }
 
 /** Compact symbol for a currency, e.g. "€". */

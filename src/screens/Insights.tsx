@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowDownRight, ArrowUpRight, BarChart3, Settings as SettingsIcon } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
-import { useT } from "../lib/i18n";
+import { categoryDisplayName, useT } from "../lib/i18n";
 import {
   buildMonthlySummary,
   categoryTotals,
@@ -71,16 +71,16 @@ export function Insights() {
   const donut = useMemo(() => {
     const totals = categoryTotals(transactions, categories, range, 6);
     return {
-      items: totals.map((t, i) => ({
-        name: t.category.name,
-        value: t.spentCents / 100,
-        cents: t.spentCents,
-        percent: t.percent,
+      items: totals.map((ct, i) => ({
+        name: categoryDisplayName(t, ct.category),
+        value: ct.spentCents / 100,
+        cents: ct.spentCents,
+        percent: ct.percent,
         color: CHART_COLORS[i % CHART_COLORS.length],
       })),
       top: totals[0] ?? null,
     };
-  }, [transactions, categories, range]);
+  }, [transactions, categories, range, t]);
 
   const now = new Date();
   const thisMonth = buildMonthlySummary(transactions, categories, now.getFullYear(), now.getMonth());
@@ -105,7 +105,11 @@ export function Insights() {
     [transactions, subscriptions, budgets]
   );
   const narrative = useMemo(
-    () => generateMonthlyNarrative(transactions, subscriptions, categories, budgets, t.insights),
+    () =>
+      generateMonthlyNarrative(transactions, subscriptions, categories, budgets, {
+        ...t.insights,
+        categoryDisplayName: (c) => categoryDisplayName(t, c),
+      }),
     [transactions, subscriptions, categories, budgets, t]
   );
   const unusedSubs = useMemo(() => detectUnusedSubscriptions(subscriptions), [subscriptions]);
@@ -188,7 +192,7 @@ export function Insights() {
               <ul className="callout-list">
                 {anomalies.map((a) => (
                   <li key={a.category.id} className="callout-item anomaly-item">
-                    <span>{a.category.name}</span>
+                    <span>{categoryDisplayName(t, a.category)}</span>
                     <span className="row-sub negative">{t.insights.vsUsual(Math.round(a.percentIncrease))}</span>
                   </li>
                 ))}
@@ -288,7 +292,7 @@ export function Insights() {
             {donut.top && (
               <Card className="insight-tile">
                 <span className="stat-label">{t.insights.topCategory}</span>
-                <span className="insight-tile-title">{donut.top.category.name}</span>
+                <span className="insight-tile-title">{categoryDisplayName(t, donut.top.category)}</span>
                 <span className="insight-tile-value">{formatMoney(donut.top.spentCents, currency)}</span>
               </Card>
             )}

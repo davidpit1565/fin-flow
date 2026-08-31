@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pencil, Repeat, Trash2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
-import { relativeDayLabel, useT } from "../lib/i18n";
+import { categoryDisplayName, relativeDayLabel, useT } from "../lib/i18n";
 import { iconByName } from "../lib/icons";
 import { longDate, shortDate, timeOfDay } from "../lib/dates";
 import { formatMoney } from "../lib/currency";
@@ -27,6 +27,7 @@ export function TransactionDetail({ transactionId }: { transactionId: string }) 
   }
 
   const category = categories.find((c) => c.id === transaction.categoryId);
+  const categoryLabel = category ? categoryDisplayName(t, category) : undefined;
   const Icon = iconByName(category?.icon);
   const isIncome = transaction.type === "income";
   const dateLabel = relativeDayLabel(t, transaction.date) ?? shortDate(transaction.date, { includeYear: true });
@@ -51,15 +52,14 @@ export function TransactionDetail({ transactionId }: { transactionId: string }) 
       <div className="detail-hero">
         <IconBadge icon={Icon} size="lg" />
         <span className={`detail-amount ${isIncome ? "income" : ""}`}>
-          {isIncome ? "+" : "−"}
-          {formatMoney(transaction.amountCents, settings.currency)}
+          {formatMoney(isIncome ? transaction.amountCents : -transaction.amountCents, settings.currency, { sign: true })}
         </span>
-        <span className="detail-merchant">{transaction.merchant || category?.name || t.transactionDetail.fallbackName}</span>
+        <span className="detail-merchant">{transaction.merchant || categoryLabel || t.transactionDetail.fallbackName}</span>
         <span className="detail-date">{dateLabel}</span>
       </div>
 
       <div className="detail-card">
-        <DetailRow label={t.transactionDetail.categoryLabel} value={category?.name ?? t.transactionDetail.noCategoryValue} />
+        <DetailRow label={t.transactionDetail.categoryLabel} value={categoryLabel ?? t.transactionDetail.noCategoryValue} />
         <DetailRow
           label={t.transactionDetail.dateLabel}
           value={`${longDate(transaction.date)}${transaction.createdAt ? ` · ${timeOfDay(transaction.createdAt)}` : ""}`}

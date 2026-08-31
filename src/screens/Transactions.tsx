@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowDownUp, Plus, Search, Settings as SettingsIcon, SlidersHorizontal, X } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
-import { useT } from "../lib/i18n";
+import { categoryDisplayName, useT } from "../lib/i18n";
 import { Button, ChipGroup, DateInput, EmptyState, Field, NumericInput, ScreenHeader, Sheet } from "../components/ui";
 import { TransactionList } from "../components/TransactionList";
 
@@ -67,7 +67,7 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
         const category = categories.find((c) => c.id === tx.categoryId);
         return (
           tx.merchant.toLowerCase().includes(q) ||
-          (category?.name ?? "").toLowerCase().includes(q) ||
+          (category ? categoryDisplayName(t, category) : "").toLowerCase().includes(q) ||
           tx.notes.toLowerCase().includes(q)
         );
       });
@@ -100,7 +100,7 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
         sorted.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.createdAt - a.createdAt));
     }
     return sorted;
-  }, [transactions, query, filter, sort, dateFrom, dateTo, categoryId, minCents, maxCents, categories]);
+  }, [transactions, query, filter, sort, dateFrom, dateTo, categoryId, minCents, maxCents, categories, t]);
 
   const changeSort = (s: SortKey) => {
     setSort(s);
@@ -210,7 +210,7 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
                     className={`chip ${categoryId === c.id ? "chip-active" : ""}`}
                     onClick={() => setCategoryId(c.id)}
                   >
-                    {c.name}
+                    {categoryDisplayName(t, c)}
                   </button>
                 ))}
               </div>

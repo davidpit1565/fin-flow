@@ -5,7 +5,7 @@ import { iconByName } from "../lib/icons";
 import { monthlyEquivalent } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
 import { shortDate } from "../lib/dates";
-import { useT } from "../lib/i18n";
+import { categoryDisplayName, useT } from "../lib/i18n";
 import { IconBadge } from "./ui";
 
 /* ---------- swipe row ---------- */
@@ -174,10 +174,11 @@ export function TransactionRow({
 }) {
   const t = useT();
   const Icon = iconByName(category?.icon);
-  const title = transaction.merchant || category?.name || t.transactionDetail.fallbackName;
+  const categoryLabel = category ? categoryDisplayName(t, category) : "";
+  const title = transaction.merchant || categoryLabel || t.transactionDetail.fallbackName;
   const subtitle = transaction.recurring
-    ? `${category?.name ?? ""}${category ? " · " : ""}${t.transactionList.recurringSwipeLabel}`
-    : category?.name ?? "";
+    ? `${categoryLabel}${category ? " · " : ""}${t.transactionList.recurringSwipeLabel}`
+    : categoryLabel;
   const isIncome = transaction.type === "income";
   return (
     <SwipeRow onTap={onTap} leftAction={swipe?.leftAction} rightAction={swipe?.rightAction}>
@@ -188,8 +189,7 @@ export function TransactionRow({
           <span className="row-sub">{subtitle}</span>
         </div>
         <span className={`row-amount ${isIncome ? "income" : "expense"}`}>
-          {isIncome ? "+" : "−"}
-          {formatMoney(transaction.amountCents, currency)}
+          {formatMoney(isIncome ? transaction.amountCents : -transaction.amountCents, currency, { sign: true })}
         </span>
         <ChevronRight className="row-chevron" size={16} strokeWidth={2} aria-hidden="true" />
       </div>
@@ -268,7 +268,7 @@ export function CategoryRow({
       <div className="row">
         <IconBadge icon={Icon} size="sm" />
         <div className="row-main">
-          <span className="row-title">{category.name}</span>
+          <span className="row-title">{categoryDisplayName(t, category)}</span>
           {percent !== undefined && <span className="row-sub">{t.common.percentOfSpending(Math.round(percent))}</span>}
         </div>
         <span className="row-amount">{formatMoney(spentCents, currency)}</span>
