@@ -2159,6 +2159,10 @@ input[type="date"] {
   letter-spacing: 0.02em;
 }
 
+.debt-plan-result {
+  margin-top: 12px;
+}
+
 /* ---------- settings ---------- */
 
 .settings-toggle-row {

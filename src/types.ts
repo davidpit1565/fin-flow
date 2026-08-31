@@ -129,3 +129,13 @@ export interface UpcomingPayment {
   amountCents: number;
   label: string;
 }
+
+export interface Debt {
+  id: string;
+  name: string;
+  remainingCents: number; // current balance owed
+  aprPercent: number; // annual interest rate, e.g. 19.99
+  minPaymentCents: number;
+  createdAt: number;
+  updatedAt: number;
+}

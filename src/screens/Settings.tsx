@@ -16,6 +16,7 @@ export function Settings() {
     settings,
     categories,
     budgets,
+    debts,
     transactions,
     subscriptions,
     updateSettings,
@@ -59,12 +60,12 @@ export function Settings() {
   };
 
   const onDeleteAll = async () => {
-    const itemCount = transactions.length + subscriptions.length + budgets.length;
+    const itemCount = transactions.length + subscriptions.length + budgets.length + debts.length;
     const ok = await confirm({
       title: "Delete all data?",
       message:
         itemCount > 0
-          ? `This permanently deletes ${transactions.length} transaction${transactions.length === 1 ? "" : "s"}, ${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}, and ${budgets.length} budget${budgets.length === 1 ? "" : "s"} from this device, along with every setting. Export a backup first if you might need this later — it cannot be undone.`
+          ? `This permanently deletes ${transactions.length} transaction${transactions.length === 1 ? "" : "s"}, ${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}, ${budgets.length} budget${budgets.length === 1 ? "" : "s"}, and ${debts.length} debt${debts.length === 1 ? "" : "s"} from this device, along with every setting. Export a backup first if you might need this later — it cannot be undone.`
           : "This removes every setting from this device. It cannot be undone.",
       confirmLabel: "Delete everything",
       danger: true,
@@ -177,6 +178,17 @@ export function Settings() {
             label="Monthly budgets"
             value={`${budgets.length} ${budgets.length === 1 ? "budget" : "budgets"}`}
             onPress={() => push({ tab: "settings", name: "budgets" })}
+            last
+          />
+        </Card>
+      </SettingsSection>
+
+      <SettingsSection title="Debts">
+        <Card className="list-card">
+          <SettingsRow
+            label="Debt payoff planner"
+            value={`${debts.length} ${debts.length === 1 ? "debt" : "debts"}`}
+            onPress={() => push({ tab: "settings", name: "debts" })}
             last
           />
         </Card>
