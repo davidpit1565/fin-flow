@@ -104,6 +104,19 @@ export interface Budget {
   updatedAt: number;
 }
 
+export interface Goal {
+  id: string;
+  name: string;
+  icon: string;
+  targetCents: number;
+  /** Amount saved so far toward this goal. */
+  currentCents: number;
+  /** Optional ISO date the user wants to hit the target by. */
+  targetDate: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 /** Computed on demand from real data — never stored, never invented. */
 export interface MonthlySummary {
   year: number;

@@ -16,6 +16,7 @@ export function Settings() {
     settings,
     categories,
     budgets,
+    goals,
     transactions,
     subscriptions,
     updateSettings,
@@ -59,12 +60,12 @@ export function Settings() {
   };
 
   const onDeleteAll = async () => {
-    const itemCount = transactions.length + subscriptions.length + budgets.length;
+    const itemCount = transactions.length + subscriptions.length + budgets.length + goals.length;
     const ok = await confirm({
       title: "Delete all data?",
       message:
         itemCount > 0
-          ? `This permanently deletes ${transactions.length} transaction${transactions.length === 1 ? "" : "s"}, ${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}, and ${budgets.length} budget${budgets.length === 1 ? "" : "s"} from this device, along with every setting. Export a backup first if you might need this later — it cannot be undone.`
+          ? `This permanently deletes ${transactions.length} transaction${transactions.length === 1 ? "" : "s"}, ${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}, ${budgets.length} budget${budgets.length === 1 ? "" : "s"}, and ${goals.length} goal${goals.length === 1 ? "" : "s"} from this device, along with every setting. Export a backup first if you might need this later — it cannot be undone.`
           : "This removes every setting from this device. It cannot be undone.",
       confirmLabel: "Delete everything",
       danger: true,
@@ -177,6 +178,11 @@ export function Settings() {
             label="Monthly budgets"
             value={`${budgets.length} ${budgets.length === 1 ? "budget" : "budgets"}`}
             onPress={() => push({ tab: "settings", name: "budgets" })}
+          />
+          <SettingsRow
+            label="Savings goals"
+            value={`${goals.length} ${goals.length === 1 ? "goal" : "goals"}`}
+            onPress={() => push({ tab: "settings", name: "goals" })}
             last
           />
         </Card>

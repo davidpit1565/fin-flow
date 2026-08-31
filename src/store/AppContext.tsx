@@ -13,6 +13,7 @@ import type {
   BudgetPeriod,
   Category,
   CurrencyCode,
+  Goal,
   PaymentMethod,
   RecurringFrequency,
   Subscription,
@@ -118,6 +119,7 @@ interface AppState {
   transactions: Transaction[];
   subscriptions: Subscription[];
   budgets: Budget[];
+  goals: Goal[];
   addTransaction: (input: NewTransaction) => string;
   updateTransaction: (id: string, patch: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
@@ -131,6 +133,10 @@ interface AppState {
   addBudget: (categoryId: string | null, amountCents: number, period?: BudgetPeriod) => void;
   updateBudget: (id: string, amountCents: number, period?: BudgetPeriod) => void;
   deleteBudget: (id: string) => void;
+  addGoal: (name: string, icon: string, targetCents: number, targetDate: string | null) => void;
+  updateGoal: (id: string, patch: Partial<Pick<Goal, "name" | "icon" | "targetCents" | "targetDate">>) => void;
+  deleteGoal: (id: string) => void;
+  contributeToGoal: (id: string, deltaCents: number) => void;
   updateSettings: (patch: Partial<UserSettings>) => void;
   completeOnboarding: (patch: Partial<UserSettings>) => void;
   importTransactions: (rows: ImportRow[]) => number;
@@ -151,6 +157,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [toastState, setToastState] = useState<{ message: string; id: number } | null>(null);
   const [confirmState, setConfirmState] = useState<(ConfirmOptions & { resolve: (v: boolean) => void }) | null>(null);
   const toastTimer = useRef<number | null>(null);
@@ -174,10 +181,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         for (const c of missing) await storage.put("categories", c);
         cats = [...cats, ...missing];
       }
-      const [txns, subs, bdgs] = await Promise.all([
+      const [txns, subs, bdgs, gls] = await Promise.all([
         storage.getAll<Transaction>("transactions"),
         storage.getAll<Subscription>("subscriptions"),
         storage.getAll<Budget>("budgets"),
+        storage.getAll<Goal>("goals"),
       ]);
       if (cancelled) return;
       setSettings(s);
@@ -185,6 +193,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTransactions(txns);
       setSubscriptions(subs);
       setBudgets(bdgs);
+      setGoals(gls);
       setReady(true);
     })().catch(() => {
       // Local storage (IndexedDB) is unavailable or broken -- e.g. Safari
@@ -473,6 +482,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [toast]
   );
 
+  /* ---------- goal actions ---------- */
+  const addGoal = useCallback(
+    (name: string, icon: string, targetCents: number, targetDate: string | null) => {
+      const now = Date.now();
+      const goal: Goal = { id: crypto.randomUUID(), name, icon, targetCents, currentCents: 0, targetDate, createdAt: now, updatedAt: now };
+      setGoals((prev) => [...prev, goal]);
+      void storage.put("goals", goal).catch(() => toast("Something went wrong. Please try again."));
+    },
+    [toast]
+  );
+
+  const updateGoal = useCallback(
+    (id: string, patch: Partial<Pick<Goal, "name" | "icon" | "targetCents" | "targetDate">>) => {
+      setGoals((prev) => {
+        const next = prev.map((g) => (g.id === id ? { ...g, ...patch, updatedAt: Date.now() } : g));
+        const updated = next.find((g) => g.id === id);
+        if (updated) void storage.put("goals", updated).catch(() => toast("Something went wrong. Please try again."));
+        return next;
+      });
+    },
+    [toast]
+  );
+
+  const deleteGoal = useCallback(
+    (id: string) => {
+      setGoals((prev) => prev.filter((g) => g.id !== id));
+      void storage.remove("goals", id).catch(() => toast("Something went wrong. Please try again."));
+    },
+    [toast]
+  );
+
+  const contributeToGoal = useCallback(
+    (id: string, deltaCents: number) => {
+      setGoals((prev) => {
+        const next = prev.map((g) =>
+          g.id === id ? { ...g, currentCents: Math.max(0, g.currentCents + deltaCents), updatedAt: Date.now() } : g
+        );
+        const updated = next.find((g) => g.id === id);
+        if (updated) void storage.put("goals", updated).catch(() => toast("Something went wrong. Please try again."));
+        return next;
+      });
+    },
+    [toast]
+  );
+
   /* ---------- settings ---------- */
   const updateSettings = useCallback(
     (patch: Partial<UserSettings>) => {
@@ -515,7 +569,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await Promise.all(subscriptions.map((s) => clearSubscriptionReminder(s.id)));
     await clearMonthlySummaryReminder();
     await Promise.all(
-      ["transactions", "subscriptions", "budgets", "categories", "meta"].map((store) => storage.clear(store))
+      ["transactions", "subscriptions", "budgets", "categories", "meta", "goals"].map((store) => storage.clear(store))
     );
     const cats = seedCategories();
     setCategories(cats);
@@ -526,6 +580,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTransactions([]);
     setSubscriptions([]);
     setBudgets([]);
+    setGoals([]);
     setReady(true);
   }, [subscriptions]);
 
@@ -540,6 +595,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       transactions,
       subscriptions,
       budgets,
+      goals,
       addTransaction,
       updateTransaction,
       deleteTransaction,
@@ -553,6 +609,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addBudget,
       updateBudget,
       deleteBudget,
+      addGoal,
+      updateGoal,
+      deleteGoal,
+      contributeToGoal,
       updateSettings,
       completeOnboarding,
       importTransactions,
@@ -570,6 +630,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       transactions,
       subscriptions,
       budgets,
+      goals,
       addTransaction,
       updateTransaction,
       deleteTransaction,
@@ -583,6 +644,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addBudget,
       updateBudget,
       deleteBudget,
+      addGoal,
+      updateGoal,
+      deleteGoal,
+      contributeToGoal,
       updateSettings,
       completeOnboarding,
       importTransactions,
