@@ -12,7 +12,7 @@ async function addOverallBudget(page: import("@playwright/test").Page, amount: s
   await page.getByLabel("Budget amount").fill(amount);
   await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
   await expect(page.locator(".toast")).toContainText("Budget saved");
-  await page.getByRole("button", { name: "Back" }).click();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
 }
 
 /** Export an encrypted backup from Settings (already open) and return its raw file content. */
@@ -62,7 +62,7 @@ test.describe("encrypted backup", () => {
     await expect(page.locator(".toast")).toContainText("Backup restored");
 
     // The transaction is back.
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await page.getByRole("button", { name: "Transactions", exact: true }).click();
     await expect(page.getByText("Backup Me")).toBeVisible();
 
@@ -94,7 +94,7 @@ test.describe("encrypted backup", () => {
 
     // Current data survives the failed attempt untouched.
     await page.getByRole("button", { name: "Close" }).click();
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await page.getByRole("button", { name: "Transactions", exact: true }).click();
     await expect(page.getByText("Keep Me")).toBeVisible();
   });

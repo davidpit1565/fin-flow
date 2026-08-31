@@ -77,7 +77,7 @@ export function YearInReviewScreen() {
             <p className="spend-label">Your {year} in numbers</p>
             <Money cents={review.totalSpentCents} currency={currency} amount="large" />
             <p className="wrapped-hero-sub">
-              spent across {review.transactionCount} transaction{review.transactionCount === 1 ? "" : "s"}
+              spent across {review.expenseCount} transaction{review.expenseCount === 1 ? "" : "s"}
             </p>
           </Card>
 

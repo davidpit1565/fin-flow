@@ -16,6 +16,9 @@ export interface YearInReview {
    *  actually charged during `year` (subscriptions don't keep that history). */
   subscriptionTotalCents: number;
   transactionCount: number;
+  /** Count of expense transactions only -- what "spent across N transactions"
+   *  actually means; `transactionCount` includes income too. */
+  expenseCount: number;
 }
 
 /** Builds the "Year in Review" recap for a single calendar year, entirely
@@ -37,10 +40,12 @@ export function buildYearInReview(
   const categoryTotals = new Map<string, number>();
   const monthTotals = new Array<number>(12).fill(0);
   let biggestExpense: Transaction | null = null;
+  let expenseCount = 0;
 
   for (const t of yearTxns) {
     if (t.type === "expense") {
       totalSpentCents += t.amountCents;
+      expenseCount++;
       categoryTotals.set(t.categoryId, (categoryTotals.get(t.categoryId) ?? 0) + t.amountCents);
       const monthIndex = Number(t.date.slice(5, 7)) - 1;
       if (monthIndex >= 0 && monthIndex < 12) monthTotals[monthIndex] += t.amountCents;
@@ -79,5 +84,6 @@ export function buildYearInReview(
     busiestMonth,
     subscriptionTotalCents: subscriptionYearlyTotal(subscriptions),
     transactionCount: yearTxns.length,
+    expenseCount,
   };
 }

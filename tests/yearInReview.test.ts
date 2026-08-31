@@ -36,6 +36,8 @@ describe("buildYearInReview", () => {
     expect(review.totalIncomeCents).toBe(100000);
     expect(review.netSavedCents).toBe(100000 - 31000);
     expect(review.transactionCount).toBe(transactions.length);
+    // Expense-only count: the 3 Food + 1 Travel + 2 Rent expenses (income excluded).
+    expect(review.expenseCount).toBe(6);
 
     // Top category by total spend: Travel (20000) beats Food (9000) and Rent (2000).
     expect(review.topCategory?.category.id).toBe("travel");
@@ -62,6 +64,7 @@ describe("buildYearInReview", () => {
     expect(review.biggestExpense).toBeNull();
     expect(review.busiestMonth).toBeNull();
     expect(review.transactionCount).toBe(0);
+    expect(review.expenseCount).toBe(0);
     expect(review.subscriptionTotalCents).toBe(0);
     expect(Number.isNaN(review.netSavedCents)).toBe(false);
   });
