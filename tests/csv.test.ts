@@ -112,4 +112,104 @@ describe("CSV import validation", () => {
     expect(parsed.rows.length).toBe(1);
     expect(parsed.rows[0].categoryId).toBe("other");
   });
+
+  test("malformed/empty file returns no rows and no throw", () => {
+    expect(parseImportCSV("", categories)).toEqual({ rows: [], errors: [], total: 0 });
+    expect(parseImportCSV("\r\n\r\n", categories)).toEqual({ rows: [], errors: [], total: 0 });
+  });
+});
+
+describe("generic CSV import (bank/spreadsheet/other tracker format)", () => {
+  test("imports a generic CSV with reordered, synonym column names", () => {
+    const csv = ["Payee,Transaction Date,Value,Category", "Whole Foods,2026-08-10,42.50,Food"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.rows.length).toBe(1);
+    expect(parsed.rows[0].merchant).toBe("Whole Foods");
+    expect(parsed.rows[0].date).toBe("2026-08-10");
+    expect(parsed.rows[0].amountCents).toBe(4250);
+    expect(parsed.rows[0].categoryId).toBe("food");
+    expect(parsed.rows[0].type).toBe("expense");
+  });
+
+  test("imports a semicolon-delimited generic CSV", () => {
+    const csv = ["Date;Merchant;Amount;Category", "2026-08-11;Bakery;12,50;Food"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.rows.length).toBe(1);
+    expect(parsed.rows[0].merchant).toBe("Bakery");
+    expect(parsed.rows[0].amountCents).toBe(1250);
+    expect(parsed.rows[0].categoryId).toBe("food");
+  });
+
+  test("a negative amount with no type column is treated as an expense", () => {
+    const csv = ["Date,Merchant,Amount", "2026-08-12,Landlord,-1200.00"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.rows.length).toBe(1);
+    expect(parsed.rows[0].type).toBe("expense");
+    expect(parsed.rows[0].amountCents).toBe(120000);
+  });
+
+  test("a positive amount with no type column also defaults to expense", () => {
+    const csv = ["Date,Merchant,Amount", "2026-08-12,Landlord,1200.00"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.rows.length).toBe(1);
+    expect(parsed.rows[0].type).toBe("expense");
+    expect(parsed.rows[0].amountCents).toBe(120000);
+  });
+
+  test("an explicit type column still overrides the default", () => {
+    const csv = ["Date,Merchant,Amount,Type", "2026-08-12,Employer,3000.00,income"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.rows.length).toBe(1);
+    expect(parsed.rows[0].type).toBe("income");
+  });
+
+  test("a missing category column falls back to Other, not an error", () => {
+    const csv = ["Date,Merchant,Amount", "2026-08-13,Corner Store,7.25"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.rows.length).toBe(1);
+    expect(parsed.rows[0].categoryId).toBe("other");
+  });
+
+  test("uses description as merchant when there's no dedicated merchant/payee column", () => {
+    const csv = ["Date,Description,Amount", "2026-08-14,Gas Station,30.00"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.rows.length).toBe(1);
+    expect(parsed.rows[0].merchant).toBe("Gas Station");
+    expect(parsed.rows[0].notes).toBe("");
+  });
+
+  test("uses description as notes when a separate merchant column exists", () => {
+    const csv = ["Date,Merchant,Description,Amount", "2026-08-14,Shell,Fuel for the trip,30.00"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.rows.length).toBe(1);
+    expect(parsed.rows[0].merchant).toBe("Shell");
+    expect(parsed.rows[0].notes).toBe("Fuel for the trip");
+  });
+
+  test("normalizes unambiguous MM/DD/YYYY and DD/MM/YYYY dates", () => {
+    const csv = ["Date,Merchant,Amount", "01/31/2026,US Store,10.00", "31/01/2026,EU Store,10.00"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.rows.find((r) => r.merchant === "US Store")?.date).toBe("2026-01-31");
+    expect(parsed.rows.find((r) => r.merchant === "EU Store")?.date).toBe("2026-01-31");
+  });
+
+  test("refuses to guess a truly ambiguous slash date", () => {
+    const csv = ["Date,Merchant,Amount", "01/02/2026,Mystery Store,10.00"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.rows.length).toBe(0);
+    expect(parsed.errors.length).toBe(1);
+  });
+
+  test("rejects an invalid amount and missing date in a generic CSV", () => {
+    const csv = ["Date,Merchant,Amount", "2026-08-15,Bad Amount,not-a-number", ",No Date,5.00"].join("\r\n");
+    const parsed = parseImportCSV(csv, categories);
+    expect(parsed.total).toBe(2);
+    expect(parsed.errors.length).toBe(2);
+    expect(parsed.rows.length).toBe(0);
+  });
 });
