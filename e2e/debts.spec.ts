@@ -37,10 +37,10 @@ test.describe("debts", () => {
     await addDebt(page, { name: "Store Card", remaining: "500", apr: "5", minPayment: "25" });
     await addDebt(page, { name: "Bank Loan", remaining: "2000", apr: "20", minPayment: "60" });
 
-    await expect(page.getByText("Store Card")).toBeVisible();
-    await expect(page.getByText("Bank Loan")).toBeVisible();
-    await expect(page.getByText("500.00", { exact: false })).toBeVisible();
-    await expect(page.getByText("2,000.00", { exact: false })).toBeVisible();
+    await expect(page.getByText("Store Card").first()).toBeVisible();
+    await expect(page.getByText("Bank Loan").first()).toBeVisible();
+    await expect(page.getByText("500.00", { exact: false }).first()).toBeVisible();
+    await expect(page.getByText("2,000.00", { exact: false }).first()).toBeVisible();
 
     await expect(page.getByText("Payoff plan")).toBeVisible();
     await expect(page.getByText("Debt-free in")).toBeVisible();
@@ -54,9 +54,11 @@ test.describe("debts", () => {
     await openDebts(page);
 
     // Smallest balance (Store Card) has the lowest APR; the bigger balance
-    // (Bank Loan) has the highest APR -- snowball and avalanche disagree.
+    // (Bank Loan) has the highest APR, and the two balances are close enough
+    // that whichever debt gets the extra payment finishes first -- so
+    // snowball and avalanche produce genuinely different payoff order.
     await addDebt(page, { name: "Store Card", remaining: "500", apr: "5", minPayment: "25" });
-    await addDebt(page, { name: "Bank Loan", remaining: "2000", apr: "20", minPayment: "60" });
+    await addDebt(page, { name: "Bank Loan", remaining: "700", apr: "20", minPayment: "25" });
     await page.getByLabel("Extra monthly payment").fill("50");
 
     // Default strategy is Snowball: smallest balance (Store Card) first.

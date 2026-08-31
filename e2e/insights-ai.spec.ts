@@ -130,17 +130,17 @@ test.describe("insights - AI cards", () => {
     await expect(page.getByRole("heading", { name: "Insights" })).toBeVisible();
 
     // Financial health card: a score, a tier label, and a factor breakdown.
-    await expect(page.getByText("Financial health")).toBeVisible();
+    await expect(page.locator(".spend-label", { hasText: "Financial health" })).toBeVisible();
 
     // Monthly narrative section.
-    await expect(page.getByText("This month")).toBeVisible();
+    await expect(page.locator(".spend-label", { hasText: "This month" })).toBeVisible();
 
     // Unused subscriptions callout.
-    await expect(page.getByText("Unused subscriptions")).toBeVisible();
-    await expect(page.getByText("Forgotten Gym")).toBeVisible();
+    await expect(page.locator(".spend-label", { hasText: "Unused subscriptions" })).toBeVisible();
+    await expect(page.getByText("Forgotten Gym").first()).toBeVisible();
 
     // Spending anomaly callout.
-    await expect(page.getByText("Worth a look")).toBeVisible();
+    await expect(page.locator(".spend-label", { hasText: "Worth a look" })).toBeVisible();
     await expect(page.locator(".anomaly-item", { hasText: "Food" })).toBeVisible();
   });
 });
