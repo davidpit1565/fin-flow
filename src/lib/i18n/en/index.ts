@@ -5,8 +5,14 @@
  *  add one import + one property here and in ../he/index.ts. */
 import { common } from "./common";
 import { appShell } from "./appShell";
+import { home } from "./home";
+import { insights } from "./insights";
+import { onboarding } from "./onboarding";
 
 export const en = {
   common,
   appShell,
+  home,
+  insights,
+  onboarding,
 };

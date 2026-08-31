@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowDownRight, ArrowUpRight, BarChart3, Settings as SettingsIcon } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
+import { useT } from "../lib/i18n";
 import {
   buildMonthlySummary,
   categoryTotals,
@@ -41,18 +42,19 @@ function factorPercent(factor: HealthFactor): number {
 
 type RangeKey = "7d" | "1m" | "3m" | "6m" | "12m";
 
-const RANGES: { value: RangeKey; label: string }[] = [
-  { value: "7d", label: "7D" },
-  { value: "1m", label: "1M" },
-  { value: "3m", label: "3M" },
-  { value: "6m", label: "6M" },
-  { value: "12m", label: "12M" },
-];
-
 export function Insights() {
   const { settings, transactions, subscriptions, categories, budgets } = useApp();
   const { push } = useNavigation();
+  const t = useT();
   const [rangeKey, setRangeKey] = useState<RangeKey>("1m");
+
+  const RANGES: { value: RangeKey; label: string }[] = [
+    { value: "7d", label: t.insights.range7d },
+    { value: "1m", label: t.insights.range1m },
+    { value: "3m", label: t.insights.range3m },
+    { value: "6m", label: t.insights.range6m },
+    { value: "12m", label: t.insights.range12m },
+  ];
 
   if (!settings) return null;
   const { currency } = settings;
@@ -120,9 +122,9 @@ export function Insights() {
   return (
     <div className="screen">
       <ScreenHeader
-        title="Insights"
+        title={t.insights.title}
         right={
-          <button className="icon-btn" aria-label="Settings" onClick={() => push({ tab: "settings", name: "settings" })}>
+          <button className="icon-btn" aria-label={t.insights.settingsAriaLabel} onClick={() => push({ tab: "settings", name: "settings" })}>
             <SettingsIcon size={20} strokeWidth={2} />
           </button>
         }
@@ -132,8 +134,8 @@ export function Insights() {
         <div className="screen-empty">
           <EmptyState
             icon={BarChart3}
-            title="Insights will appear here"
-            message="Add a few transactions to start seeing your spending patterns."
+            title={t.insights.emptyTitle}
+            message={t.insights.emptyMessage}
           />
         </div>
       ) : (
@@ -142,7 +144,7 @@ export function Insights() {
           <Card className="insight-card health-card">
             <div className="health-card-head">
               <div>
-                <p className="spend-label">Financial health</p>
+                <p className="spend-label">{t.insights.financialHealth}</p>
                 <span className="health-score">{health.score}</span>
               </div>
               <span className={`health-tier health-tier-${health.tier.replace(/\s+/g, "-")}`}>{health.tier}</span>
@@ -152,7 +154,7 @@ export function Insights() {
                 <li key={f.label}>
                   <div className="health-factor-row">
                     <span className="stat-label">{f.label}</span>
-                    <span className="row-sub">{Math.round(f.contribution)} pts</span>
+                    <span className="row-sub">{t.insights.points(Math.round(f.contribution))}</span>
                   </div>
                   <ProgressBar percent={factorPercent(f)} />
                 </li>
@@ -162,7 +164,7 @@ export function Insights() {
 
           {/* monthly narrative */}
           <Card className="insight-card">
-            <p className="spend-label">This month</p>
+            <p className="spend-label">{t.insights.thisMonth}</p>
             <ul className="narrative-list">
               {narrative.map((sentence, i) => (
                 <li key={i}>{sentence}</li>
@@ -173,13 +175,13 @@ export function Insights() {
           {/* unused subscriptions callout */}
           {unusedSubs.length > 0 && (
             <Card className="insight-card callout-card">
-              <p className="spend-label">Unused subscriptions</p>
+              <p className="spend-label">{t.insights.unusedSubscriptions}</p>
               <ul className="callout-list">
                 {unusedSubs.map((u) => (
                   <li key={u.subscription.id} className="callout-item">
                     <span>{u.subscription.name}</span>
                     <span className="row-sub negative">
-                      {formatMoney(u.potentialSavingsCents, currency)}/mo
+                      {t.insights.perMonth(formatMoney(u.potentialSavingsCents, currency))}
                     </span>
                   </li>
                 ))}
@@ -190,12 +192,12 @@ export function Insights() {
           {/* spending anomalies callout */}
           {anomalies.length > 0 && (
             <Card className="insight-card callout-card">
-              <p className="spend-label">Worth a look</p>
+              <p className="spend-label">{t.insights.worthALook}</p>
               <ul className="callout-list">
                 {anomalies.map((a) => (
                   <li key={a.category.id} className="callout-item anomaly-item">
                     <span>{a.category.name}</span>
-                    <span className="row-sub negative">+{Math.round(a.percentIncrease)}% vs usual</span>
+                    <span className="row-sub negative">{t.insights.vsUsual(Math.round(a.percentIncrease))}</span>
                   </li>
                 ))}
               </ul>
@@ -203,27 +205,27 @@ export function Insights() {
           )}
 
           <div className="insights-range">
-            <Segmented options={RANGES} value={rangeKey} onChange={setRangeKey} ariaLabel="Chart time range" />
+            <Segmented options={RANGES} value={rangeKey} onChange={setRangeKey} ariaLabel={t.insights.chartTimeRangeAriaLabel} />
           </div>
 
           <Card className="chart-card">
             <div className="chart-card-head">
               <div>
-                <p className="spend-label">Spending</p>
+                <p className="spend-label">{t.insights.spending}</p>
                 <Money cents={totalSpent} currency={currency} amount="large" />
               </div>
               <span className="row-sub">{range.label}</span>
             </div>
             <SpendingChart data={series} currency={currency} kind={rangeKey === "7d" ? "bar" : "area"} />
             <p className="sr-only">
-              Spending chart: {series.map((p) => `${p.label}: ${formatMoney(p.cents, currency)}`).join(", ")}.
+              {t.insights.spendingChartSr(series.map((p) => `${p.label}: ${formatMoney(p.cents, currency)}`).join(", "))}
             </p>
           </Card>
 
           {donut.items.length > 0 && (
             <Card className="chart-card">
-              <p className="spend-label">By category</p>
-              <CategoryDonut data={donut.items.map((d) => ({ name: d.name, value: d.value }))} currency={currency} centerLabel="Spending" />
+              <p className="spend-label">{t.insights.byCategory}</p>
+              <CategoryDonut data={donut.items.map((d) => ({ name: d.name, value: d.value }))} currency={currency} centerLabel={t.insights.spending} />
               <ul className="donut-legend">
                 {donut.items.map((d) => (
                   <li key={d.name}>
@@ -236,7 +238,7 @@ export function Insights() {
                 ))}
               </ul>
               <p className="sr-only">
-                Category breakdown: {donut.items.map((d) => `${d.name} ${formatMoney(d.cents, currency)}`).join(", ")}.
+                {t.insights.categoryBreakdownSr(donut.items.map((d) => `${d.name} ${formatMoney(d.cents, currency)}`).join(", "))}
               </p>
             </Card>
           )}
@@ -261,8 +263,10 @@ export function Insights() {
                   ) : (
                     <ArrowUpRight size={16} strokeWidth={2.2} />
                   )}
-                  You spent {formatMoney(Math.abs(thisMonth.spentCents - prevSummary.spentCents), currency)}{" "}
-                  {thisMonth.vsPreviousPercent <= 0 ? "less" : "more"} this month
+                  {t.insights.spentDelta(
+                    formatMoney(Math.abs(thisMonth.spentCents - prevSummary.spentCents), currency),
+                    thisMonth.vsPreviousPercent <= 0
+                  )}
                 </p>
               )}
             </Card>
@@ -270,20 +274,20 @@ export function Insights() {
 
           {/* subscription spending */}
           <Card className="insight-card">
-            <p className="spend-label">Subscriptions</p>
+            <p className="spend-label">{t.insights.subscriptionsLabel}</p>
             <div className="equiv-row">
               <div className="equiv-cell">
-                <span className="stat-label">Current monthly</span>
+                <span className="stat-label">{t.insights.currentMonthly}</span>
                 <span className="equiv-value">{formatMoney(monthlySubs, currency)}</span>
               </div>
               <div className="equiv-cell">
-                <span className="stat-label">Current yearly</span>
+                <span className="stat-label">{t.insights.currentYearly}</span>
                 <span className="equiv-value">{formatMoney(yearlySubs, currency)}</span>
               </div>
             </div>
             <p className={`spend-compare ${subDelta <= 0 ? "positive" : "negative"}`}>
               {subDelta <= 0 ? <ArrowDownRight size={16} strokeWidth={2.2} /> : <ArrowUpRight size={16} strokeWidth={2.2} />}
-              {formatMoney(Math.abs(subDelta), currency)} {subDelta <= 0 ? "less" : "more"} on subscriptions this month than last
+              {t.insights.subscriptionsDelta(formatMoney(Math.abs(subDelta), currency), subDelta <= 0)}
             </p>
           </Card>
 
@@ -291,14 +295,14 @@ export function Insights() {
           <div className="insight-grid">
             {donut.top && (
               <Card className="insight-tile">
-                <span className="stat-label">Top category</span>
+                <span className="stat-label">{t.insights.topCategory}</span>
                 <span className="insight-tile-title">{donut.top.category.name}</span>
                 <span className="insight-tile-value">{formatMoney(donut.top.spentCents, currency)}</span>
               </Card>
             )}
             {largest && (
               <Card className="insight-tile">
-                <span className="stat-label">Largest transaction</span>
+                <span className="stat-label">{t.insights.largestTransaction}</span>
                 <span className="insight-tile-title">{largest.merchant || "—"}</span>
                 <span className="insight-tile-value">{formatMoney(largest.amountCents, currency)}</span>
               </Card>
@@ -306,7 +310,7 @@ export function Insights() {
           </div>
 
           <p className="insights-footnote">
-            All insights are calculated from the transactions and subscriptions you record.
+            {t.insights.footnote}
           </p>
         </>
       )}
