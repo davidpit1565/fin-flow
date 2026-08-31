@@ -83,3 +83,28 @@ export function sub(over: Partial<SubLike>): SubLike {
 export function cat(id: string, name: string): CategoryLike {
   return { id, name, icon: "Ellipsis", createdAt: 1 };
 }
+
+export interface GoalLike {
+  id: string;
+  name: string;
+  icon: string;
+  targetCents: number;
+  currentCents: number;
+  targetDate: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export function goal(over: Partial<GoalLike>): GoalLike {
+  return {
+    id: crypto.randomUUID(),
+    name: "Goal",
+    icon: "PiggyBank",
+    targetCents: 100000,
+    currentCents: 0,
+    targetDate: null,
+    createdAt: 1,
+    updatedAt: 1,
+    ...over,
+  };
+}

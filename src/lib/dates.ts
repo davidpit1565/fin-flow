@@ -1,5 +1,7 @@
 /** Date helpers. All dates are local-time ISO strings (YYYY-MM-DD). */
 
+import { appLocale } from "./locale";
+
 export const DAY_MS = 86_400_000;
 
 export function todayISO(): string {
@@ -61,12 +63,14 @@ export function sameMonth(a: string, b: string): boolean {
   return a.slice(0, 7) === b.slice(0, 7);
 }
 
-/** Relative day label: Today / Tomorrow / Yesterday / else null. */
-export function relativeDay(iso: string, now = todayISO()): string | null {
+/** Relative day key: today / tomorrow / yesterday / else null. Callers
+ *  translate the key themselves (via `t.common.today` etc.) since this is a
+ *  pure function with no access to the active language dictionary. */
+export function relativeDayKey(iso: string, now = todayISO()): "today" | "tomorrow" | "yesterday" | null {
   const d = diffDays(now, iso);
-  if (d === 0) return "Today";
-  if (d === 1) return "Tomorrow";
-  if (d === -1) return "Yesterday";
+  if (d === 0) return "today";
+  if (d === 1) return "tomorrow";
+  if (d === -1) return "yesterday";
   return null;
 }
 
@@ -74,7 +78,7 @@ export function relativeDay(iso: string, now = todayISO()): string | null {
 export function shortDate(iso: string, opts?: { includeYear?: boolean }): string {
   const d = parseISO(iso);
   const now = new Date();
-  const fmt = new Intl.DateTimeFormat(navigator.language || "en", {
+  const fmt = new Intl.DateTimeFormat(appLocale(), {
     day: "numeric",
     month: "short",
     ...(opts?.includeYear || d.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}),
@@ -84,7 +88,7 @@ export function shortDate(iso: string, opts?: { includeYear?: boolean }): string
 
 /** "August 2026". */
 export function monthLabel(year: number, monthIndex: number): string {
-  const fmt = new Intl.DateTimeFormat(navigator.language || "en", {
+  const fmt = new Intl.DateTimeFormat(appLocale(), {
     month: "long",
     year: "numeric",
   });
@@ -97,13 +101,13 @@ export function monthLabelISO(iso: string): string {
 
 /** "Wed" style short weekday. */
 export function weekdayShort(iso: string): string {
-  const fmt = new Intl.DateTimeFormat(navigator.language || "en", { weekday: "short" });
+  const fmt = new Intl.DateTimeFormat(appLocale(), { weekday: "short" });
   return fmt.format(parseISO(iso));
 }
 
 /** Long-ish date for details screens, e.g. "Saturday, 18 August 2026". */
 export function longDate(iso: string): string {
-  const fmt = new Intl.DateTimeFormat(navigator.language || "en", {
+  const fmt = new Intl.DateTimeFormat(appLocale(), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -114,7 +118,7 @@ export function longDate(iso: string): string {
 
 /** Time of day from a timestamp, e.g. "14:32". */
 export function timeOfDay(ts: number): string {
-  const fmt = new Intl.DateTimeFormat(navigator.language || "en", {
+  const fmt = new Intl.DateTimeFormat(appLocale(), {
     hour: "numeric",
     minute: "2-digit",
   });

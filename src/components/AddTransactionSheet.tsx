@@ -1,24 +1,14 @@
 import { useMemo, useState } from "react";
 import type { PaymentMethod, RecurringFrequency, Transaction, TransactionType } from "../types";
 import { useApp } from "../store/AppContext";
+import { useT } from "../lib/i18n";
 import { addDays, addMonths, todayISO } from "../lib/dates";
 import { suggestCategoryForMerchant } from "../lib/calc";
 import { Button, ChipGroup, DateInput, Field, FormError, NumericInput, Segmented, Sheet, TextArea, TextInput, Toggle } from "./ui";
 import { CategoryPicker } from "./CategoryPicker";
 
-const FREQUENCIES: { value: RecurringFrequency; label: string }[] = [
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "yearly", label: "Yearly" },
-];
-
-const METHODS: { value: PaymentMethod; label: string }[] = [
-  { value: "cash", label: "Cash" },
-  { value: "card", label: "Card" },
-  { value: "bank", label: "Bank" },
-  { value: "other", label: "Other" },
-];
+const FREQUENCY_KEYS: RecurringFrequency[] = ["daily", "weekly", "monthly", "yearly"];
+const METHOD_KEYS: PaymentMethod[] = ["cash", "card", "bank", "other"];
 
 function defaultNextOccurrence(date: string, frequency: RecurringFrequency): string {
   switch (frequency) {
@@ -34,8 +24,18 @@ function defaultNextOccurrence(date: string, frequency: RecurringFrequency): str
 }
 
 export function AddTransactionSheet({ initial, onClose }: { initial?: Transaction | null; onClose: () => void }) {
+  const t = useT();
   const { categories, transactions, addTransaction, updateTransaction, toast, haptic } = useApp();
   const isEdit = !!initial;
+
+  const FREQUENCIES: { value: RecurringFrequency; label: string }[] = FREQUENCY_KEYS.map((value) => ({
+    value,
+    label: t.transactionDetail.frequency[value],
+  }));
+  const METHODS: { value: PaymentMethod; label: string }[] = METHOD_KEYS.map((value) => ({
+    value,
+    label: t.transactionDetail.paymentMethod[value],
+  }));
 
   const defaultCategory = useMemo(() => categories.find((c) => c.name === "Other") ?? categories[0], [categories]);
 
@@ -55,11 +55,11 @@ export function AddTransactionSheet({ initial, onClose }: { initial?: Transactio
 
   const save = () => {
     if (amountCents === null || amountCents <= 0) {
-      setError("Enter a valid amount.");
+      setError(t.transactionForm.errorInvalidAmount);
       return;
     }
     if (!categoryId) {
-      setError("Please choose a category.");
+      setError(t.transactionForm.errorChooseCategory);
       return;
     }
     const payload = {
@@ -76,19 +76,23 @@ export function AddTransactionSheet({ initial, onClose }: { initial?: Transactio
     };
     if (isEdit && initial) {
       updateTransaction(initial.id, payload);
-      toast("Changes saved");
+      toast(t.transactionForm.toastChangesSaved);
     } else {
       addTransaction(payload);
-      toast(type === "expense" ? "Expense added" : "Income added");
+      toast(type === "expense" ? t.transactionForm.toastExpenseAdded : t.transactionForm.toastIncomeAdded);
     }
     haptic("success");
     onClose();
   };
 
   return (
-    <Sheet title={isEdit ? "Edit transaction" : "Add transaction"} onClose={onClose} ariaLabel={isEdit ? "Edit transaction" : "Add transaction"}>
+    <Sheet
+      title={isEdit ? t.transactionForm.editTitle : t.transactionForm.addTitle}
+      onClose={onClose}
+      ariaLabel={isEdit ? t.transactionForm.editTitle : t.transactionForm.addTitle}
+    >
       <div className="sheet-form">
-        <Field label="Amount">
+        <Field label={t.transactionForm.amount}>
           <div className="amount-row">
             <NumericInput
               cents={amountCents}
@@ -97,25 +101,25 @@ export function AddTransactionSheet({ initial, onClose }: { initial?: Transactio
                 setError(null);
               }}
               autoFocus
-              placeholder="0.00"
-              aria-label="Amount"
+              placeholder={t.transactions.amountPlaceholder}
+              aria-label={t.transactionForm.amount}
             />
           </div>
         </Field>
 
-        <Field label="Type">
+        <Field label={t.transactionForm.typeLabel}>
           <Segmented
             options={[
-              { value: "expense", label: "Expense" },
-              { value: "income", label: "Income" },
+              { value: "expense", label: t.transactionForm.expenseOption },
+              { value: "income", label: t.transactionForm.incomeOption },
             ]}
             value={type}
             onChange={setType}
-            ariaLabel="Transaction type"
+            ariaLabel={t.transactionForm.typeAriaLabel}
           />
         </Field>
 
-        <Field label="Category" hint={categorySuggested ? "Suggested from your past entries with this merchant" : undefined}>
+        <Field label={t.transactionForm.categoryLabel} hint={categorySuggested ? t.transactionForm.categorySuggestedHint : undefined}>
           <CategoryPicker
             value={categoryId}
             onChange={(v) => {
@@ -127,10 +131,10 @@ export function AddTransactionSheet({ initial, onClose }: { initial?: Transactio
         </Field>
 
         <div className="field-grid">
-          <Field label="Merchant" htmlFor="txn-merchant">
+          <Field label={t.transactionForm.merchantLabel} htmlFor="txn-merchant">
             <TextInput
               id="txn-merchant"
-              placeholder="Optional"
+              placeholder={t.transactionForm.merchantPlaceholder}
               value={merchant}
               onChange={(e) => setMerchant(e.target.value)}
               onBlur={() => {
@@ -144,40 +148,40 @@ export function AddTransactionSheet({ initial, onClose }: { initial?: Transactio
               autoComplete="off"
             />
           </Field>
-          <Field label="Date" htmlFor="txn-date">
+          <Field label={t.transactionForm.dateLabel} htmlFor="txn-date">
             <DateInput value={date} onChange={setDate} id="txn-date" />
           </Field>
         </div>
 
-        <Field label="Notes" htmlFor="txn-notes">
-          <TextArea id="txn-notes" placeholder="Optional" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+        <Field label={t.transactionForm.notesLabel} htmlFor="txn-notes">
+          <TextArea id="txn-notes" placeholder={t.transactionForm.notesPlaceholder} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </Field>
 
         <div className="field-recurring">
           <div className="recurring-head">
-            <span className="field-label">Recurring</span>
-            <Toggle checked={recurring} onChange={setRecurring} label="Recurring transaction" />
+            <span className="field-label">{t.transactionForm.recurringLabel}</span>
+            <Toggle checked={recurring} onChange={setRecurring} label={t.transactionForm.recurringToggleLabel} />
           </div>
           {recurring && (
             <div className="recurring-opts">
-              <ChipGroup options={FREQUENCIES} value={frequency} onChange={setFrequency} ariaLabel="Recurring frequency" />
+              <ChipGroup options={FREQUENCIES} value={frequency} onChange={setFrequency} ariaLabel={t.transactionForm.recurringFrequencyAriaLabel} />
               <div className="recurring-next">
-                <span className="field-label">Next occurrence</span>
-                <DateInput value={nextOccurrence || date} onChange={setNextOccurrence} aria-label="Next occurrence" />
+                <span className="field-label">{t.transactionForm.nextOccurrenceLabel}</span>
+                <DateInput value={nextOccurrence || date} onChange={setNextOccurrence} aria-label={t.transactionForm.nextOccurrenceLabel} />
               </div>
             </div>
           )}
         </div>
 
-        <Field label="Payment method">
-          <ChipGroup options={METHODS} value={paymentMethod} onChange={setPaymentMethod} ariaLabel="Payment method" />
+        <Field label={t.transactionForm.paymentMethodLabel}>
+          <ChipGroup options={METHODS} value={paymentMethod} onChange={setPaymentMethod} ariaLabel={t.transactionForm.paymentMethodLabel} />
         </Field>
 
         <FormError message={error} />
       </div>
       <div className="sheet-footer">
         <Button size="lg" className="btn-block" onClick={save}>
-          {isEdit ? "Save changes" : type === "expense" ? "Add expense" : "Add income"}
+          {isEdit ? t.transactionForm.saveChangesButton : type === "expense" ? t.transactionForm.addExpenseButton : t.transactionForm.addIncomeButton}
         </Button>
       </div>
     </Sheet>

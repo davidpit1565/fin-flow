@@ -25,8 +25,8 @@ test.describe("categories", () => {
     await moveBtn.click();
     await expect(page.getByText("Food", { exact: true })).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Back" }).click();
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await page.getByRole("button", { name: "Transactions", exact: true }).click();
     await page.getByText("Orphan check").click();
     await expect(page.locator(".detail-row-value").first()).toHaveText("Groceries");
@@ -41,14 +41,14 @@ test.describe("categories", () => {
     await page.locator(".sheet-footer").getByRole("button", { name: "Save budget" }).click();
     await expect(page.getByText("Housing")).toBeVisible();
 
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await page.getByRole("button", { name: "Manage categories" }).click();
     const housingRow = page.locator(".row", { hasText: "Housing" });
     await housingRow.getByRole("button", { name: "Delete Housing" }).click();
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page.getByText("Housing", { exact: true })).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await page.getByRole("button", { name: "Monthly budgets" }).click();
     await expect(page.getByText("Add budgets for categories")).toBeVisible();
     await expect(page.locator(".budget-list")).toHaveCount(0);

@@ -1,4 +1,5 @@
 import type { CurrencyCode } from "../types";
+import { appLocale } from "./locale";
 
 export const CURRENCIES: { code: CurrencyCode; label: string }[] = [
   { code: "EUR", label: "Euro" },
@@ -60,7 +61,7 @@ export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
 
 function makeFormatter(currency: CurrencyCode) {
   try {
-    return new Intl.NumberFormat(navigator.language || "en", {
+    return new Intl.NumberFormat(appLocale(), {
       style: "currency",
       currency,
       currencyDisplay: "narrowSymbol",

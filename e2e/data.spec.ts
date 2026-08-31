@@ -37,7 +37,7 @@ test.describe("data management", () => {
     });
     await expect(page.locator(".toast")).toContainText("Imported 2 transactions");
 
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await page.getByRole("button", { name: "Transactions", exact: true }).click();
     await expect(page.getByText("Imported Coffee")).toBeVisible();
     await expect(page.getByText("Imported Salary")).toBeVisible();

@@ -17,8 +17,8 @@ test.describe("budgets", () => {
     await expect(page.getByText("Monthly budget")).toBeVisible();
 
     // Back out of Settings (tab bar is hidden there) to reach Home.
-    await page.getByRole("button", { name: "Back" }).click();
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Your finances" })).toBeVisible();
     await expect(page.getByText("Monthly budget")).toBeVisible();
     await expect(page.locator(".budget-card")).toContainText("1,500.00");

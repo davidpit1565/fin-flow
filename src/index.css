@@ -52,6 +52,64 @@
   color-scheme: dark;
 }
 
+/* ---------- accent colors ----------
+   `green` is the original default, defined above on bare `:root` /
+   `:root[data-theme="dark"]`, so it needs no override block here. Each other
+   color gets a light-mode block (applies whenever data-theme is absent or
+   "light") plus a `[data-theme="dark"]` combo block so it also reads right
+   over the dark palette -- same --accent/--accent-strong/--accent-soft
+   lightness relationship as green: a mid-dark solid in light mode with a
+   darker "strong" shade, and a lighter/brighter pair with a low-alpha soft
+   tint in dark mode. */
+
+:root[data-accent="blue"] {
+  --accent: #0284c7;
+  --accent-strong: #0369a1;
+  --accent-soft: rgba(2, 132, 199, 0.12);
+}
+
+:root[data-theme="dark"][data-accent="blue"] {
+  --accent: #38bdf8;
+  --accent-strong: #7dd3fc;
+  --accent-soft: rgba(56, 189, 248, 0.16);
+}
+
+:root[data-accent="purple"] {
+  --accent: #7c3aed;
+  --accent-strong: #6025c4;
+  --accent-soft: rgba(124, 58, 237, 0.12);
+}
+
+:root[data-theme="dark"][data-accent="purple"] {
+  --accent: #a78bfa;
+  --accent-strong: #c4b5fd;
+  --accent-soft: rgba(167, 139, 250, 0.16);
+}
+
+:root[data-accent="orange"] {
+  --accent: #c2410c;
+  --accent-strong: #9a3412;
+  --accent-soft: rgba(194, 65, 12, 0.12);
+}
+
+:root[data-theme="dark"][data-accent="orange"] {
+  --accent: #fb923c;
+  --accent-strong: #fdba74;
+  --accent-soft: rgba(251, 146, 60, 0.16);
+}
+
+:root[data-accent="pink"] {
+  --accent: #be185d;
+  --accent-strong: #9d174d;
+  --accent-soft: rgba(190, 24, 93, 0.12);
+}
+
+:root[data-theme="dark"][data-accent="pink"] {
+  --accent: #f472b6;
+  --accent-strong: #f9a8d4;
+  --accent-soft: rgba(244, 114, 182, 0.16);
+}
+
 /* ---------- base ---------- */
 
 * {
@@ -142,7 +200,7 @@ ul {
   flex-shrink: 0;
   flex-direction: column;
   padding: 28px 16px calc(20px + env(safe-area-inset-bottom));
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   background: var(--surface);
 }
 
@@ -201,7 +259,7 @@ ul {
   font-weight: 600;
   color: var(--text-secondary);
   transition: background 0.15s ease, color 0.15s ease;
-  text-align: left;
+  text-align: start;
 }
 
 .sidebar-item:hover {
@@ -465,6 +523,14 @@ ul {
   flex-shrink: 0;
 }
 
+/** For icons that visually encode a direction (back arrows, chevrons) rather
+ *  than a fixed symbol (trash can, checkmark) -- see the RTL correctness
+ *  notes in CLAUDE.md. Apply only to those, never blanket-flip a whole
+ *  icon-carrying container. */
+[dir="rtl"] .icon-directional {
+  transform: scaleX(-1);
+}
+
 .icon-btn:hover {
   background: var(--surface-3);
   color: var(--text);
@@ -613,7 +679,7 @@ ul {
 .toggle-knob {
   position: absolute;
   top: 2px;
-  left: 2px;
+  inset-inline-start: 2px;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -624,6 +690,13 @@ ul {
 
 .toggle.on .toggle-knob {
   transform: translateX(20px);
+}
+
+/* `translateX` is a physical transform -- it doesn't flip with `dir` the way
+   `inset-inline-start` does, so the "on" slide direction needs its own RTL
+   override to still move the knob toward the same logical end. */
+[dir="rtl"] .toggle.on .toggle-knob {
+  transform: translateX(-20px);
 }
 
 /* ---------- fields ---------- */
@@ -676,6 +749,19 @@ ul {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   border-radius: 14px;
+  /* Amounts are always typed and read left-to-right, even in the Hebrew UI.
+     Without this, the field inherits `direction: rtl` from <html> and
+     digits can appear to insert/edit in reverse order as the user types. */
+  direction: ltr;
+}
+
+/* Native number/date inputs: keep digits and date segments left-to-right
+   regardless of page direction, for the same reason as .input-amount above.
+   Scoped to these two input types only -- free-text fields (name, notes,
+   search) must keep inheriting RTL so Hebrew text still types correctly. */
+.input[type="number"],
+.input[type="date"] {
+  direction: ltr;
 }
 
 .textarea {
@@ -856,7 +942,7 @@ input[type="date"] {
 .category-chip-check {
   position: absolute;
   bottom: -1px;
-  right: -1px;
+  inset-inline-end: -1px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -924,7 +1010,7 @@ input[type="date"] {
 
 .card-pressable {
   transition: transform 0.12s ease, border-color 0.15s ease;
-  text-align: left;
+  text-align: start;
   width: 100%;
 }
 
@@ -1006,7 +1092,7 @@ input[type="date"] {
   border-bottom: 1px solid var(--border);
   min-width: 0;
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
 .row:last-child {
@@ -1067,6 +1153,12 @@ input[type="date"] {
   flex-shrink: 0;
 }
 
+/* A row's chevron always points toward "deeper into the app" -- the
+   direction that flips with reading direction, unlike a fixed-symbol icon. */
+[dir="rtl"] .row-chevron {
+  transform: scaleX(-1);
+}
+
 .row-muted {
   opacity: 0.55;
 }
@@ -1098,12 +1190,22 @@ input[type="date"] {
   z-index: 1;
 }
 
+/* RTL note: these use logical (not physical) inset properties on purpose.
+   `leftAction` is always the reading-start-side action (e.g. "mark as
+   recurring") and `rightAction` the reading-end/destructive one (delete) --
+   see the comment on SwipeRow in components/rows.tsx for the full reasoning.
+   `inset-inline-start`/`inset-inline-end` put `leftAction` on the physical
+   left in LTR and the physical right in RTL (and vice-versa for
+   `rightAction`), which is exactly what's needed: the drag gesture itself
+   (translateX in rows.tsx) is a physical, direction-agnostic transform that
+   is deliberately left untouched, so flipping *which action lives on which
+   physical side* is the only thing that needs to change for RTL. */
 .swipe-action-left {
-  left: 0;
+  inset-inline-start: 0;
 }
 
 .swipe-action-right {
-  right: 0;
+  inset-inline-end: 0;
 }
 
 .swipe-action-btn {
@@ -1309,7 +1411,7 @@ input[type="date"] {
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
 .coming-row:last-child {
@@ -1818,7 +1920,7 @@ input[type="date"] {
 }
 
 .detail-row-value {
-  text-align: right;
+  text-align: end;
   font-weight: 550;
   min-width: 0;
   word-break: break-word;
@@ -2111,6 +2213,136 @@ input[type="date"] {
   margin: 8px 0 16px;
 }
 
+/* ---------- AI insights: health score, narrative, callouts ---------- */
+
+.health-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.health-score {
+  display: block;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-tier {
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: capitalize;
+  padding: 5px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.health-tier-excellent,
+.health-tier-good {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.health-tier-fair {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.health-tier-needs-attention {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.health-factors {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+}
+
+.health-factor-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.narrative-list,
+.callout-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.narrative-list li {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  padding-inline-start: 14px;
+  position: relative;
+}
+
+.narrative-list li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.callout-card .spend-label {
+  margin-bottom: 10px;
+}
+
+.callout-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 550;
+  padding: 2px 0;
+}
+
+/* ---------- year in review ---------- */
+
+.year-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 4px 0 16px;
+}
+
+.year-picker-value {
+  font-size: 20px;
+  font-weight: 650;
+  min-width: 64px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.wrapped-hero {
+  padding: 24px 20px;
+  margin-bottom: 12px;
+  background: linear-gradient(160deg, var(--accent-soft), var(--surface) 70%);
+  border-color: var(--border-strong);
+}
+
+.wrapped-hero-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
 /* ---------- budgets ---------- */
 
 .budget-list {
@@ -2157,6 +2389,20 @@ input[type="date"] {
   font-weight: 650;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+}
+
+/* ---------- net worth ---------- */
+
+.networth-total-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.debt-plan-result {
+  margin-top: 12px;
 }
 
 /* ---------- settings ---------- */
@@ -2301,7 +2547,7 @@ input[type="date"] {
 .onboarding-setup {
   justify-content: flex-start;
   padding-top: 8px;
-  text-align: left;
+  text-align: start;
   align-items: flex-start;
 }
 
@@ -2414,7 +2660,7 @@ input[type="date"] {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 2px;
-  text-align: left;
+  text-align: start;
   font-size: 15px;
   font-weight: 600;
 }

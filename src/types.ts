@@ -3,8 +3,13 @@
 export type CurrencyCode = "EUR" | "USD" | "GBP" | "CHF" | "CAD" | "AUD" | "ILS";
 
 export type ThemePreference = "system" | "light" | "dark";
+export type AccentColor = "green" | "blue" | "purple" | "orange" | "pink";
 export type DateFormatPreference = "auto" | "dmy" | "mdy" | "iso";
 export type WeekStart = "monday" | "sunday";
+/** UI language. Adding a new one means: add its code here, add a matching
+ *  dictionary file under src/lib/i18n/, register it in src/lib/i18n/index.tsx's
+ *  `dictionaries` map, and add an option to the Language picker in Settings. */
+export type Language = "en" | "he";
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -25,6 +30,12 @@ export interface UserSettings {
   /** Optional: absent on settings created before this field existed, which
    *  should be treated the same as `false` -- app lock off by default. */
   appLockEnabled?: boolean;
+  /** Optional: absent on settings created before this field existed, which
+   *  should be treated the same as `"green"` -- the original accent color. */
+  accentColor?: AccentColor;
+  /** Optional: absent on settings created before this field existed, which
+   *  should be treated the same as `"en"` -- the original (and only) language. */
+  language?: Language;
   createdAt: number;
   updatedAt: number;
 }
@@ -104,6 +115,19 @@ export interface Budget {
   updatedAt: number;
 }
 
+export interface Goal {
+  id: string;
+  name: string;
+  icon: string;
+  targetCents: number;
+  /** Amount saved so far toward this goal. */
+  currentCents: number;
+  /** Optional ISO date the user wants to hit the target by. */
+  targetDate: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 /** Computed on demand from real data — never stored, never invented. */
 export interface MonthlySummary {
   year: number;
@@ -117,6 +141,22 @@ export interface MonthlySummary {
   vsPreviousPercent: number | null;
 }
 
+export type NetWorthItemKind = "asset" | "liability";
+
+export interface NetWorthItem {
+  id: string;
+  kind: NetWorthItemKind;
+  name: string;
+  /** Free-form label, e.g. "Cash", "Investments", "Property", "Vehicle", "Other"
+   *  for assets; "Loan", "Credit Card", "Mortgage", "Other" for liabilities. */
+  category: string;
+  /** Always a positive magnitude regardless of kind -- a liability's
+   *  contribution to net worth is subtracted, not stored as negative. */
+  valueCents: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface CategoryTotal {
   category: Category;
   spentCents: number;
@@ -128,4 +168,14 @@ export interface UpcomingPayment {
   date: string;
   amountCents: number;
   label: string;
+}
+
+export interface Debt {
+  id: string;
+  name: string;
+  remainingCents: number; // current balance owed
+  aprPercent: number; // annual interest rate, e.g. 19.99
+  minPaymentCents: number;
+  createdAt: number;
+  updatedAt: number;
 }
