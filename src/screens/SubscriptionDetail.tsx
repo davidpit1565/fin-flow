@@ -31,7 +31,7 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
   if (!subscription) {
     return (
       <div className="screen">
-        <ScreenHeader title={t.subscriptions.detailTitle} onBack={back} />
+        <ScreenHeader title={t.subscriptions.detailTitle} onBack={back} largeTitle={false} />
         <p className="screen-empty-text">{t.subscriptions.notFound}</p>
       </div>
     );
@@ -99,6 +99,7 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
       <ScreenHeader
         title={t.subscriptions.detailTitle}
         onBack={back}
+        largeTitle={false}
         right={
           <button className="icon-btn" aria-label={t.subscriptions.editSubscription} onClick={() => setEditing(true)}>
             <Pencil size={18} strokeWidth={2} />

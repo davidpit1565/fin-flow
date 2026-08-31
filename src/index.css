@@ -2098,8 +2098,11 @@ input[type="date"] {
 /** Authentic iOS "grouped list" (Settings.app-style): flat, borderless,
  *  a subtle 10px radius -- distinct from `.card`'s bordered/shadowed
  *  freestanding look, since a grouped list reads as content sitting on
- *  the grouped background rather than a card floating above it. */
-.list-card {
+ *  the grouped background rather than a card floating above it.
+ *  `.budget-list` (Goals/Budgets/Debts/NetWorth item lists) shares the
+ *  same flat treatment -- it's the same "grouped list of rows" pattern. */
+.list-card,
+.budget-list {
   padding: 4px 16px;
   margin-top: 12px;
   border: none;
@@ -2423,11 +2426,7 @@ input[type="date"] {
 }
 
 /* ---------- budgets ---------- */
-
-.budget-list {
-  padding: 4px 16px;
-  margin-top: 12px;
-}
+/* .budget-list's flat-card treatment lives with .list-card's rule above. */
 
 .budget-item {
   padding: 12px 0;
@@ -2914,11 +2913,13 @@ input[type="date"] {
 /* Material list/preference screens are edge-to-edge with a much smaller
    corner radius than iOS's rounded grouped-list card, and use a subtle
    elevation shadow instead of a flat borderless surface. */
-[data-platform="android"] .list-card {
+[data-platform="android"] .list-card,
+[data-platform="android"] .budget-list {
   border-radius: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-:root[data-platform="android"][data-theme="dark"] .list-card {
+:root[data-platform="android"][data-theme="dark"] .list-card,
+:root[data-platform="android"][data-theme="dark"] .budget-list {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.36);
 }
 
@@ -2958,4 +2959,19 @@ input[type="date"] {
 [data-platform="android"] .screen-header-bar-title {
   font-weight: 600;
   letter-spacing: 0;
+}
+
+/* Material 3 segmented buttons: fully-rounded track and pills, and the
+   selected segment reads via an accent tint rather than iOS's floating
+   white pill + shadow (Material avoids elevation on compact controls). */
+[data-platform="android"] .segmented {
+  border-radius: 999px;
+}
+[data-platform="android"] .segmented-item {
+  border-radius: 999px;
+}
+[data-platform="android"] .segmented-item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: none;
 }
