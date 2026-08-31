@@ -16,6 +16,10 @@ import { legal } from "./legal";
 import { home } from "./home";
 import { insights } from "./insights";
 import { onboarding } from "./onboarding";
+import { goals } from "./goals";
+import { netWorth } from "./netWorth";
+import { debts } from "./debts";
+import { yearInReview } from "./yearInReview";
 
 export const en = {
   common,
@@ -31,4 +35,8 @@ export const en = {
   home,
   insights,
   onboarding,
+  goals,
+  netWorth,
+  debts,
+  yearInReview,
 };

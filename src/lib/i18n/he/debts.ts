@@ -1,0 +1,57 @@
+import type { debts as DebtsEn } from "../en/debts";
+
+function monthsPhrase(months: number): string {
+  if (months === 1) return "חודש אחד";
+  if (months === 2) return "חודשיים";
+  return `${months} חודשים`;
+}
+
+export const debts: typeof DebtsEn = {
+  title: "חובות",
+  subtitle: "עקבו אחרי מה שאתם חייבים ותכננו איך לסלק את זה",
+  emptyTitle: "עדיין אין חובות",
+  emptyMessage: "הוסיפו כרטיס אשראי, הלוואה, או כל דבר אחר שאתם חייבים כדי להתחיל לתכנן את הסילוק.",
+  sectionTitle: "החובות שלכם",
+  addDebt: "הוספת חוב",
+  editAria: (name) => `עריכת ${name}`,
+  deleteAria: (name) => `מחיקת ${name}`,
+  recordPaymentAria: (name) => `רישום תשלום עבור ${name}`,
+  aprTag: (percent) => `ריבית ${percent}%`,
+  remainingSuffix: "נותרו",
+  minPerMonth: (amount) => `מינימום ${amount} לחודש`,
+  payoffPlanTitle: "תוכנית סילוק",
+  strategyFieldLabel: "אסטרטגיה",
+  strategyAria: "אסטרטגיית סילוק",
+  strategySnowball: "כדור שלג",
+  strategyAvalanche: "מפולת",
+  extraPaymentFieldLabel: "תשלום חודשי נוסף",
+  extraPaymentHint: "מתחלק בין התשלומים המינימליים של כל החובות, ומעליו הסכום הזה מופנה כל פעם לחוב אחד.",
+  extraPaymentAria: "תשלום חודשי נוסף",
+  neverPaysOff: "בקצב התשלומים הנוכחי החובות האלה לא ייפרעו לעולם — נסו להוסיף תשלום חודשי נוסף.",
+  debtFreeInLabel: "עד חופש מחובות",
+  monthsCount: (months) => monthsPhrase(months),
+  totalInterestLabel: "סך הריבית",
+  payoffMonth: (month) => `חודש ${month}`,
+  addDebtSheetTitle: "הוספת חוב",
+  editDebtSheetTitle: "עריכת חוב",
+  nameFieldLabel: "שם",
+  namePlaceholder: "למשל כרטיס ויזה",
+  debtNameAria: "שם החוב",
+  remainingBalanceFieldLabel: "יתרה לתשלום",
+  interestRateFieldLabel: "ריבית שנתית (APR %)",
+  interestRateAria: "ריבית שנתית",
+  minimumPaymentFieldLabel: "תשלום מינימלי",
+  enterName: "יש להזין שם.",
+  enterRemainingBalance: "יש להזין את היתרה לתשלום.",
+  enterValidInterestRate: "יש להזין ריבית תקינה.",
+  enterMinimumPayment: "יש להזין תשלום מינימלי.",
+  debtAdded: "החוב נוסף",
+  debtUpdated: "החוב עודכן",
+  saveChanges: "שמירת שינויים",
+  deleteDebtConfirmTitle: "למחוק את החוב?",
+  deleteDebtConfirmMessage: (name) => `הפעולה תסיר את "${name}" מתוכנית הסילוק שלכם. לא ניתן לבטל פעולה זו.`,
+  recordPaymentSheetTitle: "רישום תשלום",
+  paymentTowardFieldLabel: (name) => `תשלום עבור ${name}`,
+  paymentAmountAria: "סכום התשלום",
+  paymentRecorded: "התשלום נרשם",
+};
