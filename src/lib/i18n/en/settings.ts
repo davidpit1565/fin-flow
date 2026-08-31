@@ -120,6 +120,7 @@ export const settings = {
 
   exportReady: "Export ready",
   exportFailed: "We couldn't export your data. Please try again.",
+  exportShareDialogTitle: "Save export",
 
   importedCount: (n: number) => `Imported ${n} ${n === 1 ? "transaction" : "transactions"}`,
   importNothingFormat: "Nothing imported — check the file format.",
@@ -127,6 +128,7 @@ export const settings = {
   importFailed: "We couldn't import that file. Please try again.",
 
   backupExported: "Backup exported",
+  backupShareDialogTitle: "Save backup",
   backupExportFailed: "We couldn't create the backup. Please try again.",
 
   restoreTitle: "Restore from backup?",

@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type { Language } from "../../types";
+import { relativeDayKey } from "../dates";
 import { en } from "./en/index";
 import { he } from "./he/index";
 
@@ -33,4 +34,12 @@ export const LANGUAGE_NAMES: Record<Language, string> = {
 
 export function isRTL(language: Language): boolean {
   return language === "he";
+}
+
+/** Translates `relativeDayKey`'s result via `t.common` -- shared by React
+ *  screens and pure `lib/` functions alike, since it only needs the
+ *  `common` slice of the dictionary rather than React context. */
+export function relativeDayLabel(t: Pick<Dictionary, "common">, iso: string, now?: string): string | null {
+  const key = now === undefined ? relativeDayKey(iso) : relativeDayKey(iso, now);
+  return key === null ? null : t.common[key];
 }

@@ -65,6 +65,7 @@ export const insights: typeof InsightsEn = {
   range3m: "3M",
   range6m: "6M",
   range12m: "12M",
+  lastNDays: (n) => `${n} הימים האחרונים`,
 
   spending: "הוצאות",
   spendingChartSr: (joined: string) => `תרשים ההוצאות: ${joined}.`,

@@ -63,12 +63,14 @@ export function sameMonth(a: string, b: string): boolean {
   return a.slice(0, 7) === b.slice(0, 7);
 }
 
-/** Relative day label: Today / Tomorrow / Yesterday / else null. */
-export function relativeDay(iso: string, now = todayISO()): string | null {
+/** Relative day key: today / tomorrow / yesterday / else null. Callers
+ *  translate the key themselves (via `t.common.today` etc.) since this is a
+ *  pure function with no access to the active language dictionary. */
+export function relativeDayKey(iso: string, now = todayISO()): "today" | "tomorrow" | "yesterday" | null {
   const d = diffDays(now, iso);
-  if (d === 0) return "Today";
-  if (d === 1) return "Tomorrow";
-  if (d === -1) return "Yesterday";
+  if (d === 0) return "today";
+  if (d === 1) return "tomorrow";
+  if (d === -1) return "yesterday";
   return null;
 }
 

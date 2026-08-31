@@ -148,7 +148,7 @@ export async function decryptBackup(fileContent: string, password: string): Prom
 /** Save the encrypted backup file. Mirrors downloadCSV's native-vs-web
  *  branching in src/lib/csv.ts, kept as a self-contained copy here so this
  *  feature doesn't touch csv.ts. */
-export async function downloadBackupFile(content: string, filename: string): Promise<void> {
+export async function downloadBackupFile(content: string, filename: string, dialogTitle: string): Promise<void> {
   if (isNative()) {
     const written = await Filesystem.writeFile({
       path: filename,
@@ -156,7 +156,7 @@ export async function downloadBackupFile(content: string, filename: string): Pro
       directory: Directory.Cache,
       encoding: Encoding.UTF8,
     });
-    await Share.share({ url: written.uri, dialogTitle: "Save backup" });
+    await Share.share({ url: written.uri, dialogTitle });
     return;
   }
   const blob = new Blob([content], { type: "application/json;charset=utf-8" });

@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { addDays, addMonths, diffDays, relativeDay, sameMonth, startOfWeek, toISO } from "../src/lib/dates";
+import { addDays, addMonths, diffDays, relativeDayKey, sameMonth, startOfWeek, toISO } from "../src/lib/dates";
 
-describe("relativeDay", () => {
+describe("relativeDayKey", () => {
   const now = "2026-08-13";
   test("labels today, tomorrow, yesterday", () => {
-    expect(relativeDay("2026-08-13", now)).toBe("Today");
-    expect(relativeDay("2026-08-14", now)).toBe("Tomorrow");
-    expect(relativeDay("2026-08-12", now)).toBe("Yesterday");
+    expect(relativeDayKey("2026-08-13", now)).toBe("today");
+    expect(relativeDayKey("2026-08-14", now)).toBe("tomorrow");
+    expect(relativeDayKey("2026-08-12", now)).toBe("yesterday");
   });
   test("returns null for other days", () => {
-    expect(relativeDay("2026-08-20", now)).toBeNull();
-    expect(relativeDay("2026-07-13", now)).toBeNull();
+    expect(relativeDayKey("2026-08-20", now)).toBeNull();
+    expect(relativeDayKey("2026-07-13", now)).toBeNull();
   });
 });
 

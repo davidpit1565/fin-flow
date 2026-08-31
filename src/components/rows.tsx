@@ -261,6 +261,7 @@ export function CategoryRow({
   currency: CurrencyCode;
   onTap?: () => void;
 }) {
+  const t = useT();
   const Icon = iconByName(category.icon);
   return (
     <SwipeRow onTap={onTap}>
@@ -268,7 +269,7 @@ export function CategoryRow({
         <IconBadge icon={Icon} size="sm" />
         <div className="row-main">
           <span className="row-title">{category.name}</span>
-          {percent !== undefined && <span className="row-sub">{Math.round(percent)}% of spending</span>}
+          {percent !== undefined && <span className="row-sub">{t.common.percentOfSpending(Math.round(percent))}</span>}
         </div>
         <span className="row-amount">{formatMoney(spentCents, currency)}</span>
         <ChevronRight className="row-chevron" size={16} strokeWidth={2} aria-hidden="true" />

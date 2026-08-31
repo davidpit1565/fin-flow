@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Category, CurrencyCode, Transaction } from "../types";
 import { useApp } from "../store/AppContext";
-import { useT } from "../lib/i18n";
-import { relativeDay, shortDate } from "../lib/dates";
+import { relativeDayLabel, useT } from "../lib/i18n";
+import { shortDate } from "../lib/dates";
 import { TransactionRow } from "./rows";
 
 // Mounting every row at once measured at ~2.7s to render and visibly
@@ -93,7 +93,7 @@ export function TransactionList({
       {groups.map((g) => (
         <div key={g.date} className="txn-group">
           <div className="txn-group-header">
-            <span className="txn-group-date">{relativeDay(g.date) ?? shortDate(g.date)}</span>
+            <span className="txn-group-date">{relativeDayLabel(t, g.date) ?? shortDate(g.date)}</span>
           </div>
           {g.items.map((tx) => (
             <TransactionRow

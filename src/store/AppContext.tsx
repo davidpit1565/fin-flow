@@ -245,14 +245,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         void requestPermission().then((granted) => {
           if (!granted) return;
           if (s.notifications.subscriptionReminders) {
-            for (const sub of subs) void syncSubscriptionReminder(sub, s);
+            for (const sub of subs) void syncSubscriptionReminder(sub, s, t);
           }
-          void checkBudgetAlerts(bdgs, txns, cats, s);
-          void checkMonthlySummary(s, txns);
+          void checkBudgetAlerts(bdgs, txns, cats, s, t);
+          void checkMonthlySummary(s, txns, t);
         });
       }
     },
-    []
+    [t]
   );
 
   useEffect(() => {
@@ -335,7 +335,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const sub: Subscription = { ...input, id, payments: [], createdAt: now, updatedAt: now };
       setSubscriptions((prev) => [...prev, sub]);
       void storage.put("subscriptions", sub).catch(() => toast(t.common.somethingWentWrong));
-      if (settings) void syncSubscriptionReminder(sub, settings);
+      if (settings) void syncSubscriptionReminder(sub, settings, t);
       return id;
     },
     [settings, toast, t]
@@ -348,7 +348,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const updated = next.find((s) => s.id === id);
         if (updated) {
           void storage.put("subscriptions", updated).catch(() => toast(t.common.somethingWentWrong));
-          if (settings) void syncSubscriptionReminder(updated, settings);
+          if (settings) void syncSubscriptionReminder(updated, settings, t);
         }
         return next;
       });
@@ -383,7 +383,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           updatedAt: Date.now(),
         };
         void storage.put("subscriptions", updated).catch(() => toast(t.common.somethingWentWrong));
-        if (settings) void syncSubscriptionReminder(updated, settings);
+        if (settings) void syncSubscriptionReminder(updated, settings, t);
         // Create a real transaction so subscription spending is visible.
         const txn: Transaction = {
           id: crypto.randomUUID(),

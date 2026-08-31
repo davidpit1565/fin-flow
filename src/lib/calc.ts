@@ -10,7 +10,8 @@ import type {
   UpcomingPayment,
   WeekStart,
 } from "../types";
-import { addDays, addMonths, diffDays, lastMonths, monthLabel, parseISO, relativeDay, shortDate, startOfMonth, startOfWeek, todayISO, toISO } from "./dates";
+import { addDays, addMonths, diffDays, lastMonths, monthLabel, parseISO, shortDate, startOfMonth, startOfWeek, todayISO, toISO } from "./dates";
+import { relativeDayLabel, type Dictionary } from "./i18n";
 
 /* ---------- periods ---------- */
 
@@ -157,26 +158,32 @@ export function subscriptionYearlyTotal(subscriptions: Subscription[]): number {
   return activeSubscriptions(subscriptions).reduce((sum, s) => sum + yearlyEquivalent(s), 0);
 }
 
-/** Upcoming payments: active subs due within the next 90 days (or overdue), sorted by date. */
-export function upcomingPayments(subscriptions: Subscription[], now = todayISO()): UpcomingPayment[] {
+/** Active subs due within the next 90 days (or overdue), sorted by date --
+ *  the raw data behind `upcomingPayments`, with no display label attached
+ *  yet, so totals can be computed without a translation dictionary. */
+function upcomingDue(subscriptions: Subscription[], now: string): { subscription: Subscription; date: string; amountCents: number; overdue: boolean }[] {
   const horizon = addDays(now, 90);
   return activeSubscriptions(subscriptions)
     .filter((s) => s.nextPaymentDate <= horizon)
-    .map((s) => {
-      const overdue = s.nextPaymentDate < now;
-      const label = relativeDay(s.nextPaymentDate, now) ?? shortDate(s.nextPaymentDate, { includeYear: true });
-      return {
-        subscription: s,
-        date: s.nextPaymentDate,
-        amountCents: s.amountCents,
-        label: overdue ? `Overdue · ${label}` : label,
-      };
-    })
+    .map((s) => ({
+      subscription: s,
+      date: s.nextPaymentDate,
+      amountCents: s.amountCents,
+      overdue: s.nextPaymentDate < now,
+    }))
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
+/** Upcoming payments with a translated, human-readable date label. */
+export function upcomingPayments(subscriptions: Subscription[], t: Pick<Dictionary, "common">, now = todayISO()): UpcomingPayment[] {
+  return upcomingDue(subscriptions, now).map((u) => {
+    const label = relativeDayLabel(t, u.date, now) ?? shortDate(u.date, { includeYear: true });
+    return { subscription: u.subscription, date: u.date, amountCents: u.amountCents, label: u.overdue ? t.common.overdue(label) : label };
+  });
+}
+
 export function upcomingTotalCents(subscriptions: Subscription[], now = todayISO()): number {
-  return upcomingPayments(subscriptions, now).reduce((sum, u) => sum + u.amountCents, 0);
+  return upcomingDue(subscriptions, now).reduce((sum, u) => sum + u.amountCents, 0);
 }
 
 /* ---------- categories ---------- */

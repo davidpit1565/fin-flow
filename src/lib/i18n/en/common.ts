@@ -16,4 +16,10 @@ export const common = {
   retry: "Retry",
   deleted: "Deleted",
   somethingWentWrong: "Something went wrong. Please try again.",
+
+  today: "Today",
+  tomorrow: "Tomorrow",
+  yesterday: "Yesterday",
+  overdue: (label: string) => `Overdue · ${label}`,
+  percentOfSpending: (percent: number) => `${percent}% of spending`,
 };

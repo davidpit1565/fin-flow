@@ -4,9 +4,9 @@ import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
 import { monthlyEquivalent, yearlyEquivalent } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
-import { longDate, relativeDay, shortDate } from "../lib/dates";
+import { longDate, shortDate } from "../lib/dates";
 import { iconByName } from "../lib/icons";
-import { useT } from "../lib/i18n";
+import { relativeDayLabel, useT } from "../lib/i18n";
 import { Card, IconBadge, ScreenHeader } from "../components/ui";
 import { AddSubscriptionSheet } from "../components/AddSubscriptionSheet";
 
@@ -41,7 +41,7 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
   const Icon = iconByName(category?.icon);
   const { currency } = settings;
   const status = subscription.status;
-  const nextLabel = relativeDay(subscription.nextPaymentDate) ?? shortDate(subscription.nextPaymentDate, { includeYear: true });
+  const nextLabel = relativeDayLabel(t, subscription.nextPaymentDate) ?? shortDate(subscription.nextPaymentDate, { includeYear: true });
 
   const doDelete = async () => {
     const ok = await confirm({

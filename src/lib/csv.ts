@@ -80,7 +80,7 @@ export function buildCSV(bundle: ExportBundle): string {
 /** Save the export. On the native shell there's no download manager, so the file is
  *  written to the app's cache and handed to the system share sheet (Save to Files,
  *  AirDrop, Mail, etc.). In a browser this is a normal blob download. */
-export async function downloadCSV(content: string, filename: string): Promise<void> {
+export async function downloadCSV(content: string, filename: string, dialogTitle: string): Promise<void> {
   if (isNative()) {
     const written = await Filesystem.writeFile({
       path: filename,
@@ -88,7 +88,7 @@ export async function downloadCSV(content: string, filename: string): Promise<vo
       directory: Directory.Cache,
       encoding: Encoding.UTF8,
     });
-    await Share.share({ url: written.uri, dialogTitle: "Save export" });
+    await Share.share({ url: written.uri, dialogTitle });
     return;
   }
   const blob = new Blob([content], { type: "text/csv;charset=utf-8" });

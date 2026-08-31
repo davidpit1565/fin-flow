@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Pencil, Repeat, Trash2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
-import { useT } from "../lib/i18n";
+import { relativeDayLabel, useT } from "../lib/i18n";
 import { iconByName } from "../lib/icons";
-import { longDate, relativeDay, shortDate, timeOfDay } from "../lib/dates";
+import { longDate, shortDate, timeOfDay } from "../lib/dates";
 import { formatMoney } from "../lib/currency";
 import { IconBadge, ScreenHeader } from "../components/ui";
 import { AddTransactionSheet } from "../components/AddTransactionSheet";
@@ -29,7 +29,7 @@ export function TransactionDetail({ transactionId }: { transactionId: string }) 
   const category = categories.find((c) => c.id === transaction.categoryId);
   const Icon = iconByName(category?.icon);
   const isIncome = transaction.type === "income";
-  const dateLabel = relativeDay(transaction.date) ?? shortDate(transaction.date, { includeYear: true });
+  const dateLabel = relativeDayLabel(t, transaction.date) ?? shortDate(transaction.date, { includeYear: true });
 
   const doDelete = async () => {
     const ok = await confirm({

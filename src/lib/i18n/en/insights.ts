@@ -54,6 +54,7 @@ export const insights = {
   range3m: "3M",
   range6m: "6M",
   range12m: "12M",
+  lastNDays: (n: number) => `Last ${n} days`,
 
   spending: "Spending",
   spendingChartSr: (joined: string) => `Spending chart: ${joined}.`,

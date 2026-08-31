@@ -22,6 +22,7 @@ import { debts } from "./debts";
 import { yearInReview } from "./yearInReview";
 import { subscriptions } from "./subscriptions";
 import { budgets } from "./budgets";
+import { reminders } from "./reminders";
 
 export const en = {
   common,
@@ -43,4 +44,5 @@ export const en = {
   yearInReview,
   subscriptions,
   budgets,
+  reminders,
 };

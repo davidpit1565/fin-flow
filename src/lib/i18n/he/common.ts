@@ -13,4 +13,10 @@ export const common: typeof CommonEn = {
   retry: "נסה שוב",
   deleted: "נמחק",
   somethingWentWrong: "משהו השתבש. נסה שוב.",
+
+  today: "היום",
+  tomorrow: "מחר",
+  yesterday: "אתמול",
+  overdue: (label) => `באיחור · ${label}`,
+  percentOfSpending: (percent) => `${percent}% מההוצאות`,
 };

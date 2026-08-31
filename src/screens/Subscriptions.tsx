@@ -26,7 +26,7 @@ export function Subscriptions() {
   const monthly = subscriptionMonthlyTotal(subscriptions);
   const yearly = subscriptionYearlyTotal(subscriptions);
   const activeCount = activeSubscriptions(subscriptions).length;
-  const upcomingCount = upcomingPayments(subscriptions).length;
+  const upcomingCount = upcomingPayments(subscriptions, t).length;
 
   const sorted = useMemo(
     () => [...subscriptions].sort((a, b) => (a.nextPaymentDate < b.nextPaymentDate ? -1 : 1)),

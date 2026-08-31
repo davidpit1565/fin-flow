@@ -130,6 +130,7 @@ export const settings: typeof SettingsEn = {
 
   exportReady: "הייצוא מוכן",
   exportFailed: "לא הצלחנו לייצא את הנתונים שלך. נסה שוב.",
+  exportShareDialogTitle: "שמירת הייצוא",
 
   importedCount: (n: number) => (n === 1 ? "יובאה עסקה אחת" : `יובאו ${n} עסקאות`),
   importNothingFormat: "שום דבר לא יובא — בדוק את פורמט הקובץ.",
@@ -137,6 +138,7 @@ export const settings: typeof SettingsEn = {
   importFailed: "לא הצלחנו לייבא את הקובץ הזה. נסה שוב.",
 
   backupExported: "הגיבוי יוצא בהצלחה",
+  backupShareDialogTitle: "שמירת הגיבוי",
   backupExportFailed: "לא הצלחנו ליצור את הגיבוי. נסה שוב.",
 
   restoreTitle: "לשחזר מגיבוי?",

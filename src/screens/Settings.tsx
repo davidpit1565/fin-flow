@@ -101,7 +101,8 @@ export function Settings() {
     try {
       await downloadCSV(
         buildCSV({ transactions, subscriptions, categories, currency }),
-        `flow-data-${todayISO()}.csv`
+        `flow-data-${todayISO()}.csv`,
+        t.settings.exportShareDialogTitle
       );
       toast(t.settings.exportReady);
     } catch {
@@ -148,7 +149,7 @@ export function Settings() {
         debts,
       };
       const encrypted = await encryptBackup(payload, exportPassword);
-      await downloadBackupFile(encrypted, `flow-backup-${todayISO()}.flowbackup`);
+      await downloadBackupFile(encrypted, `flow-backup-${todayISO()}.flowbackup`, t.settings.backupShareDialogTitle);
       toast(t.settings.backupExported);
       closeExportBackup();
     } catch {
@@ -204,7 +205,7 @@ export function Settings() {
         if (!granted) {
           toast(t.settings.notificationsBlockedByBrowser);
         } else {
-          void resyncAllReminders(subscriptions, { ...settings, notifications: { ...settings.notifications, enabled: true } });
+          void resyncAllReminders(subscriptions, { ...settings, notifications: { ...settings.notifications, enabled: true } }, t);
           toast(t.settings.notificationsOnToast);
         }
       })();

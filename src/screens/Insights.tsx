@@ -59,20 +59,12 @@ export function Insights() {
   if (!settings) return null;
   const { currency } = settings;
 
+  const rangeDays: Record<Exclude<RangeKey, "1m">, number> = { "7d": 7, "3m": 90, "6m": 180, "12m": 365 };
+
   const range = useMemo(() => {
-    switch (rangeKey) {
-      case "7d":
-        return lastNDaysRange(7);
-      case "3m":
-        return lastNDaysRange(90);
-      case "6m":
-        return lastNDaysRange(180);
-      case "12m":
-        return lastNDaysRange(365);
-      default:
-        return currentMonthRange();
-    }
+    return rangeKey === "1m" ? currentMonthRange() : lastNDaysRange(rangeDays[rangeKey]);
   }, [rangeKey]);
+  const rangeLabel = rangeKey === "1m" ? range.label : t.insights.lastNDays(rangeDays[rangeKey]);
 
   const series = useMemo(() => spendingSeries(transactions, range), [transactions, range]);
   const totalSpent = series.reduce((s, p) => s + p.cents, 0);
@@ -214,7 +206,7 @@ export function Insights() {
                 <p className="spend-label">{t.insights.spending}</p>
                 <Money cents={totalSpent} currency={currency} amount="large" />
               </div>
-              <span className="row-sub">{range.label}</span>
+              <span className="row-sub">{rangeLabel}</span>
             </div>
             <SpendingChart data={series} currency={currency} kind={rangeKey === "7d" ? "bar" : "area"} />
             <p className="sr-only">

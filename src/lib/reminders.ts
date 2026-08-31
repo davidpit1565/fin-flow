@@ -2,6 +2,8 @@ import type { Budget, Category, Subscription, Transaction, UserSettings } from "
 import { budgetStatus, monthKey } from "./calc";
 import { startOfWeek, todayISO } from "./dates";
 import { formatMoney } from "./currency";
+import { appLocale } from "./locale";
+import type { Dictionary } from "./i18n";
 import {
   cancelNotifications,
   nextMonthSummaryTimestamp,
@@ -17,7 +19,8 @@ import { storage } from "./storage";
 /** (Re)schedule a subscription reminder at 9:00 AM local time. */
 export async function syncSubscriptionReminder(
   sub: Subscription,
-  settings: UserSettings
+  settings: UserSettings,
+  t: Pick<Dictionary, "reminders">
 ): Promise<void> {
   await cancelNotifications(tagForSubscription(sub.id));
   if (
@@ -31,9 +34,10 @@ export async function syncSubscriptionReminder(
   }
   const at = reminderTimestamp(sub.nextPaymentDate, sub.reminderDays);
   if (at <= Date.now()) return;
+  const whenText = sub.reminderDays === 0 ? t.reminders.dueToday : t.reminders.dueInDays(sub.reminderDays);
   await scheduleNotification({
     title: sub.name,
-    body: `Payment ${sub.reminderDays === 0 ? "today" : `in ${sub.reminderDays} day${sub.reminderDays === 1 ? "" : "s"}`} — ${formatMoney(sub.amountCents, sub.currency)}`,
+    body: t.reminders.paymentBody(whenText, formatMoney(sub.amountCents, sub.currency)),
     tag: tagForSubscription(sub.id),
     timestamp: at,
   });
@@ -49,9 +53,10 @@ export async function clearMonthlySummaryReminder(): Promise<void> {
 
 export async function resyncAllReminders(
   subscriptions: Subscription[],
-  settings: UserSettings
+  settings: UserSettings,
+  t: Pick<Dictionary, "reminders">
 ): Promise<void> {
-  for (const sub of subscriptions) await syncSubscriptionReminder(sub, settings);
+  for (const sub of subscriptions) await syncSubscriptionReminder(sub, settings, t);
 }
 
 /* ---------- budget alerts ---------- */
@@ -89,7 +94,8 @@ export async function checkBudgetAlerts(
   budgets: Budget[],
   transactions: Transaction[],
   categories: Category[],
-  settings: UserSettings
+  settings: UserSettings,
+  t: Pick<Dictionary, "reminders">
 ): Promise<void> {
   if (
     !settings.notifications.enabled ||
@@ -107,26 +113,24 @@ export async function checkBudgetAlerts(
     const stored = state[budget.id];
     const storedIndex = stored && stored.period === periodKey ? ALERT_LEVELS.indexOf(stored.level as never) : -1;
     if (levelIndex < 0 || storedIndex >= levelIndex) continue;
-    const periodLabel = budget.period === "daily" ? "daily" : budget.period === "weekly" ? "weekly" : "monthly";
-    const name = budget.categoryId
-      ? categories.find((c) => c.id === budget.categoryId)?.name ?? "category"
-      : `${periodLabel} budget`;
+    const period = budget.period === "daily" ? "daily" : budget.period === "weekly" ? "weekly" : "monthly";
+    const categoryName = budget.categoryId ? categories.find((c) => c.id === budget.categoryId)?.name ?? null : null;
     const diff = Math.abs(status.remainingCents);
     let message: string;
     switch (status.level) {
       case "close":
-        message = `You're close to your ${name} budget.`;
+        message = t.reminders.budgetAlertClose(categoryName);
         break;
       case "high":
-        message = `You've used 90% of your ${name} budget.`;
+        message = t.reminders.budgetAlertHigh(categoryName);
         break;
       case "reached":
-        message = `You've reached your ${name} budget.`;
+        message = t.reminders.budgetAlertReached(categoryName);
         break;
       default:
-        message = `You're ${formatMoney(diff, settings.currency)} over your ${name} budget.`;
+        message = t.reminders.budgetAlertOver(formatMoney(diff, settings.currency), categoryName);
     }
-    const title = budget.categoryId ? name : `${periodLabel[0].toUpperCase()}${periodLabel.slice(1)} budget`;
+    const title = categoryName ?? t.reminders.periodBudgetTitle(period);
     notifyNow(title, message);
     state[budget.id] = { period: periodKey, level: status.level };
     changed = true;
@@ -142,7 +146,11 @@ export async function checkBudgetAlerts(
 
 /* ---------- monthly summary ---------- */
 
-export async function checkMonthlySummary(settings: UserSettings, transactions: Transaction[]): Promise<void> {
+export async function checkMonthlySummary(
+  settings: UserSettings,
+  transactions: Transaction[],
+  t: Pick<Dictionary, "reminders">
+): Promise<void> {
   if (!settings.notifications.enabled || !settings.notifications.monthlySummary) return;
   const now = new Date();
   try {
@@ -155,18 +163,18 @@ export async function checkMonthlySummary(settings: UserSettings, transactions: 
     const from = `${prevKey}-01`;
     const to = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
     let spent = 0;
-    for (const t of transactions) {
-      if (t.type === "expense" && t.date >= from && t.date <= to) spent += t.amountCents;
+    for (const txn of transactions) {
+      if (txn.type === "expense" && txn.date >= from && txn.date <= to) spent += txn.amountCents;
     }
-    const label = new Intl.DateTimeFormat(navigator.language || "en", { month: "long" }).format(prev);
+    const label = new Intl.DateTimeFormat(appLocale(), { month: "long" }).format(prev);
     if (spent > 0) {
-      notifyNow(`${label} summary`, `Spending in ${label}: ${formatMoney(spent, settings.currency)}.`);
+      notifyNow(t.reminders.monthlySummaryTitle(label), t.reminders.monthlySummaryBody(label, formatMoney(spent, settings.currency)));
     }
     await storage.put("meta", { key: "lastSummaryMonth", key2: prevKey });
     // Schedule the next summary for the 1st of next month at 9 AM.
     await scheduleNotification({
-      title: "Monthly summary",
-      body: "Your spending summary is ready.",
+      title: t.reminders.monthlySummaryScheduledTitle,
+      body: t.reminders.monthlySummaryScheduledBody,
       tag: tagForMonthlySummary(),
       timestamp: nextMonthSummaryTimestamp(now),
     });
