@@ -4,7 +4,7 @@ import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
 import { budgetStatus } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
-import { useT } from "../lib/i18n";
+import { categoryDisplayName, useT } from "../lib/i18n";
 import { Button, Card, EmptyState, Field, IconBadge, NumericInput, ProgressBar, ScreenHeader, Segmented, Sheet } from "../components/ui";
 import { iconByName } from "../lib/icons";
 import type { BudgetPeriod, Category, CurrencyCode } from "../types";
@@ -172,6 +172,11 @@ export function BudgetsScreen() {
           title={editing.categoryId === null ? t.budgets.overallBudgetSheetTitle : t.budgets.categoryBudgetSheetTitle}
           onClose={() => setEditing(null)}
           ariaLabel={t.budgets.editSheetAria}
+          footer={
+            <Button size="lg" className="btn-block" onClick={save}>
+              {t.budgets.saveBudgetButton}
+            </Button>
+          }
         >
           <div className="sheet-form">
             <Field label={t.budgets.periodFieldLabel}>
@@ -206,7 +211,7 @@ export function BudgetsScreen() {
                       className={`chip ${editing.categoryId === c.id ? "chip-active" : ""}`}
                       onClick={() => setEditing({ ...editing, categoryId: c.id })}
                     >
-                      {c.name}
+                      {categoryDisplayName(t, c)}
                     </button>
                   ))}
                 </div>
@@ -217,11 +222,6 @@ export function BudgetsScreen() {
                 {error}
               </p>
             )}
-          </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" onClick={save}>
-              {t.budgets.saveBudgetButton}
-            </Button>
           </div>
         </Sheet>
       )}
@@ -249,8 +249,9 @@ function BudgetStatusView({
   const status = budgetStatus(budget, transactions, undefined, settings.startWeekOn);
   const period = budget.period ?? "monthly";
   const tone = status.level === "over" ? "over" : status.level === "reached" ? "over" : status.level === "high" || status.level === "close" ? "warn" : "ok";
-  const label = category ? category.name : t.budgets.periodLabel(period);
-  const heading = category ? category.name : t.budgets.periodBudgetLabel(period);
+  const categoryLabel = category ? categoryDisplayName(t, category) : null;
+  const label = categoryLabel ?? t.budgets.periodLabel(period);
+  const heading = categoryLabel ?? t.budgets.periodBudgetLabel(period);
   const amount = status.level === "over" ? formatMoney(-status.remainingCents, currency) : formatMoney(status.remainingCents, currency);
   const Icon = iconByName(category?.icon);
   return (
@@ -277,7 +278,7 @@ function BudgetStatusView({
         <span className="row-sub">{Math.round(status.percent)}%</span>
       </div>
       <ProgressBar percent={status.percent} tone={tone} />
-      <p className={`budget-msg ${tone}`}>{t.budgets.statusMessage(status.level, amount, period, category?.name)}</p>
+      <p className={`budget-msg ${tone}`}>{t.budgets.statusMessage(status.level, amount, period, categoryLabel ?? undefined)}</p>
     </div>
   );
 }

@@ -145,6 +145,11 @@ export function NetWorthScreen() {
           }
           onClose={() => setEditing(null)}
           ariaLabel={t.netWorth.editItemSheetAria}
+          footer={
+            <Button size="lg" className="btn-block" onClick={save}>
+              {editing.id ? t.netWorth.saveChanges : editing.kind === "asset" ? t.netWorth.addAsset : t.netWorth.addLiability}
+            </Button>
+          }
         >
           <div className="sheet-form">
             <Field label={t.netWorth.nameFieldLabel}>
@@ -183,11 +188,6 @@ export function NetWorthScreen() {
                 {error}
               </p>
             )}
-          </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" onClick={save}>
-              {editing.id ? t.netWorth.saveChanges : editing.kind === "asset" ? t.netWorth.addAsset : t.netWorth.addLiability}
-            </Button>
           </div>
         </Sheet>
       )}

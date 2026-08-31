@@ -208,6 +208,11 @@ export function DebtsScreen() {
           title={draft.id === null ? t.debts.addDebtSheetTitle : t.debts.editDebtSheetTitle}
           onClose={() => setDraft(null)}
           ariaLabel={draft.id === null ? t.debts.addDebtSheetTitle : t.debts.editDebtSheetTitle}
+          footer={
+            <Button size="lg" className="btn-block" onClick={save}>
+              {draft.id === null ? t.debts.addDebtSheetTitle : t.debts.saveChanges}
+            </Button>
+          }
         >
           <div className="sheet-form">
             <Field label={t.debts.nameFieldLabel}>
@@ -266,16 +271,20 @@ export function DebtsScreen() {
               </p>
             )}
           </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" onClick={save}>
-              {draft.id === null ? t.debts.addDebtSheetTitle : t.debts.saveChanges}
-            </Button>
-          </div>
         </Sheet>
       )}
 
       {paying && (
-        <Sheet title={t.debts.recordPaymentSheetTitle} onClose={() => setPaying(null)} ariaLabel={t.debts.recordPaymentSheetTitle}>
+        <Sheet
+          title={t.debts.recordPaymentSheetTitle}
+          onClose={() => setPaying(null)}
+          ariaLabel={t.debts.recordPaymentSheetTitle}
+          footer={
+            <Button size="lg" className="btn-block" onClick={savePayment}>
+              {t.debts.recordPaymentSheetTitle}
+            </Button>
+          }
+        >
           <div className="sheet-form">
             <Field label={t.debts.paymentTowardFieldLabel(paying.name)}>
               <NumericInput
@@ -286,11 +295,6 @@ export function DebtsScreen() {
                 aria-label={t.debts.paymentAmountAria}
               />
             </Field>
-          </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" onClick={savePayment}>
-              {t.debts.recordPaymentSheetTitle}
-            </Button>
           </div>
         </Sheet>
       )}

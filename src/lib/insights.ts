@@ -117,6 +117,10 @@ const NARRATIVE_MOM_THRESHOLD_PERCENT = 5;
  *  applies, in what order" logic pure and testable while the actual wording
  *  lives in the dictionary like everything else in the app. */
 export interface NarrativeDictionary {
+  /** Translates a category for display (system defaults only; a user's own
+   *  category name passes through unchanged) -- see `categoryDisplayName`
+   *  in src/lib/i18n/index.tsx, which the screen wraps this to. */
+  categoryDisplayName: (category: Category) => string;
   narrativeTopCategory: (categoryName: string, sharePercent: number) => string;
   narrativeSpendingChange: (percent: number, direction: "more" | "less") => string;
   narrativeBudgetOver: (overCount: number, totalCount: number) => string;
@@ -152,7 +156,7 @@ export function generateMonthlyNarrative(
     const topCategory = categories.find((c) => c.id === thisMonth.topCategoryId);
     if (topCategory) {
       const share = Math.round((thisMonth.topCategoryCents / thisMonth.spentCents) * 100);
-      sentences.push(t.narrativeTopCategory(topCategory.name, share));
+      sentences.push(t.narrativeTopCategory(t.categoryDisplayName(topCategory), share));
     }
   }
 
@@ -182,7 +186,7 @@ export function generateMonthlyNarrative(
   const anomalies = detectSpendingAnomalies(transactions, categories, now);
   if (anomalies.length > 0) {
     const worst = anomalies[0];
-    sentences.push(t.narrativeSpendingAnomaly(worst.category.name, Math.round(worst.percentIncrease)));
+    sentences.push(t.narrativeSpendingAnomaly(t.categoryDisplayName(worst.category), Math.round(worst.percentIncrease)));
   }
 
   if (sentences.length === 0) {

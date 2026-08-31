@@ -3,7 +3,7 @@ import { budgetStatus, monthKey } from "./calc";
 import { startOfWeek, todayISO } from "./dates";
 import { formatMoney } from "./currency";
 import { appLocale } from "./locale";
-import type { Dictionary } from "./i18n";
+import { categoryDisplayName, type Dictionary } from "./i18n";
 import {
   cancelNotifications,
   nextMonthSummaryTimestamp,
@@ -95,7 +95,7 @@ export async function checkBudgetAlerts(
   transactions: Transaction[],
   categories: Category[],
   settings: UserSettings,
-  t: Pick<Dictionary, "reminders">
+  t: Pick<Dictionary, "reminders" | "categories">
 ): Promise<void> {
   if (
     !settings.notifications.enabled ||
@@ -114,7 +114,8 @@ export async function checkBudgetAlerts(
     const storedIndex = stored && stored.period === periodKey ? ALERT_LEVELS.indexOf(stored.level as never) : -1;
     if (levelIndex < 0 || storedIndex >= levelIndex) continue;
     const period = budget.period === "daily" ? "daily" : budget.period === "weekly" ? "weekly" : "monthly";
-    const categoryName = budget.categoryId ? categories.find((c) => c.id === budget.categoryId)?.name ?? null : null;
+    const matchedCategory = budget.categoryId ? categories.find((c) => c.id === budget.categoryId) ?? null : null;
+    const categoryName = matchedCategory ? categoryDisplayName(t, matchedCategory) : null;
     const diff = Math.abs(status.remainingCents);
     let message: string;
     switch (status.level) {

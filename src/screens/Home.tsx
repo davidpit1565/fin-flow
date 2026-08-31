@@ -61,7 +61,7 @@ export function Home({ onAdd }: { onAdd: () => void }) {
   const monthExpenses = expensesInRange(transactions, monthRange);
 
   const subMonthly = subscriptionMonthlyTotal(subscriptions);
-  const upcoming = upcomingPayments(subscriptions, t);
+  const upcoming = upcomingPayments(subscriptions, t, settings.dateFormat);
   const upcomingTotal = upcomingTotalCents(subscriptions);
 
   const categoriesThisMonth = useMemo(

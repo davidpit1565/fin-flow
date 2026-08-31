@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
-import { useT } from "../lib/i18n";
+import { categoryDisplayName, useT } from "../lib/i18n";
 import { ICON_SET, iconByName } from "../lib/icons";
 import { Button, Card, Field, IconBadge, ScreenHeader, Sheet, TextInput, rovingNextIndex } from "../components/ui";
 
@@ -93,24 +93,25 @@ export function CategoriesScreen() {
         {categories.map((c) => {
           const Icon = iconByName(c.icon);
           const count = usageCount.get(c.id) ?? 0;
+          const displayName = categoryDisplayName(t, c);
           return (
             <div key={c.id} className="row">
               <IconBadge icon={Icon} size="sm" />
               <div className="row-main">
-                <span className="row-title">{c.name}</span>
+                <span className="row-title">{displayName}</span>
                 <span className="row-sub">{t.categories.rowSummary(count, !!c.isSystem)}</span>
               </div>
               <button
                 className="icon-btn icon-btn-sm"
-                aria-label={t.categories.editAriaLabel(c.name)}
-                onClick={() => setEditing({ id: c.id, name: c.name, icon: c.icon })}
+                aria-label={t.categories.editAriaLabel(displayName)}
+                onClick={() => setEditing({ id: c.id, name: displayName, icon: c.icon })}
               >
                 <Pencil size={15} strokeWidth={2} />
               </button>
               <button
                 className="icon-btn icon-btn-sm danger"
-                aria-label={t.categories.deleteAriaLabel(c.name)}
-                onClick={() => void remove(c.id, c.name)}
+                aria-label={t.categories.deleteAriaLabel(displayName)}
+                onClick={() => void remove(c.id, displayName)}
               >
                 <Trash2 size={15} strokeWidth={2} />
               </button>
@@ -130,6 +131,11 @@ export function CategoriesScreen() {
           title={editing.id ? t.categories.editCategorySheetTitle : t.categories.addCategoryButton}
           onClose={() => setEditing(null)}
           ariaLabel={t.categories.editCategoryAriaLabel}
+          footer={
+            <Button size="lg" className="btn-block" onClick={save}>
+              {editing.id ? t.categories.saveChangesButton : t.categories.addCategoryButton}
+            </Button>
+          }
         >
           <div className="sheet-form">
             <Field label={t.categories.nameLabel} htmlFor="cat-name">
@@ -176,11 +182,6 @@ export function CategoriesScreen() {
               </div>
             </Field>
           </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" onClick={save}>
-              {editing.id ? t.categories.saveChangesButton : t.categories.addCategoryButton}
-            </Button>
-          </div>
         </Sheet>
       )}
 
@@ -192,6 +193,11 @@ export function CategoriesScreen() {
             setReassignTarget(null);
           }}
           ariaLabel={t.categories.moveSheetAriaLabel}
+          footer={
+            <Button size="lg" className="btn-block" disabled={!reassignTarget} onClick={confirmDeleteWithReassign}>
+              {t.categories.moveButtonText(pendingDelete.name)}
+            </Button>
+          }
         >
           <div className="sheet-form">
             <Field label={t.categories.moveToLabel}>
@@ -204,16 +210,11 @@ export function CategoriesScreen() {
                       className={`chip ${reassignTarget === c.id ? "chip-active" : ""}`}
                       onClick={() => setReassignTarget(c.id)}
                     >
-                      {c.name}
+                      {categoryDisplayName(t, c)}
                     </button>
                   ))}
               </div>
             </Field>
-          </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" disabled={!reassignTarget} onClick={confirmDeleteWithReassign}>
-              {t.categories.moveButtonText(pendingDelete.name)}
-            </Button>
           </div>
         </Sheet>
       )}

@@ -1,5 +1,6 @@
 /** Date helpers. All dates are local-time ISO strings (YYYY-MM-DD). */
 
+import type { DateFormatPreference } from "../types";
 import { appLocale } from "./locale";
 
 export const DAY_MS = 86_400_000;
@@ -74,14 +75,27 @@ export function relativeDayKey(iso: string, now = todayISO()): "today" | "tomorr
   return null;
 }
 
-/** "18 Aug" or "18 Aug 2026" (adds year when it differs from now). */
-export function shortDate(iso: string, opts?: { includeYear?: boolean }): string {
+/** "18 Aug" or "18 Aug 2026" (adds year when it differs from now) by default
+ *  ("auto" -- locale/Intl-driven, matching the user's language). When the
+ *  user has explicitly picked a numeric `format` in Settings ("dmy",
+ *  "mdy", or "iso"), that overrides the named-month rendering everywhere
+ *  this is called, e.g. "31/08" or "2026-08-31" instead of "31 Aug". */
+export function shortDate(iso: string, opts?: { includeYear?: boolean; format?: DateFormatPreference }): string {
   const d = parseISO(iso);
   const now = new Date();
+  const includeYear = opts?.includeYear || d.getFullYear() !== now.getFullYear();
+  const format = opts?.format ?? "auto";
+  if (format === "iso") return iso;
+  if (format === "dmy" || format === "mdy") {
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const datePart = format === "dmy" ? `${day}/${month}` : `${month}/${day}`;
+    return includeYear ? `${datePart}/${d.getFullYear()}` : datePart;
+  }
   const fmt = new Intl.DateTimeFormat(appLocale(), {
     day: "numeric",
     month: "short",
-    ...(opts?.includeYear || d.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}),
+    ...(includeYear ? { year: "numeric" } : {}),
   });
   return fmt.format(d);
 }

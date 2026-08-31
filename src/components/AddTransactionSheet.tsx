@@ -90,6 +90,11 @@ export function AddTransactionSheet({ initial, onClose }: { initial?: Transactio
       title={isEdit ? t.transactionForm.editTitle : t.transactionForm.addTitle}
       onClose={onClose}
       ariaLabel={isEdit ? t.transactionForm.editTitle : t.transactionForm.addTitle}
+      footer={
+        <Button size="lg" className="btn-block" onClick={save}>
+          {isEdit ? t.transactionForm.saveChangesButton : type === "expense" ? t.transactionForm.addExpenseButton : t.transactionForm.addIncomeButton}
+        </Button>
+      }
     >
       <div className="sheet-form">
         <Field label={t.transactionForm.amount}>
@@ -178,11 +183,6 @@ export function AddTransactionSheet({ initial, onClose }: { initial?: Transactio
         </Field>
 
         <FormError message={error} />
-      </div>
-      <div className="sheet-footer">
-        <Button size="lg" className="btn-block" onClick={save}>
-          {isEdit ? t.transactionForm.saveChangesButton : type === "expense" ? t.transactionForm.addExpenseButton : t.transactionForm.addIncomeButton}
-        </Button>
       </div>
     </Sheet>
   );

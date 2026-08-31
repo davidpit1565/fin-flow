@@ -97,6 +97,11 @@ export function AddSubscriptionSheet({ initial, onClose }: { initial?: Subscript
       title={isEdit ? t.subscriptions.editSubscription : t.subscriptions.addSubscription}
       onClose={onClose}
       ariaLabel={isEdit ? t.subscriptions.editSubscription : t.subscriptions.addSubscription}
+      footer={
+        <Button size="lg" className="btn-block" onClick={save}>
+          {isEdit ? t.subscriptions.saveChanges : t.subscriptions.addSubscription}
+        </Button>
+      }
     >
       <div className="sheet-form">
         <Field label={t.subscriptions.serviceNameLabel} htmlFor="sub-name">
@@ -168,11 +173,6 @@ export function AddSubscriptionSheet({ initial, onClose }: { initial?: Subscript
         </Field>
 
         <FormError message={error} />
-      </div>
-      <div className="sheet-footer">
-        <Button size="lg" className="btn-block" onClick={save}>
-          {isEdit ? t.subscriptions.saveChanges : t.subscriptions.addSubscription}
-        </Button>
       </div>
     </Sheet>
   );

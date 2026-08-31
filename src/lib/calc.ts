@@ -2,6 +2,7 @@ import type {
   Budget,
   Category,
   CategoryTotal,
+  DateFormatPreference,
   Goal,
   MonthlySummary,
   NetWorthItem,
@@ -175,9 +176,14 @@ function upcomingDue(subscriptions: Subscription[], now: string): { subscription
 }
 
 /** Upcoming payments with a translated, human-readable date label. */
-export function upcomingPayments(subscriptions: Subscription[], t: Pick<Dictionary, "common">, now = todayISO()): UpcomingPayment[] {
+export function upcomingPayments(
+  subscriptions: Subscription[],
+  t: Pick<Dictionary, "common">,
+  dateFormat: DateFormatPreference = "auto",
+  now = todayISO()
+): UpcomingPayment[] {
   return upcomingDue(subscriptions, now).map((u) => {
-    const label = relativeDayLabel(t, u.date, now) ?? shortDate(u.date, { includeYear: true });
+    const label = relativeDayLabel(t, u.date, now) ?? shortDate(u.date, { includeYear: true, format: dateFormat });
     return { subscription: u.subscription, date: u.date, amountCents: u.amountCents, label: u.overdue ? t.common.overdue(label) : label };
   });
 }

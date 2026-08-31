@@ -5,10 +5,12 @@ import {
   detectUnusedSubscriptions,
   generateMonthlyNarrative,
 } from "../src/lib/insights";
-import { insights as narrativeDictionary } from "../src/lib/i18n/en/insights";
+import { insights } from "../src/lib/i18n/en/insights";
 import { cat, installGlobals, sub, txn } from "./helpers";
 
 installGlobals("en-US");
+
+const narrativeDictionary = { ...insights, categoryDisplayName: (c: { name: string }) => c.name };
 
 describe("detectUnusedSubscriptions", () => {
   test("flags active rarely/unused subs, excludes regular/paused/cancelled, sorts by savings desc", () => {
