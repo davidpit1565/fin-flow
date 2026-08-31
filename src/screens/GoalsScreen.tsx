@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Minus, Pencil, PiggyBank, Plus, Trash2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
+import { useT } from "../lib/i18n";
 import { goalProgressPercent, projectedGoalCompletion } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
 import { shortDate } from "../lib/dates";
@@ -40,6 +41,7 @@ interface Contributing {
 export function GoalsScreen() {
   const { goals, settings, addGoal, updateGoal, deleteGoal, contributeToGoal, confirm, toast } = useApp();
   const { back } = useNavigation();
+  const t = useT();
   const [editing, setEditing] = useState<EditingGoal | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [contributing, setContributing] = useState<Contributing | null>(null);
@@ -62,20 +64,20 @@ export function GoalsScreen() {
     if (!editing) return;
     const name = editing.name.trim();
     if (!name) {
-      setError("Enter a goal name.");
+      setError(t.goals.enterGoalName);
       return;
     }
     if (editing.targetCents === null || editing.targetCents <= 0) {
-      setError("Enter a valid target amount.");
+      setError(t.goals.enterValidTargetAmount);
       return;
     }
     const targetDate = editing.targetDate.trim() === "" ? null : editing.targetDate;
     if (editing.id) {
       updateGoal(editing.id, { name, icon: editing.icon, targetCents: editing.targetCents, targetDate });
-      toast("Goal updated");
+      toast(t.goals.goalUpdated);
     } else {
       addGoal(name, editing.icon, editing.targetCents, targetDate);
-      toast("Goal added");
+      toast(t.goals.goalAdded);
     }
     setEditing(null);
     setError(null);
@@ -83,48 +85,48 @@ export function GoalsScreen() {
 
   const removeGoal = async (g: Goal) => {
     const ok = await confirm({
-      title: `Delete ${g.name}?`,
-      message: "This only removes the goal — no other data is affected.",
-      confirmLabel: "Delete",
+      title: t.goals.deleteGoalConfirmTitle(g.name),
+      message: t.goals.deleteGoalConfirmMessage,
+      confirmLabel: t.common.delete,
       danger: true,
     });
     if (!ok) return;
     deleteGoal(g.id);
-    toast("Deleted");
+    toast(t.common.deleted);
   };
 
   const saveContribution = () => {
     if (!contributing || contributing.amountCents === null || contributing.amountCents <= 0) {
-      toast("Enter a valid amount.");
+      toast(t.goals.enterValidAmount);
       return;
     }
     const delta = contributing.mode === "add" ? contributing.amountCents : -contributing.amountCents;
     contributeToGoal(contributing.id, delta);
-    toast(contributing.mode === "add" ? "Funds added" : "Withdrawal recorded");
+    toast(contributing.mode === "add" ? t.goals.fundsAdded : t.goals.withdrawalRecorded);
     setContributing(null);
   };
 
   return (
     <div className="screen">
-      <ScreenHeader title="Savings Goals" subtitle="Set a target and track how close you are to reaching it" onBack={back} />
+      <ScreenHeader title={t.goals.title} subtitle={t.goals.subtitle} onBack={back} />
 
       {goals.length === 0 ? (
         <EmptyState
           icon={PiggyBank}
-          title="No goals yet"
-          message="Create a savings goal and Flow will track your progress toward it."
+          title={t.goals.emptyTitle}
+          message={t.goals.emptyMessage}
           action={
             <Button onClick={openAdd}>
-              <Plus size={18} strokeWidth={2} /> Add goal
+              <Plus size={18} strokeWidth={2} /> {t.goals.addGoal}
             </Button>
           }
         />
       ) : (
         <section className="section">
           <div className="section-head">
-            <h2 className="section-title">Your goals</h2>
+            <h2 className="section-title">{t.goals.sectionTitle}</h2>
             <button className="section-action" onClick={openAdd}>
-              <Plus size={15} strokeWidth={2.2} /> Add goal
+              <Plus size={15} strokeWidth={2.2} /> {t.goals.addGoal}
             </button>
           </div>
           <Card className="budget-list">
@@ -140,10 +142,10 @@ export function GoalsScreen() {
                       <span className="row-title">{g.name}</span>
                     </div>
                     <div className="budget-item-actions">
-                      <button className="icon-btn icon-btn-sm" aria-label={`Edit ${g.name}`} onClick={() => openEdit(g)}>
+                      <button className="icon-btn icon-btn-sm" aria-label={t.goals.editAria(g.name)} onClick={() => openEdit(g)}>
                         <Pencil size={15} strokeWidth={2} />
                       </button>
-                      <button className="icon-btn icon-btn-sm" aria-label={`Delete ${g.name}`} onClick={() => void removeGoal(g)}>
+                      <button className="icon-btn icon-btn-sm" aria-label={t.goals.deleteAria(g.name)} onClick={() => void removeGoal(g)}>
                         <Trash2 size={15} strokeWidth={2} />
                       </button>
                     </div>
@@ -151,19 +153,19 @@ export function GoalsScreen() {
                   <div className="budget-row">
                     <span className="row-title">
                       {formatMoney(g.currentCents, currency)}{" "}
-                      <span className="row-sub">/ {formatMoney(g.targetCents, currency)} saved</span>
+                      <span className="row-sub">{t.goals.savedOfTarget(formatMoney(g.targetCents, currency))}</span>
                     </span>
                     <span className="row-sub">{Math.round(percent)}%</span>
                   </div>
                   <ProgressBar percent={percent} tone="ok" />
-                  {projected && <p className="budget-msg ok">On track to reach this by {shortDate(projected)}</p>}
+                  {projected && <p className="budget-msg ok">{t.goals.onTrackBy(shortDate(projected))}</p>}
                   <div className="sub-toolbar">
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => setContributing({ id: g.id, mode: "add", amountCents: null })}
                     >
-                      Add funds
+                      {t.goals.addFunds}
                     </Button>
                   </div>
                 </div>
@@ -174,19 +176,23 @@ export function GoalsScreen() {
       )}
 
       {editing && (
-        <Sheet title={editing.id ? "Edit goal" : "Add goal"} onClose={() => setEditing(null)} ariaLabel="Edit goal">
+        <Sheet
+          title={editing.id ? t.goals.editGoalSheetTitle : t.goals.addGoal}
+          onClose={() => setEditing(null)}
+          ariaLabel={t.goals.editGoalSheetAria}
+        >
           <div className="sheet-form">
-            <Field label="Name" htmlFor="goal-name">
+            <Field label={t.goals.nameFieldLabel} htmlFor="goal-name">
               <TextInput
                 id="goal-name"
                 value={editing.name}
                 onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                 autoFocus
-                placeholder="e.g. New laptop"
+                placeholder={t.goals.namePlaceholder}
               />
             </Field>
-            <Field label="Icon">
-              <div className="icon-grid" role="radiogroup" aria-label="Goal icon">
+            <Field label={t.goals.iconFieldLabel}>
+              <div className="icon-grid" role="radiogroup" aria-label={t.goals.goalIconAria}>
                 {(() => {
                   const selectedIconIndex = Math.max(
                     0,
@@ -219,7 +225,7 @@ export function GoalsScreen() {
                 })()}
               </div>
             </Field>
-            <Field label="Target amount">
+            <Field label={t.goals.targetAmountFieldLabel}>
               <NumericInput
                 cents={editing.targetCents}
                 onCentsChange={(c) => {
@@ -227,10 +233,10 @@ export function GoalsScreen() {
                   setError(null);
                 }}
                 placeholder="0.00"
-                aria-label="Target amount"
+                aria-label={t.goals.targetAmountFieldLabel}
               />
             </Field>
-            <Field label="Target date (optional)" htmlFor="goal-date">
+            <Field label={t.goals.targetDateFieldLabel} htmlFor="goal-date">
               <DateInput
                 id="goal-date"
                 value={editing.targetDate}
@@ -245,7 +251,7 @@ export function GoalsScreen() {
           </div>
           <div className="sheet-footer">
             <Button size="lg" className="btn-block" onClick={save}>
-              {editing.id ? "Save changes" : "Add goal"}
+              {editing.id ? t.goals.saveChanges : t.goals.addGoal}
             </Button>
           </div>
         </Sheet>
@@ -253,29 +259,29 @@ export function GoalsScreen() {
 
       {contributing && (
         <Sheet
-          title={goals.find((g) => g.id === contributing.id)?.name ?? "Update goal"}
+          title={goals.find((g) => g.id === contributing.id)?.name ?? t.goals.updateGoalFallbackTitle}
           onClose={() => setContributing(null)}
-          ariaLabel="Add or withdraw funds"
+          ariaLabel={t.goals.contributionSheetAria}
         >
           <div className="sheet-form">
-            <Field label="Type">
+            <Field label={t.goals.typeFieldLabel}>
               <Segmented
                 options={[
-                  { value: "add", label: "Add" },
-                  { value: "withdraw", label: "Withdraw" },
+                  { value: "add", label: t.goals.segmentedAddLabel },
+                  { value: "withdraw", label: t.goals.withdraw },
                 ]}
                 value={contributing.mode}
                 onChange={(mode) => setContributing({ ...contributing, mode })}
-                ariaLabel="Add or withdraw"
+                ariaLabel={t.goals.addOrWithdrawAria}
               />
             </Field>
-            <Field label="Amount">
+            <Field label={t.goals.amountFieldLabel}>
               <NumericInput
                 cents={contributing.amountCents}
                 onCentsChange={(c) => setContributing({ ...contributing, amountCents: c })}
                 autoFocus
                 placeholder="0.00"
-                aria-label="Contribution amount"
+                aria-label={t.goals.contributionAmountAria}
               />
             </Field>
           </div>
@@ -283,11 +289,11 @@ export function GoalsScreen() {
             <Button size="lg" className="btn-block" onClick={saveContribution}>
               {contributing.mode === "add" ? (
                 <>
-                  <Plus size={18} strokeWidth={2} /> Add funds
+                  <Plus size={18} strokeWidth={2} /> {t.goals.addFunds}
                 </>
               ) : (
                 <>
-                  <Minus size={18} strokeWidth={2} /> Withdraw
+                  <Minus size={18} strokeWidth={2} /> {t.goals.withdraw}
                 </>
               )}
             </Button>

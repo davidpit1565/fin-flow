@@ -2,15 +2,12 @@ import { useMemo, useState } from "react";
 import { Banknote, CreditCard, Pencil, Plus, Trash2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
+import { useT } from "../lib/i18n";
+import type { Dictionary } from "../lib/i18n";
 import { debtPayoffPlan, type PayoffStrategy } from "../lib/debt";
 import { formatMoney } from "../lib/currency";
 import { Button, Card, EmptyState, Field, IconBadge, NumericInput, ScreenHeader, Segmented, Sheet, TextInput } from "../components/ui";
 import type { CurrencyCode, Debt } from "../types";
-
-const STRATEGY_OPTIONS: { value: PayoffStrategy; label: string }[] = [
-  { value: "snowball", label: "Snowball" },
-  { value: "avalanche", label: "Avalanche" },
-];
 
 interface DebtDraft {
   id: string | null; // null = adding a new debt
@@ -31,6 +28,11 @@ function draftFromDebt(d: Debt): DebtDraft {
 export function DebtsScreen() {
   const { debts, settings, addDebt, updateDebt, deleteDebt, recordDebtPayment, confirm, toast } = useApp();
   const { back } = useNavigation();
+  const t = useT();
+  const STRATEGY_OPTIONS: { value: PayoffStrategy; label: string }[] = [
+    { value: "snowball", label: t.debts.strategySnowball },
+    { value: "avalanche", label: t.debts.strategyAvalanche },
+  ];
   const [draft, setDraft] = useState<DebtDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState<Debt | null>(null);
@@ -51,27 +53,27 @@ export function DebtsScreen() {
     const name = draft.name.trim();
     const apr = Number(draft.aprText);
     if (!name) {
-      setError("Enter a name.");
+      setError(t.debts.enterName);
       return;
     }
     if (draft.remainingCents === null || draft.remainingCents <= 0) {
-      setError("Enter the remaining balance.");
+      setError(t.debts.enterRemainingBalance);
       return;
     }
     if (draft.aprText.trim() === "" || !Number.isFinite(apr) || apr < 0) {
-      setError("Enter a valid interest rate.");
+      setError(t.debts.enterValidInterestRate);
       return;
     }
     if (draft.minPaymentCents === null || draft.minPaymentCents <= 0) {
-      setError("Enter the minimum payment.");
+      setError(t.debts.enterMinimumPayment);
       return;
     }
     if (draft.id === null) {
       addDebt(name, draft.remainingCents, apr, draft.minPaymentCents);
-      toast("Debt added");
+      toast(t.debts.debtAdded);
     } else {
       updateDebt(draft.id, { name, remainingCents: draft.remainingCents, aprPercent: apr, minPaymentCents: draft.minPaymentCents });
-      toast("Debt updated");
+      toast(t.debts.debtUpdated);
     }
     setDraft(null);
     setError(null);
@@ -79,33 +81,33 @@ export function DebtsScreen() {
 
   const removeDebt = async (d: Debt) => {
     const ok = await confirm({
-      title: "Delete debt?",
-      message: `This removes "${d.name}" from your payoff plan. This can't be undone.`,
-      confirmLabel: "Delete",
+      title: t.debts.deleteDebtConfirmTitle,
+      message: t.debts.deleteDebtConfirmMessage(d.name),
+      confirmLabel: t.common.delete,
       danger: true,
     });
     if (!ok) return;
     deleteDebt(d.id);
-    toast("Deleted");
+    toast(t.common.deleted);
   };
 
   const savePayment = () => {
     if (!paying || paymentCents === null || paymentCents <= 0) return;
     recordDebtPayment(paying.id, paymentCents);
-    toast("Payment recorded");
+    toast(t.debts.paymentRecorded);
     setPaying(null);
     setPaymentCents(null);
   };
 
   return (
     <div className="screen">
-      <ScreenHeader title="Debts" subtitle="Track what you owe and plan how to pay it off" onBack={back} />
+      <ScreenHeader title={t.debts.title} subtitle={t.debts.subtitle} onBack={back} />
 
       {debts.length === 0 ? (
         <EmptyState
           icon={CreditCard}
-          title="No debts yet"
-          message="Add a credit card, loan, or anything else you owe to start planning your payoff."
+          title={t.debts.emptyTitle}
+          message={t.debts.emptyMessage}
           action={
             <Button
               onClick={() => {
@@ -113,14 +115,14 @@ export function DebtsScreen() {
                 setError(null);
               }}
             >
-              <Plus size={18} strokeWidth={2} /> Add debt
+              <Plus size={18} strokeWidth={2} /> {t.debts.addDebt}
             </Button>
           }
         />
       ) : (
         <section className="section">
           <div className="section-head">
-            <h2 className="section-title">Your debts</h2>
+            <h2 className="section-title">{t.debts.sectionTitle}</h2>
             <button
               className="section-action"
               onClick={() => {
@@ -128,7 +130,7 @@ export function DebtsScreen() {
                 setError(null);
               }}
             >
-              <Plus size={15} strokeWidth={2.2} /> Add
+              <Plus size={15} strokeWidth={2.2} /> {t.common.add}
             </button>
           </div>
           <Card className="budget-list">
@@ -137,6 +139,7 @@ export function DebtsScreen() {
                 <DebtRow
                   debt={d}
                   currency={currency}
+                  t={t}
                   onEdit={() => {
                     setDraft(draftFromDebt(d));
                     setError(null);
@@ -156,22 +159,20 @@ export function DebtsScreen() {
       {debts.length > 0 && (
         <section className="section">
           <div className="section-head">
-            <h2 className="section-title">Payoff plan</h2>
+            <h2 className="section-title">{t.debts.payoffPlanTitle}</h2>
           </div>
           <Card className="card-soft">
-            <Field label="Strategy">
-              <Segmented options={STRATEGY_OPTIONS} value={strategy} onChange={setStrategy} ariaLabel="Payoff strategy" />
+            <Field label={t.debts.strategyFieldLabel}>
+              <Segmented options={STRATEGY_OPTIONS} value={strategy} onChange={setStrategy} ariaLabel={t.debts.strategyAria} />
             </Field>
-            <Field label="Extra monthly payment" hint="Split across minimum payments for every debt, plus this much more toward one debt at a time.">
-              <NumericInput cents={extraCents} onCentsChange={setExtraCents} placeholder="0.00" aria-label="Extra monthly payment" />
+            <Field label={t.debts.extraPaymentFieldLabel} hint={t.debts.extraPaymentHint}>
+              <NumericInput cents={extraCents} onCentsChange={setExtraCents} placeholder="0.00" aria-label={t.debts.extraPaymentAria} />
             </Field>
           </Card>
 
           {plan && plan.neverPaysOff && (
             <Card className="card-soft debt-plan-result">
-              <p className="card-soft-text">
-                At this payment level these debts won't ever be paid off — try adding an extra monthly payment.
-              </p>
+              <p className="card-soft-text">{t.debts.neverPaysOff}</p>
             </Card>
           )}
 
@@ -179,13 +180,11 @@ export function DebtsScreen() {
             <Card className="detail-card debt-plan-result">
               <div className="equiv-row">
                 <div className="equiv-cell">
-                  <span className="stat-label">Debt-free in</span>
-                  <span className="equiv-value">
-                    {plan.totalMonths} {plan.totalMonths === 1 ? "month" : "months"}
-                  </span>
+                  <span className="stat-label">{t.debts.debtFreeInLabel}</span>
+                  <span className="equiv-value">{t.debts.monthsCount(plan.totalMonths)}</span>
                 </div>
                 <div className="equiv-cell">
-                  <span className="stat-label">Total interest</span>
+                  <span className="stat-label">{t.debts.totalInterestLabel}</span>
                   <span className="equiv-value">{formatMoney(plan.totalInterestPaidCents, currency)}</span>
                 </div>
               </div>
@@ -195,7 +194,7 @@ export function DebtsScreen() {
                 return (
                   <div key={p.debtId} className="detail-row">
                     <span className="detail-row-label">{d.name}</span>
-                    <span className="detail-row-value">Month {p.payoffMonth}</span>
+                    <span className="detail-row-value">{t.debts.payoffMonth(p.payoffMonth)}</span>
                   </div>
                 );
               })}
@@ -205,21 +204,25 @@ export function DebtsScreen() {
       )}
 
       {draft && (
-        <Sheet title={draft.id === null ? "Add debt" : "Edit debt"} onClose={() => setDraft(null)} ariaLabel={draft.id === null ? "Add debt" : "Edit debt"}>
+        <Sheet
+          title={draft.id === null ? t.debts.addDebtSheetTitle : t.debts.editDebtSheetTitle}
+          onClose={() => setDraft(null)}
+          ariaLabel={draft.id === null ? t.debts.addDebtSheetTitle : t.debts.editDebtSheetTitle}
+        >
           <div className="sheet-form">
-            <Field label="Name">
+            <Field label={t.debts.nameFieldLabel}>
               <TextInput
                 value={draft.name}
                 onChange={(e) => {
                   setDraft({ ...draft, name: e.target.value });
                   setError(null);
                 }}
-                placeholder="e.g. Visa card"
+                placeholder={t.debts.namePlaceholder}
                 autoFocus
-                aria-label="Debt name"
+                aria-label={t.debts.debtNameAria}
               />
             </Field>
-            <Field label="Remaining balance">
+            <Field label={t.debts.remainingBalanceFieldLabel}>
               <NumericInput
                 cents={draft.remainingCents}
                 onCentsChange={(c) => {
@@ -227,10 +230,10 @@ export function DebtsScreen() {
                   setError(null);
                 }}
                 placeholder="0.00"
-                aria-label="Remaining balance"
+                aria-label={t.debts.remainingBalanceFieldLabel}
               />
             </Field>
-            <Field label="Interest rate (APR %)">
+            <Field label={t.debts.interestRateFieldLabel}>
               <input
                 className="input"
                 type="number"
@@ -243,10 +246,10 @@ export function DebtsScreen() {
                   setError(null);
                 }}
                 placeholder="0.00"
-                aria-label="Interest rate"
+                aria-label={t.debts.interestRateAria}
               />
             </Field>
-            <Field label="Minimum payment">
+            <Field label={t.debts.minimumPaymentFieldLabel}>
               <NumericInput
                 cents={draft.minPaymentCents}
                 onCentsChange={(c) => {
@@ -254,7 +257,7 @@ export function DebtsScreen() {
                   setError(null);
                 }}
                 placeholder="0.00"
-                aria-label="Minimum payment"
+                aria-label={t.debts.minimumPaymentFieldLabel}
               />
             </Field>
             {error && (
@@ -265,22 +268,28 @@ export function DebtsScreen() {
           </div>
           <div className="sheet-footer">
             <Button size="lg" className="btn-block" onClick={save}>
-              {draft.id === null ? "Add debt" : "Save changes"}
+              {draft.id === null ? t.debts.addDebtSheetTitle : t.debts.saveChanges}
             </Button>
           </div>
         </Sheet>
       )}
 
       {paying && (
-        <Sheet title="Record payment" onClose={() => setPaying(null)} ariaLabel="Record payment">
+        <Sheet title={t.debts.recordPaymentSheetTitle} onClose={() => setPaying(null)} ariaLabel={t.debts.recordPaymentSheetTitle}>
           <div className="sheet-form">
-            <Field label={`Payment toward ${paying.name}`}>
-              <NumericInput cents={paymentCents} onCentsChange={setPaymentCents} autoFocus placeholder="0.00" aria-label="Payment amount" />
+            <Field label={t.debts.paymentTowardFieldLabel(paying.name)}>
+              <NumericInput
+                cents={paymentCents}
+                onCentsChange={setPaymentCents}
+                autoFocus
+                placeholder="0.00"
+                aria-label={t.debts.paymentAmountAria}
+              />
             </Field>
           </div>
           <div className="sheet-footer">
             <Button size="lg" className="btn-block" onClick={savePayment}>
-              Record payment
+              {t.debts.recordPaymentSheetTitle}
             </Button>
           </div>
         </Sheet>
@@ -292,12 +301,14 @@ export function DebtsScreen() {
 function DebtRow({
   debt,
   currency,
+  t,
   onEdit,
   onDelete,
   onPay,
 }: {
   debt: Debt;
   currency: CurrencyCode;
+  t: Dictionary;
   onEdit: () => void;
   onDelete: () => void;
   onPay: () => void;
@@ -308,25 +319,25 @@ function DebtRow({
         <div className="budget-item-name">
           <IconBadge icon={CreditCard} size="sm" />
           <span className="row-title">{debt.name}</span>
-          <span className="period-tag">{debt.aprPercent}% APR</span>
+          <span className="period-tag">{t.debts.aprTag(debt.aprPercent)}</span>
         </div>
         <div className="budget-item-actions">
-          <button className="icon-btn icon-btn-sm" aria-label={`Record payment for ${debt.name}`} onClick={onPay}>
+          <button className="icon-btn icon-btn-sm" aria-label={t.debts.recordPaymentAria(debt.name)} onClick={onPay}>
             <Banknote size={15} strokeWidth={2} />
           </button>
-          <button className="icon-btn icon-btn-sm" aria-label={`Edit ${debt.name}`} onClick={onEdit}>
+          <button className="icon-btn icon-btn-sm" aria-label={t.debts.editAria(debt.name)} onClick={onEdit}>
             <Pencil size={15} strokeWidth={2} />
           </button>
-          <button className="icon-btn icon-btn-sm" aria-label={`Delete ${debt.name}`} onClick={onDelete}>
+          <button className="icon-btn icon-btn-sm" aria-label={t.debts.deleteAria(debt.name)} onClick={onDelete}>
             <Trash2 size={15} strokeWidth={2} />
           </button>
         </div>
       </div>
       <div className="budget-row">
         <span className="row-title">
-          {formatMoney(debt.remainingCents, currency)} <span className="row-sub">remaining</span>
+          {formatMoney(debt.remainingCents, currency)} <span className="row-sub">{t.debts.remainingSuffix}</span>
         </span>
-        <span className="row-sub">Min {formatMoney(debt.minPaymentCents, currency)}/mo</span>
+        <span className="row-sub">{t.debts.minPerMonth(formatMoney(debt.minPaymentCents, currency))}</span>
       </div>
     </div>
   );
