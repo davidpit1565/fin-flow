@@ -16,8 +16,28 @@ import {
 } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
 import { CHART_COLORS, CategoryDonut, SpendingChart } from "../components/charts";
-import { Card, EmptyState, Money, ScreenHeader, Segmented } from "../components/ui";
+import { Card, EmptyState, Money, ProgressBar, ScreenHeader, Segmented } from "../components/ui";
 import { monthLabelISO } from "../lib/dates";
+import {
+  computeFinancialHealthScore,
+  detectSpendingAnomalies,
+  detectUnusedSubscriptions,
+  generateMonthlyNarrative,
+  type HealthFactor,
+} from "../lib/insights";
+
+/** Max points each health factor can contribute -- mirrors the weights
+ *  documented in src/lib/insights.ts, used here only to size the bars. */
+const HEALTH_FACTOR_MAX: Record<string, number> = {
+  "Savings rate": 40,
+  "Budget adherence": 35,
+  "Subscription load": 25,
+};
+
+function factorPercent(factor: HealthFactor): number {
+  const max = HEALTH_FACTOR_MAX[factor.label] ?? 100;
+  return max > 0 ? (factor.contribution / max) * 100 : 0;
+}
 
 type RangeKey = "7d" | "1m" | "3m" | "6m" | "12m";
 
@@ -30,7 +50,7 @@ const RANGES: { value: RangeKey; label: string }[] = [
 ];
 
 export function Insights() {
-  const { settings, transactions, subscriptions, categories } = useApp();
+  const { settings, transactions, subscriptions, categories, budgets } = useApp();
   const { push } = useNavigation();
   const [rangeKey, setRangeKey] = useState<RangeKey>("1m");
 
@@ -84,6 +104,19 @@ export function Insights() {
 
   const isEmpty = transactions.length === 0 && subscriptions.length === 0;
 
+  // Derived on-device "AI Insights" -- pure computation over the data
+  // already loaded above, nothing fetched or invented.
+  const health = useMemo(
+    () => computeFinancialHealthScore(transactions, subscriptions, budgets),
+    [transactions, subscriptions, budgets]
+  );
+  const narrative = useMemo(
+    () => generateMonthlyNarrative(transactions, subscriptions, categories, budgets),
+    [transactions, subscriptions, categories, budgets]
+  );
+  const unusedSubs = useMemo(() => detectUnusedSubscriptions(subscriptions), [subscriptions]);
+  const anomalies = useMemo(() => detectSpendingAnomalies(transactions, categories), [transactions, categories]);
+
   return (
     <div className="screen">
       <ScreenHeader
@@ -105,6 +138,70 @@ export function Insights() {
         </div>
       ) : (
         <>
+          {/* financial health score */}
+          <Card className="insight-card health-card">
+            <div className="health-card-head">
+              <div>
+                <p className="spend-label">Financial health</p>
+                <span className="health-score">{health.score}</span>
+              </div>
+              <span className={`health-tier health-tier-${health.tier.replace(/\s+/g, "-")}`}>{health.tier}</span>
+            </div>
+            <ul className="health-factors">
+              {health.factors.map((f) => (
+                <li key={f.label}>
+                  <div className="health-factor-row">
+                    <span className="stat-label">{f.label}</span>
+                    <span className="row-sub">{Math.round(f.contribution)} pts</span>
+                  </div>
+                  <ProgressBar percent={factorPercent(f)} />
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          {/* monthly narrative */}
+          <Card className="insight-card">
+            <p className="spend-label">This month</p>
+            <ul className="narrative-list">
+              {narrative.map((sentence, i) => (
+                <li key={i}>{sentence}</li>
+              ))}
+            </ul>
+          </Card>
+
+          {/* unused subscriptions callout */}
+          {unusedSubs.length > 0 && (
+            <Card className="insight-card callout-card">
+              <p className="spend-label">Unused subscriptions</p>
+              <ul className="callout-list">
+                {unusedSubs.map((u) => (
+                  <li key={u.subscription.id} className="callout-item">
+                    <span>{u.subscription.name}</span>
+                    <span className="row-sub negative">
+                      {formatMoney(u.potentialSavingsCents, currency)}/mo
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {/* spending anomalies callout */}
+          {anomalies.length > 0 && (
+            <Card className="insight-card callout-card">
+              <p className="spend-label">Worth a look</p>
+              <ul className="callout-list">
+                {anomalies.map((a) => (
+                  <li key={a.category.id} className="callout-item anomaly-item">
+                    <span>{a.category.name}</span>
+                    <span className="row-sub negative">+{Math.round(a.percentIncrease)}% vs usual</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
           <div className="insights-range">
             <Segmented options={RANGES} value={rangeKey} onChange={setRangeKey} ariaLabel="Chart time range" />
           </div>

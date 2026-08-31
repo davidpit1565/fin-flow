@@ -2111,6 +2111,105 @@ input[type="date"] {
   margin: 8px 0 16px;
 }
 
+/* ---------- AI insights: health score, narrative, callouts ---------- */
+
+.health-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.health-score {
+  display: block;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-tier {
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: capitalize;
+  padding: 5px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.health-tier-excellent,
+.health-tier-good {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.health-tier-fair {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.health-tier-needs-attention {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.health-factors {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+}
+
+.health-factor-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.narrative-list,
+.callout-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.narrative-list li {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  padding-left: 14px;
+  position: relative;
+}
+
+.narrative-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.callout-card .spend-label {
+  margin-bottom: 10px;
+}
+
+.callout-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 550;
+  padding: 2px 0;
+}
+
 /* ---------- budgets ---------- */
 
 .budget-list {
