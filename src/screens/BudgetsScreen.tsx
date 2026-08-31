@@ -4,21 +4,23 @@ import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
 import { budgetStatus } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
+import { useT } from "../lib/i18n";
 import { Button, Card, EmptyState, Field, IconBadge, NumericInput, ProgressBar, ScreenHeader, Segmented, Sheet } from "../components/ui";
 import { iconByName } from "../lib/icons";
 import type { BudgetPeriod, Category, CurrencyCode } from "../types";
 
-const PERIOD_LABEL: Record<BudgetPeriod, string> = { daily: "Daily", weekly: "Weekly", monthly: "Monthly" };
-const PERIOD_UNIT: Record<BudgetPeriod, string> = { daily: "day", weekly: "week", monthly: "month" };
-const PERIOD_OPTIONS: { value: BudgetPeriod; label: string }[] = [
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-];
-
 export function BudgetsScreen() {
   const { budgets, categories, settings, addBudget, updateBudget, deleteBudget, confirm, toast } = useApp();
   const { back } = useNavigation();
+  const t = useT();
+  const PERIOD_OPTIONS: { value: BudgetPeriod; label: string }[] = useMemo(
+    () =>
+      (["daily", "weekly", "monthly"] as BudgetPeriod[]).map((value) => ({
+        value,
+        label: t.budgets.periodLabel(value),
+      })),
+    [t]
+  );
   const [editing, setEditing] = useState<{ categoryId: string | null; current: number; period: BudgetPeriod } | null>(null);
   const [amountCents, setAmountCents] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export function BudgetsScreen() {
 
   const save = () => {
     if (amountCents === null || amountCents <= 0) {
-      setError("Enter a valid budget amount.");
+      setError(t.budgets.errorAmount);
       return;
     }
     if (editing) {
@@ -45,7 +47,7 @@ export function BudgetsScreen() {
         if (existing) updateBudget(existing.id, amountCents, editing.period);
         else addBudget(editing.categoryId, amountCents, editing.period);
       }
-      toast("Budget saved");
+      toast(t.budgets.budgetSavedToast);
     }
     setEditing(null);
     setAmountCents(null);
@@ -54,25 +56,25 @@ export function BudgetsScreen() {
 
   const removeBudget = async (b: { id: string; categoryId: string | null }) => {
     const ok = await confirm({
-      title: "Delete budget?",
-      message: "This only removes the budget — your transactions stay.",
-      confirmLabel: "Delete",
+      title: t.budgets.deleteBudgetTitle,
+      message: t.budgets.deleteBudgetMessage,
+      confirmLabel: t.common.delete,
       danger: true,
     });
     if (!ok) return;
     deleteBudget(b.id);
-    toast("Deleted");
+    toast(t.common.deleted);
   };
 
   return (
     <div className="screen">
-      <ScreenHeader title="Budgets" subtitle="Set a daily, weekly, or monthly limit for your overall spending or per category" onBack={back} />
+      <ScreenHeader title={t.budgets.screenTitle} subtitle={t.budgets.screenSubtitle} onBack={back} />
 
       {budgets.length === 0 && (
         <EmptyState
           icon={Wallet}
-          title="No budgets yet"
-          message="Set a limit and Flow will tell you when you're getting close."
+          title={t.budgets.emptyTitle}
+          message={t.budgets.emptyMessage}
           action={
             <Button
               onClick={() => {
@@ -80,7 +82,7 @@ export function BudgetsScreen() {
                 setAmountCents(null);
               }}
             >
-              <Plus size={18} strokeWidth={2} /> Add budget
+              <Plus size={18} strokeWidth={2} /> {t.budgets.addBudget}
             </Button>
           }
         />
@@ -89,7 +91,7 @@ export function BudgetsScreen() {
       {budgets.length > 0 && (
         <section className="section">
           <div className="section-head">
-            <h2 className="section-title">Overall</h2>
+            <h2 className="section-title">{t.budgets.overallSectionTitle}</h2>
             {!overall && (
               <button
                 className="section-action"
@@ -98,7 +100,7 @@ export function BudgetsScreen() {
                   setAmountCents(null);
                 }}
               >
-                <Plus size={15} strokeWidth={2.2} /> Add overall budget
+                <Plus size={15} strokeWidth={2.2} /> {t.budgets.addOverallBudget}
               </button>
             )}
           </div>
@@ -116,7 +118,7 @@ export function BudgetsScreen() {
             </Card>
           ) : (
             <Card className="card-soft">
-              <p className="card-soft-text">Set a limit for your overall spending. Use the “Add” button above.</p>
+              <p className="card-soft-text">{t.budgets.overallEmptyMessage}</p>
             </Card>
           )}
         </section>
@@ -124,7 +126,7 @@ export function BudgetsScreen() {
 
       <section className="section">
         <div className="section-head">
-          <h2 className="section-title">Category budgets</h2>
+          <h2 className="section-title">{t.budgets.categorySectionTitle}</h2>
           {availableCategories.length > 0 && (
             <button
               className="section-action"
@@ -133,15 +135,13 @@ export function BudgetsScreen() {
                 setAmountCents(null);
               }}
             >
-              <Plus size={15} strokeWidth={2.2} /> Add
+              <Plus size={15} strokeWidth={2.2} /> {t.common.add}
             </button>
           )}
         </div>
         {categoryBudgets.length === 0 ? (
           <Card className="card-soft">
-            <p className="card-soft-text">
-              Add budgets for categories like Food or Shopping. Use the “Add” button above.
-            </p>
+            <p className="card-soft-text">{t.budgets.categoryEmptyMessage}</p>
           </Card>
         ) : (
           <Card className="budget-list">
@@ -168,17 +168,21 @@ export function BudgetsScreen() {
       </section>
 
       {editing && (
-        <Sheet title={editing.categoryId === null ? "Overall budget" : "Category budget"} onClose={() => setEditing(null)} ariaLabel="Edit budget">
+        <Sheet
+          title={editing.categoryId === null ? t.budgets.overallBudgetSheetTitle : t.budgets.categoryBudgetSheetTitle}
+          onClose={() => setEditing(null)}
+          ariaLabel={t.budgets.editSheetAria}
+        >
           <div className="sheet-form">
-            <Field label="Period">
+            <Field label={t.budgets.periodFieldLabel}>
               <Segmented
                 options={PERIOD_OPTIONS}
                 value={editing.period}
                 onChange={(period) => setEditing({ ...editing, period })}
-                ariaLabel="Budget period"
+                ariaLabel={t.budgets.periodAria}
               />
             </Field>
-            <Field label={`Amount per ${PERIOD_UNIT[editing.period]}`}>
+            <Field label={t.budgets.amountPerPeriod(editing.period)}>
               <NumericInput
                 cents={amountCents}
                 onCentsChange={(c) => {
@@ -186,12 +190,12 @@ export function BudgetsScreen() {
                   setError(null);
                 }}
                 autoFocus
-                placeholder="0.00"
-                aria-label="Budget amount"
+                placeholder={t.budgets.amountPlaceholder}
+                aria-label={t.budgets.budgetAmountAria}
               />
             </Field>
             {editing.categoryId !== null && (
-              <Field label="Category">
+              <Field label={t.budgets.categoryFieldLabel}>
                 <div className="chip-group wrap">
                   {(availableCategories.some((c) => c.id === editing.categoryId)
                     ? availableCategories
@@ -216,7 +220,7 @@ export function BudgetsScreen() {
           </div>
           <div className="sheet-footer">
             <Button size="lg" className="btn-block" onClick={save}>
-              Save budget
+              {t.budgets.saveBudgetButton}
             </Button>
           </div>
         </Sheet>
@@ -239,14 +243,15 @@ function BudgetStatusView({
   onDelete: () => void;
 }) {
   const { budgets, transactions, settings } = useApp();
+  const t = useT();
   const budget = budgets.find((b) => b.id === budgetId);
   if (!budget || !settings) return null;
   const status = budgetStatus(budget, transactions, undefined, settings.startWeekOn);
   const period = budget.period ?? "monthly";
   const tone = status.level === "over" ? "over" : status.level === "reached" ? "over" : status.level === "high" || status.level === "close" ? "warn" : "ok";
-  const label = category ? category.name : PERIOD_LABEL[period];
-  const heading = category ? category.name : `${PERIOD_LABEL[period]} budget`;
-  const phrase = label.toLowerCase();
+  const label = category ? category.name : t.budgets.periodLabel(period);
+  const heading = category ? category.name : t.budgets.periodBudgetLabel(period);
+  const amount = status.level === "over" ? formatMoney(-status.remainingCents, currency) : formatMoney(status.remainingCents, currency);
   const Icon = iconByName(category?.icon);
   return (
     <div>
@@ -254,13 +259,13 @@ function BudgetStatusView({
         <div className="budget-item-name">
           {category && <IconBadge icon={Icon} size="sm" />}
           <span className="row-title">{heading}</span>
-          {category && <span className="period-tag">{PERIOD_LABEL[period]}</span>}
+          {category && <span className="period-tag">{t.budgets.periodLabel(period)}</span>}
         </div>
         <div className="budget-item-actions">
-          <button className="icon-btn icon-btn-sm" aria-label={`Edit ${label} budget`} onClick={onEdit}>
+          <button className="icon-btn icon-btn-sm" aria-label={t.budgets.editBudgetAria(label)} onClick={onEdit}>
             <Pencil size={15} strokeWidth={2} />
           </button>
-          <button className="icon-btn icon-btn-sm" aria-label={`Delete ${label} budget`} onClick={onDelete}>
+          <button className="icon-btn icon-btn-sm" aria-label={t.budgets.deleteBudgetAria(label)} onClick={onDelete}>
             <Trash2 size={15} strokeWidth={2} />
           </button>
         </div>
@@ -272,17 +277,7 @@ function BudgetStatusView({
         <span className="row-sub">{Math.round(status.percent)}%</span>
       </div>
       <ProgressBar percent={status.percent} tone={tone} />
-      <p className={`budget-msg ${tone}`}>
-        {status.level === "over"
-          ? `You're ${formatMoney(-status.remainingCents, currency)} over your ${phrase} budget.`
-          : status.level === "reached"
-            ? `You've reached your ${phrase} budget.`
-            : status.level === "high"
-              ? `You've used 90% of your ${phrase} budget.`
-              : status.level === "close"
-                ? `You're close to your ${phrase} budget.`
-                : `${formatMoney(status.remainingCents, currency)} remaining`}
-      </p>
+      <p className={`budget-msg ${tone}`}>{t.budgets.statusMessage(status.level, amount, period, category?.name)}</p>
     </div>
   );
 }
