@@ -2210,6 +2210,37 @@ input[type="date"] {
   padding: 2px 0;
 }
 
+/* ---------- year in review ---------- */
+
+.year-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 4px 0 16px;
+}
+
+.year-picker-value {
+  font-size: 20px;
+  font-weight: 650;
+  min-width: 64px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.wrapped-hero {
+  padding: 24px 20px;
+  margin-bottom: 12px;
+  background: linear-gradient(160deg, var(--accent-soft), var(--surface) 70%);
+  border-color: var(--border-strong);
+}
+
+.wrapped-hero-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
 /* ---------- budgets ---------- */
 
 .budget-list {

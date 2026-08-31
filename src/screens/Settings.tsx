@@ -214,6 +214,17 @@ export function Settings() {
         </Card>
       </SettingsSection>
 
+      <SettingsSection title="Year in review">
+        <Card className="list-card">
+          <SettingsRow
+            label="Year in review"
+            sub="A Wrapped-style recap of your year"
+            onPress={() => push({ tab: "settings", name: "yearinreview" })}
+            last
+          />
+        </Card>
+      </SettingsSection>
+
       <SettingsSection title="Notifications">
         <Card className="list-card">
           <div className="settings-toggle-row">
