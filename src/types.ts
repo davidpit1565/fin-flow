@@ -3,6 +3,7 @@
 export type CurrencyCode = "EUR" | "USD" | "GBP" | "CHF" | "CAD" | "AUD" | "ILS";
 
 export type ThemePreference = "system" | "light" | "dark";
+export type AccentColor = "green" | "blue" | "purple" | "orange" | "pink";
 export type DateFormatPreference = "auto" | "dmy" | "mdy" | "iso";
 export type WeekStart = "monday" | "sunday";
 
@@ -25,6 +26,9 @@ export interface UserSettings {
   /** Optional: absent on settings created before this field existed, which
    *  should be treated the same as `false` -- app lock off by default. */
   appLockEnabled?: boolean;
+  /** Optional: absent on settings created before this field existed, which
+   *  should be treated the same as `"green"` -- the original accent color. */
+  accentColor?: AccentColor;
   createdAt: number;
   updatedAt: number;
 }

@@ -173,6 +173,20 @@ export function Settings() {
               ariaLabel="Theme"
             />
           } />
+          <SettingsRow label="Accent color" valueAsControl={
+            <ChipGroup
+              options={[
+                { value: "green", label: "Green" },
+                { value: "blue", label: "Blue" },
+                { value: "purple", label: "Purple" },
+                { value: "orange", label: "Orange" },
+                { value: "pink", label: "Pink" },
+              ]}
+              value={settings.accentColor ?? "green"}
+              onChange={(v) => updateSettings({ accentColor: v })}
+              ariaLabel="Accent color"
+            />
+          } />
         </Card>
       </SettingsSection>
 

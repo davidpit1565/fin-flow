@@ -4,6 +4,7 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { useApp } from "./store/AppContext";
+import type { AccentColor } from "./types";
 import { authenticateWithBiometrics } from "./lib/appLock";
 import { isNative } from "./lib/platform";
 import { NavigationProvider, useNavigation, type AnyTab, type Route, type TabId } from "./store/Navigation";
@@ -30,6 +31,7 @@ function App() {
   const [adding, setAdding] = useState(false);
 
   const isDark = useTheme(settings?.theme ?? "system");
+  useAccentColor(settings?.accentColor);
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
   const settingsLoaded = ready && (settings?.onboarded ?? false);
@@ -456,6 +458,16 @@ function useTheme(preference: "system" | "light" | "dark"): boolean {
     }
   }, [preference]);
   return isDark;
+}
+
+/** Applies the chosen accent color to <html> as `data-accent`, which the
+ *  `:root[data-accent="..."]` blocks in index.css key off of. Unlike theme
+ *  there's no "system" accent concept, so this is a plain effect rather than
+ *  a resolve/listen hook like useTheme. */
+function useAccentColor(accentColor: AccentColor | undefined) {
+  useEffect(() => {
+    document.documentElement.dataset.accent = accentColor ?? "green";
+  }, [accentColor]);
 }
 
 function resolve(preference: "system" | "light" | "dark"): boolean {
