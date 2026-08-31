@@ -526,7 +526,21 @@ export function Settings() {
       )}
 
       {showExportBackup && (
-        <Sheet title={t.settings.exportEncryptedBackup} onClose={closeExportBackup} ariaLabel={t.settings.exportEncryptedBackup}>
+        <Sheet
+          title={t.settings.exportEncryptedBackup}
+          onClose={closeExportBackup}
+          ariaLabel={t.settings.exportEncryptedBackup}
+          footer={
+            <Button
+              size="lg"
+              className="btn-block"
+              disabled={exporting || exportPassword.length === 0 || exportPassword !== exportPasswordConfirm}
+              onClick={() => void onExportBackup()}
+            >
+              {exporting ? t.settings.exporting : t.settings.exportBackupButton}
+            </Button>
+          }
+        >
           <div className="sheet-form">
             <p className="settings-note">{t.settings.chooseBackupPasswordNote}</p>
             <Field label={t.settings.backupPassword}>
@@ -556,21 +570,25 @@ export function Settings() {
               }
             />
           </div>
-          <div className="sheet-footer">
-            <Button
-              size="lg"
-              className="btn-block"
-              disabled={exporting || exportPassword.length === 0 || exportPassword !== exportPasswordConfirm}
-              onClick={() => void onExportBackup()}
-            >
-              {exporting ? t.settings.exporting : t.settings.exportBackupButton}
-            </Button>
-          </div>
         </Sheet>
       )}
 
       {restoreFile && (
-        <Sheet title={t.settings.restoreFromBackup} onClose={closeRestoreBackup} ariaLabel={t.settings.restoreFromBackup}>
+        <Sheet
+          title={t.settings.restoreFromBackup}
+          onClose={closeRestoreBackup}
+          ariaLabel={t.settings.restoreFromBackup}
+          footer={
+            <Button
+              size="lg"
+              className="btn-block"
+              disabled={restoring || restorePassword.length === 0}
+              onClick={() => void onRestoreBackup()}
+            >
+              {restoring ? t.settings.restoring : t.settings.restoreConfirmLabel}
+            </Button>
+          }
+        >
           <div className="sheet-form">
             <p className="settings-note">{t.settings.enterBackupPasswordNote}</p>
             <Field label={t.settings.backupPassword}>
@@ -583,16 +601,6 @@ export function Settings() {
                 aria-label={t.settings.backupPassword}
               />
             </Field>
-          </div>
-          <div className="sheet-footer">
-            <Button
-              size="lg"
-              className="btn-block"
-              disabled={restoring || restorePassword.length === 0}
-              onClick={() => void onRestoreBackup()}
-            >
-              {restoring ? t.settings.restoring : t.settings.restoreConfirmLabel}
-            </Button>
           </div>
         </Sheet>
       )}

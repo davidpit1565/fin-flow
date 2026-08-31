@@ -180,6 +180,11 @@ export function GoalsScreen() {
           title={editing.id ? t.goals.editGoalSheetTitle : t.goals.addGoal}
           onClose={() => setEditing(null)}
           ariaLabel={t.goals.editGoalSheetAria}
+          footer={
+            <Button size="lg" className="btn-block" onClick={save}>
+              {editing.id ? t.goals.saveChanges : t.goals.addGoal}
+            </Button>
+          }
         >
           <div className="sheet-form">
             <Field label={t.goals.nameFieldLabel} htmlFor="goal-name">
@@ -249,11 +254,6 @@ export function GoalsScreen() {
               </p>
             )}
           </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" onClick={save}>
-              {editing.id ? t.goals.saveChanges : t.goals.addGoal}
-            </Button>
-          </div>
         </Sheet>
       )}
 
@@ -262,6 +262,19 @@ export function GoalsScreen() {
           title={goals.find((g) => g.id === contributing.id)?.name ?? t.goals.updateGoalFallbackTitle}
           onClose={() => setContributing(null)}
           ariaLabel={t.goals.contributionSheetAria}
+          footer={
+            <Button size="lg" className="btn-block" onClick={saveContribution}>
+              {contributing.mode === "add" ? (
+                <>
+                  <Plus size={18} strokeWidth={2} /> {t.goals.addFunds}
+                </>
+              ) : (
+                <>
+                  <Minus size={18} strokeWidth={2} /> {t.goals.withdraw}
+                </>
+              )}
+            </Button>
+          }
         >
           <div className="sheet-form">
             <Field label={t.goals.typeFieldLabel}>
@@ -284,19 +297,6 @@ export function GoalsScreen() {
                 aria-label={t.goals.contributionAmountAria}
               />
             </Field>
-          </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" onClick={saveContribution}>
-              {contributing.mode === "add" ? (
-                <>
-                  <Plus size={18} strokeWidth={2} /> {t.goals.addFunds}
-                </>
-              ) : (
-                <>
-                  <Minus size={18} strokeWidth={2} /> {t.goals.withdraw}
-                </>
-              )}
-            </Button>
           </div>
         </Sheet>
       )}

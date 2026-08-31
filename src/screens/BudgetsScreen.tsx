@@ -172,6 +172,11 @@ export function BudgetsScreen() {
           title={editing.categoryId === null ? t.budgets.overallBudgetSheetTitle : t.budgets.categoryBudgetSheetTitle}
           onClose={() => setEditing(null)}
           ariaLabel={t.budgets.editSheetAria}
+          footer={
+            <Button size="lg" className="btn-block" onClick={save}>
+              {t.budgets.saveBudgetButton}
+            </Button>
+          }
         >
           <div className="sheet-form">
             <Field label={t.budgets.periodFieldLabel}>
@@ -217,11 +222,6 @@ export function BudgetsScreen() {
                 {error}
               </p>
             )}
-          </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" onClick={save}>
-              {t.budgets.saveBudgetButton}
-            </Button>
           </div>
         </Sheet>
       )}

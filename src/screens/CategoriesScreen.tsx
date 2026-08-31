@@ -131,6 +131,11 @@ export function CategoriesScreen() {
           title={editing.id ? t.categories.editCategorySheetTitle : t.categories.addCategoryButton}
           onClose={() => setEditing(null)}
           ariaLabel={t.categories.editCategoryAriaLabel}
+          footer={
+            <Button size="lg" className="btn-block" onClick={save}>
+              {editing.id ? t.categories.saveChangesButton : t.categories.addCategoryButton}
+            </Button>
+          }
         >
           <div className="sheet-form">
             <Field label={t.categories.nameLabel} htmlFor="cat-name">
@@ -177,11 +182,6 @@ export function CategoriesScreen() {
               </div>
             </Field>
           </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" onClick={save}>
-              {editing.id ? t.categories.saveChangesButton : t.categories.addCategoryButton}
-            </Button>
-          </div>
         </Sheet>
       )}
 
@@ -193,6 +193,11 @@ export function CategoriesScreen() {
             setReassignTarget(null);
           }}
           ariaLabel={t.categories.moveSheetAriaLabel}
+          footer={
+            <Button size="lg" className="btn-block" disabled={!reassignTarget} onClick={confirmDeleteWithReassign}>
+              {t.categories.moveButtonText(pendingDelete.name)}
+            </Button>
+          }
         >
           <div className="sheet-form">
             <Field label={t.categories.moveToLabel}>
@@ -210,11 +215,6 @@ export function CategoriesScreen() {
                   ))}
               </div>
             </Field>
-          </div>
-          <div className="sheet-footer">
-            <Button size="lg" className="btn-block" disabled={!reassignTarget} onClick={confirmDeleteWithReassign}>
-              {t.categories.moveButtonText(pendingDelete.name)}
-            </Button>
           </div>
         </Sheet>
       )}
