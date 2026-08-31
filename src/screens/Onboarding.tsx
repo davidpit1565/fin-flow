@@ -68,7 +68,7 @@ export function Onboarding() {
               Skip
             </button>
             <Button size="lg" onClick={() => setStep(step + 1)}>
-              Continue <ArrowRight size={18} strokeWidth={2} />
+              Continue <ArrowRight size={18} strokeWidth={2} className="icon-directional" />
             </Button>
           </div>
         </div>

@@ -20,6 +20,40 @@ interface SwipeRowProps {
 
 const REVEAL = 84;
 
+/** Swipe-to-reveal row (leftAction/rightAction panels underneath a draggable
+ *  `.swipe-track`).
+ *
+ *  RTL decision: the drag gesture itself is left as pure physical pixel math
+ *  (`dx = e.clientX - start.x`, translateX on the track) and is NOT flipped
+ *  for RTL. A touch/pointer drag is a physical motion -- dragging your
+ *  finger physically further right always increases `clientX`, in Hebrew or
+ *  English, so re-deriving `dx` from `dir` would be solving a problem that
+ *  doesn't exist (and would desync from `.swipe-track`'s own transform,
+ *  which the CSS engine never flips automatically -- same reason
+ *  `.toggle-knob` needed its own `[dir="rtl"]` override elsewhere).
+ *
+ *  What *does* need to change is which action ends up on which physical
+ *  side, to match the RTL reading-order convention real RTL apps use (e.g.
+ *  Gmail/Mail mirror their leading/trailing swipe actions in Hebrew/Arabic):
+ *  the reading-start-side action (`leftAction`, e.g. "mark as recurring")
+ *  should sit at the reading-start edge, and the reading-end/destructive one
+ *  (`rightAction`, delete) at the reading-end edge -- left/right in LTR,
+ *  right/left in RTL. That's handled entirely in CSS: `.swipe-action-left`
+ *  and `.swipe-action-right` (index.css) are positioned with
+ *  `inset-inline-start`/`inset-inline-end` instead of physical `left`/
+ *  `right`, so the browser places them on the correct physical side for the
+ *  current `dir` with no JS involved.
+ *
+ *  Concretely, in RTL: dragging right-to-left (negative dx) still slides the
+ *  track the same physical way, which still uncovers the physical-right
+ *  panel -- but that panel is now `leftAction` (since `inset-inline-start`
+ *  resolves to physical-right in RTL), not `rightAction` as it would be in
+ *  LTR. Dragging left-to-right (positive dx) uncovers the physical-left
+ *  panel, now `rightAction` (delete). Net effect: the delete gesture mirrors
+ *  from "swipe left" (LTR) to "swipe right" (RTL), matching the Hebrew
+ *  reading-order mental model, while every line of gesture math below is
+ *  completely unaware of `dir` and stays internally consistent by
+ *  construction (the panels move, not the meaning of `dx`). */
 export function SwipeRow({ children, onTap, onOpenChange, leftAction, rightAction }: SwipeRowProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const start = useRef<{ x: number; y: number } | null>(null);

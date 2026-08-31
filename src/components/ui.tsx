@@ -75,10 +75,20 @@ export function Segmented<T extends string>({ options, value, onChange, ariaLabe
 }
 
 /** Roving-tabindex arrow-key navigation shared by Segmented, ChipGroup, and
- *  any other same-role button group (e.g. CategoryPicker). */
+ *  any other same-role button group (e.g. CategoryPicker).
+ *
+ *  Horizontal keys are swapped in RTL (matching WAI-ARIA authoring
+ *  practices): with `dir="rtl"`, item 0 renders on the physical right and
+ *  the array walks right-to-left, so pressing the physical Right arrow
+ *  should move focus toward the *previous* item, not the next one, to
+ *  match what the user sees moving under their finger/cursor. Vertical
+ *  keys (Up/Down) are unaffected by text direction and stay as-is. */
 export function rovingNextIndex(key: string, index: number, length: number): number | null {
-  if (key === "ArrowRight" || key === "ArrowDown") return (index + 1) % length;
-  if (key === "ArrowLeft" || key === "ArrowUp") return (index - 1 + length) % length;
+  const rtl = document.documentElement.dir === "rtl";
+  const forwardKey = rtl ? "ArrowLeft" : "ArrowRight";
+  const backwardKey = rtl ? "ArrowRight" : "ArrowLeft";
+  if (key === forwardKey || key === "ArrowDown") return (index + 1) % length;
+  if (key === backwardKey || key === "ArrowUp") return (index - 1 + length) % length;
   if (key === "Home") return 0;
   if (key === "End") return length - 1;
   return null;
