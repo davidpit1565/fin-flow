@@ -4,9 +4,11 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { useApp } from "./store/AppContext";
-import type { AccentColor } from "./types";
+import type { AccentColor, Language } from "./types";
 import { authenticateWithBiometrics } from "./lib/appLock";
 import { isNative } from "./lib/platform";
+import { setLocaleOverride } from "./lib/locale";
+import { I18nProvider, isRTL, useT } from "./lib/i18n";
 import { NavigationProvider, useNavigation, type AnyTab, type Route, type TabId } from "./store/Navigation";
 import { Onboarding } from "./screens/Onboarding";
 import { Home } from "./screens/Home";
@@ -26,7 +28,35 @@ import { CategoriesScreen } from "./screens/CategoriesScreen";
 import { PrivacyScreen, SupportScreen, TermsScreen } from "./screens/Legal";
 import { AddTransactionSheet } from "./components/AddTransactionSheet";
 
+/** Resolves the app's language/direction and provides the i18n dictionary
+ *  to the whole tree, including the early-return Onboarding/Splash/Lock
+ *  screens below -- every one of them needs `useT()` to work, not just the
+ *  main authenticated app. */
 function App() {
+  const { settings } = useApp();
+  const language: Language = settings?.language ?? "en";
+  // Passed separately from `language` (which always defaults to "en" for the
+  // dictionary/RTL direction): number/date/currency formatting should only
+  // override the device's own locale once the user has *explicitly* chosen
+  // a language, not for every existing user whose setting is simply unset
+  // yet -- see src/lib/locale.ts.
+  useLanguageEffects(language, settings?.language);
+  return (
+    <I18nProvider language={language}>
+      <AppInner />
+    </I18nProvider>
+  );
+}
+
+function useLanguageEffects(language: Language, explicitLanguage: Language | undefined): void {
+  useEffect(() => {
+    document.documentElement.dir = isRTL(language) ? "rtl" : "ltr";
+    document.documentElement.lang = language;
+    setLocaleOverride(explicitLanguage === "he" ? "he-IL" : explicitLanguage === "en" ? "en-US" : null);
+  }, [language, explicitLanguage]);
+}
+
+function AppInner() {
   const { ready, loadError, retryLoad, settings } = useApp();
   const { current, activeTab, navigate } = useNavigation();
   const [adding, setAdding] = useState(false);
@@ -181,8 +211,9 @@ function useScrollRestoration(key: string) {
 
 function TabBar({ onAdd, onTab }: { onAdd: () => void; onTab: (tab: TabId) => void }) {
   const { activeTab, popToRoot } = useNavigation();
+  const t = useT();
   return (
-    <nav className="tabbar" aria-label="Main navigation">
+    <nav className="tabbar" aria-label={t.appShell.mainNavigation}>
       <div className="tabbar-inner">
         <button
           className={`tabbar-item ${activeTab === "home" ? "active" : ""}`}
@@ -192,7 +223,7 @@ function TabBar({ onAdd, onTab }: { onAdd: () => void; onTab: (tab: TabId) => vo
           }}
         >
           <HomeIcon size={22} strokeWidth={activeTab === "home" ? 2.2 : 1.8} />
-          <span>Home</span>
+          <span>{t.appShell.tabHome}</span>
         </button>
         <button
           className={`tabbar-item ${activeTab === "transactions" ? "active" : ""}`}
@@ -202,10 +233,10 @@ function TabBar({ onAdd, onTab }: { onAdd: () => void; onTab: (tab: TabId) => vo
           }}
         >
           <ArrowLeftRight size={22} strokeWidth={activeTab === "transactions" ? 2.2 : 1.8} />
-          <span>Transactions</span>
+          <span>{t.appShell.tabTransactions}</span>
         </button>
         <div className="tabbar-add-wrap">
-          <button className="tabbar-add" aria-label="Add transaction" onClick={onAdd}>
+          <button className="tabbar-add" aria-label={t.appShell.addTransaction} onClick={onAdd}>
             <Plus size={26} strokeWidth={2.2} />
           </button>
         </div>
@@ -217,7 +248,7 @@ function TabBar({ onAdd, onTab }: { onAdd: () => void; onTab: (tab: TabId) => vo
           }}
         >
           <RefreshCcw size={22} strokeWidth={activeTab === "subscriptions" ? 2.2 : 1.8} />
-          <span>Subscriptions</span>
+          <span>{t.appShell.tabSubscriptions}</span>
         </button>
         <button
           className={`tabbar-item ${activeTab === "insights" ? "active" : ""}`}
@@ -227,7 +258,7 @@ function TabBar({ onAdd, onTab }: { onAdd: () => void; onTab: (tab: TabId) => vo
           }}
         >
           <BarChart3 size={22} strokeWidth={activeTab === "insights" ? 2.2 : 1.8} />
-          <span>Insights</span>
+          <span>{t.appShell.tabInsights}</span>
         </button>
       </div>
     </nav>
@@ -253,16 +284,17 @@ function Sidebar({
   onSettings: () => void;
 }) {
   const { popToRoot } = useNavigation();
+  const t = useT();
 
   const items: { id: TabId; label: string; icon: typeof HomeIcon }[] = [
-    { id: "home", label: "Home", icon: HomeIcon },
-    { id: "transactions", label: "Transactions", icon: ArrowLeftRight },
-    { id: "subscriptions", label: "Subscriptions", icon: RefreshCcw },
-    { id: "insights", label: "Insights", icon: BarChart3 },
+    { id: "home", label: t.appShell.tabHome, icon: HomeIcon },
+    { id: "transactions", label: t.appShell.tabTransactions, icon: ArrowLeftRight },
+    { id: "subscriptions", label: t.appShell.tabSubscriptions, icon: RefreshCcw },
+    { id: "insights", label: t.appShell.tabInsights, icon: BarChart3 },
   ];
 
   return (
-    <nav className="sidebar" aria-label="Main navigation">
+    <nav className="sidebar" aria-label={t.appShell.mainNavigation}>
       <div className="sidebar-mark">
         <svg width="28" height="28" viewBox="0 0 64 64" fill="none" aria-hidden="true">
           <rect width="64" height="64" rx="16" fill="var(--accent)" />
@@ -279,7 +311,7 @@ function Sidebar({
       </div>
 
       <button className="sidebar-add" onClick={onAdd}>
-        <Plus size={17} strokeWidth={2.4} /> Add transaction
+        <Plus size={17} strokeWidth={2.4} /> {t.appShell.addTransaction}
       </button>
 
       <div className="sidebar-nav">
@@ -301,7 +333,7 @@ function Sidebar({
       <div className="sidebar-footer">
         <button className={`sidebar-item ${activeTab === "settings" ? "active" : ""}`} onClick={onSettings}>
           <SettingsIcon size={19} strokeWidth={activeTab === "settings" ? 2.2 : 1.8} />
-          Settings
+          {t.appShell.tabSettings}
         </button>
       </div>
     </nav>
@@ -321,16 +353,14 @@ function Splash() {
  *  corrupted. Without this, a failed load left the app stuck on the splash
  *  screen forever with no explanation and no way forward. */
 function LoadErrorScreen({ onRetry }: { onRetry: () => void }) {
+  const t = useT();
   return (
     <div className="lock-screen">
       <FlowMark />
-      <p className="lock-screen-title">Flow couldn't load your data</p>
-      <p className="lock-screen-hint">
-        This can happen in private browsing mode, or if your browser's storage is blocked. Try again, or switch to
-        regular browsing mode.
-      </p>
+      <p className="lock-screen-title">{t.appShell.loadErrorTitle}</p>
+      <p className="lock-screen-hint">{t.appShell.loadErrorHint}</p>
       <button className="btn btn-primary btn-lg" onClick={onRetry}>
-        Try again
+        {t.appShell.tryAgain}
       </button>
     </div>
   );
@@ -412,15 +442,16 @@ function usePrivacyShield(): boolean {
 function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   const [authenticating, setAuthenticating] = useState(false);
   const [failed, setFailed] = useState(false);
+  const t = useT();
 
   const tryUnlock = useCallback(async () => {
     setAuthenticating(true);
     setFailed(false);
-    const ok = await authenticateWithBiometrics("Unlock Flow");
+    const ok = await authenticateWithBiometrics(t.appShell.unlockPromptReason);
     setAuthenticating(false);
     if (ok) onUnlock();
     else setFailed(true);
-  }, [onUnlock]);
+  }, [onUnlock, t]);
 
   // Prompt automatically as soon as the lock screen appears, with a manual
   // fallback button for when the user dismisses it or it fails.
@@ -432,10 +463,10 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   return (
     <div className="lock-screen">
       <FlowMark />
-      <p className="lock-screen-title">Flow is locked</p>
-      {failed && <p className="lock-screen-hint">Face ID didn't confirm it's you.</p>}
+      <p className="lock-screen-title">{t.appShell.lockedTitle}</p>
+      {failed && <p className="lock-screen-hint">{t.appShell.lockedFaceIdFailed}</p>}
       <button className="btn btn-primary btn-lg" onClick={() => void tryUnlock()} disabled={authenticating}>
-        {authenticating ? "Checking…" : "Unlock with Face ID"}
+        {authenticating ? t.appShell.unlockChecking : t.appShell.unlockButton}
       </button>
     </div>
   );

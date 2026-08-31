@@ -224,7 +224,7 @@ export function Home({ onAdd }: { onAdd: () => void }) {
                 className="section-action"
                 onClick={() => push({ tab: "subscriptions", name: "root" })}
               >
-                View all <ChevronRight size={14} strokeWidth={2.2} />
+                View all <ChevronRight size={14} strokeWidth={2.2} className="icon-directional" />
               </button>
             </div>
             {upcoming.length === 0 ? (
@@ -293,7 +293,7 @@ export function Home({ onAdd }: { onAdd: () => void }) {
               <div className="section-head">
                 <h2 className="section-title">{budgetPeriodLabel[0].toUpperCase()}{budgetPeriodLabel.slice(1)} budget</h2>
                 <button className="section-action" onClick={() => push({ tab: "settings", name: "budgets" })}>
-                  Manage <ChevronRight size={14} strokeWidth={2.2} />
+                  Manage <ChevronRight size={14} strokeWidth={2.2} className="icon-directional" />
                 </button>
               </div>
               <Card className="budget-card">

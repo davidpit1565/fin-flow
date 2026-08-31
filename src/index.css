@@ -200,7 +200,7 @@ ul {
   flex-shrink: 0;
   flex-direction: column;
   padding: 28px 16px calc(20px + env(safe-area-inset-bottom));
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   background: var(--surface);
 }
 
@@ -259,7 +259,7 @@ ul {
   font-weight: 600;
   color: var(--text-secondary);
   transition: background 0.15s ease, color 0.15s ease;
-  text-align: left;
+  text-align: start;
 }
 
 .sidebar-item:hover {
@@ -523,6 +523,14 @@ ul {
   flex-shrink: 0;
 }
 
+/** For icons that visually encode a direction (back arrows, chevrons) rather
+ *  than a fixed symbol (trash can, checkmark) -- see the RTL correctness
+ *  notes in CLAUDE.md. Apply only to those, never blanket-flip a whole
+ *  icon-carrying container. */
+[dir="rtl"] .icon-directional {
+  transform: scaleX(-1);
+}
+
 .icon-btn:hover {
   background: var(--surface-3);
   color: var(--text);
@@ -671,7 +679,7 @@ ul {
 .toggle-knob {
   position: absolute;
   top: 2px;
-  left: 2px;
+  inset-inline-start: 2px;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -682,6 +690,13 @@ ul {
 
 .toggle.on .toggle-knob {
   transform: translateX(20px);
+}
+
+/* `translateX` is a physical transform -- it doesn't flip with `dir` the way
+   `inset-inline-start` does, so the "on" slide direction needs its own RTL
+   override to still move the knob toward the same logical end. */
+[dir="rtl"] .toggle.on .toggle-knob {
+  transform: translateX(-20px);
 }
 
 /* ---------- fields ---------- */
@@ -914,7 +929,7 @@ input[type="date"] {
 .category-chip-check {
   position: absolute;
   bottom: -1px;
-  right: -1px;
+  inset-inline-end: -1px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -982,7 +997,7 @@ input[type="date"] {
 
 .card-pressable {
   transition: transform 0.12s ease, border-color 0.15s ease;
-  text-align: left;
+  text-align: start;
   width: 100%;
 }
 
@@ -1064,7 +1079,7 @@ input[type="date"] {
   border-bottom: 1px solid var(--border);
   min-width: 0;
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
 .row:last-child {
@@ -1123,6 +1138,12 @@ input[type="date"] {
 .row-chevron {
   color: var(--text-tertiary);
   flex-shrink: 0;
+}
+
+/* A row's chevron always points toward "deeper into the app" -- the
+   direction that flips with reading direction, unlike a fixed-symbol icon. */
+[dir="rtl"] .row-chevron {
+  transform: scaleX(-1);
 }
 
 .row-muted {
@@ -1367,7 +1388,7 @@ input[type="date"] {
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
 .coming-row:last-child {
@@ -1876,7 +1897,7 @@ input[type="date"] {
 }
 
 .detail-row-value {
-  text-align: right;
+  text-align: end;
   font-weight: 550;
   min-width: 0;
   word-break: break-word;
@@ -2239,14 +2260,14 @@ input[type="date"] {
   font-size: 14px;
   line-height: 1.5;
   color: var(--text);
-  padding-left: 14px;
+  padding-inline-start: 14px;
   position: relative;
 }
 
 .narrative-list li::before {
   content: "";
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   top: 8px;
   width: 5px;
   height: 5px;
@@ -2503,7 +2524,7 @@ input[type="date"] {
 .onboarding-setup {
   justify-content: flex-start;
   padding-top: 8px;
-  text-align: left;
+  text-align: start;
   align-items: flex-start;
 }
 
@@ -2616,7 +2637,7 @@ input[type="date"] {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 2px;
-  text-align: left;
+  text-align: start;
   font-size: 15px;
   font-weight: 600;
 }

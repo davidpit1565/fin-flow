@@ -50,7 +50,7 @@ export function YearInReviewScreen() {
           onClick={() => setYear((y) => Math.max(minYear, y - 1))}
           disabled={year <= minYear}
         >
-          <ChevronLeft size={20} strokeWidth={2} />
+          <ChevronLeft size={20} strokeWidth={2} className="icon-directional" />
         </button>
         <span className="year-picker-value">{year}</span>
         <button
@@ -59,7 +59,7 @@ export function YearInReviewScreen() {
           onClick={() => setYear((y) => Math.min(currentYear, y + 1))}
           disabled={year >= currentYear}
         >
-          <ChevronRight size={20} strokeWidth={2} />
+          <ChevronRight size={20} strokeWidth={2} className="icon-directional" />
         </button>
       </div>
 

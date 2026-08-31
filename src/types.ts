@@ -6,6 +6,10 @@ export type ThemePreference = "system" | "light" | "dark";
 export type AccentColor = "green" | "blue" | "purple" | "orange" | "pink";
 export type DateFormatPreference = "auto" | "dmy" | "mdy" | "iso";
 export type WeekStart = "monday" | "sunday";
+/** UI language. Adding a new one means: add its code here, add a matching
+ *  dictionary file under src/lib/i18n/, register it in src/lib/i18n/index.tsx's
+ *  `dictionaries` map, and add an option to the Language picker in Settings. */
+export type Language = "en" | "he";
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -29,6 +33,9 @@ export interface UserSettings {
   /** Optional: absent on settings created before this field existed, which
    *  should be treated the same as `"green"` -- the original accent color. */
   accentColor?: AccentColor;
+  /** Optional: absent on settings created before this field existed, which
+   *  should be treated the same as `"en"` -- the original (and only) language. */
+  language?: Language;
   createdAt: number;
   updatedAt: number;
 }

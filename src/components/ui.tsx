@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 import { useApp } from "../store/AppContext";
 import { formatMoney } from "../lib/currency";
+import { useT } from "../lib/i18n";
 import { parseAmountToCents } from "../lib/money";
 import type { CurrencyCode } from "../types";
 
@@ -311,12 +312,13 @@ export function ScreenHeader({
   onBack?: () => void;
   right?: ReactNode;
 }) {
+  const t = useT();
   return (
     <header className="screen-header">
       <div className="screen-header-left">
         {onBack && (
-          <button className="icon-btn" onClick={onBack} aria-label="Back">
-            <ArrowLeft size={20} strokeWidth={2} />
+          <button className="icon-btn" onClick={onBack} aria-label={t.common.back}>
+            <ArrowLeft size={20} strokeWidth={2} className="icon-directional" />
           </button>
         )}
         <div>
