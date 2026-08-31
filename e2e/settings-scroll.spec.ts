@@ -12,15 +12,23 @@ test.describe("settings mobile scrolling", () => {
     const currencyRow = page.getByRole("button", { name: "Currency" });
 
     // Position the page with a non-zero scroll offset while keeping the Currency
-    // row fully visible, so the click doesn't trigger an extra reveal scroll.
+    // row comfortably visible -- if it were scrolled out of view instead,
+    // clicking it snaps the scroller back to wherever the browser reveals
+    // it (observed to land exactly on 0), which isn't what this test is
+    // trying to exercise.
     const rowTop = await currencyRow.evaluate((el: HTMLElement) => {
       const s = el.closest(".app-scroll") as HTMLElement | null;
       return s ? el.getBoundingClientRect().top - s.getBoundingClientRect().top + s.scrollTop : 0;
     });
-    const target = Math.max(0, Math.floor(rowTop) - 30);
+    const target = Math.max(0, Math.floor(rowTop) - 50);
     await scroller.evaluate((el: HTMLElement, top: number) => {
       el.scrollTop = top;
     }, target);
+    // Let the collapsing-header's scroll listener (`useHeaderScrolled`) settle
+    // its re-render before clicking -- without this, Playwright's click
+    // actionability check can race that update and end up scrolling the row
+    // into view from scratch instead of clicking it where it already is.
+    await page.waitForTimeout(150);
 
     await currencyRow.click();
     await expect(page.getByRole("dialog", { name: "Choose currency" })).toBeVisible();

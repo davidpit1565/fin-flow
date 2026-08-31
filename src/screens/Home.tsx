@@ -21,7 +21,7 @@ import {
 } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
 import { iconByName } from "../lib/icons";
-import { Card, IconBadge, Money, ProgressBar, Segmented } from "../components/ui";
+import { Card, IconBadge, Money, ProgressBar, Segmented, useHeaderScrolled } from "../components/ui";
 import { CategoryRow } from "../components/rows";
 import { EmptyState } from "../components/ui";
 
@@ -32,6 +32,7 @@ export function Home({ onAdd }: { onAdd: () => void }) {
   const { push } = useNavigation();
   const t = useT();
   const [period, setPeriod] = useState<Period>("month");
+  const scrolled = useHeaderScrolled();
 
   const now = new Date();
   const hour = now.getHours();
@@ -108,19 +109,26 @@ export function Home({ onAdd }: { onAdd: () => void }) {
 
   return (
     <div className="screen">
-      <header className="home-header">
-        <div>
-          <p className="home-greeting">{greeting}</p>
-          <h1 className="home-title">{t.home.title}</h1>
+      <header className={`screen-header-bar ${scrolled ? "scrolled" : ""}`}>
+        <div className="screen-header-bar-inner">
+          <span className="screen-header-bar-title" aria-hidden="true">
+            {t.home.title}
+          </span>
+          <div className="screen-header-right">
+            <button
+              className="icon-btn"
+              aria-label={t.home.settingsAriaLabel}
+              onClick={() => push({ tab: "settings", name: "settings" })}
+            >
+              <SettingsIcon size={20} strokeWidth={2} />
+            </button>
+          </div>
         </div>
-        <button
-          className="icon-btn"
-          aria-label={t.home.settingsAriaLabel}
-          onClick={() => push({ tab: "settings", name: "settings" })}
-        >
-          <SettingsIcon size={20} strokeWidth={2} />
-        </button>
       </header>
+      <div className="screen-large-title-wrap">
+        <p className="home-greeting">{greeting}</p>
+        <h1 className="screen-large-title">{t.home.title}</h1>
+      </div>
 
       {empty ? (
         <div className="home-empty">

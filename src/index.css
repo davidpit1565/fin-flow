@@ -26,6 +26,21 @@
   --shadow-lg: 0 20px 48px rgba(20, 20, 24, 0.16);
   --tabbar-h: 66px;
   color-scheme: light;
+
+  /* Apple HIG type scale (San Francisco's default sizes at 100% Dynamic
+     Type) -- named so a screen reaches for "the headline size" rather
+     than picking a fresh px value each time. */
+  --text-large-title: 34px;
+  --text-title-1: 28px;
+  --text-title-2: 22px;
+  --text-title-3: 20px;
+  --text-headline: 17px;
+  --text-body: 17px;
+  --text-callout: 16px;
+  --text-subhead: 15px;
+  --text-footnote: 13px;
+  --text-caption-1: 12px;
+  --text-caption-2: 11px;
 }
 
 :root[data-theme="dark"] {
@@ -556,21 +571,67 @@ ul {
   background: var(--danger-soft);
 }
 
-/* ---------- headers ---------- */
+/* ---------- headers ----------
+   iOS-style collapsing large title: a slim, initially-transparent bar
+   sticks to the top of `.app-scroll` and shows only the back/right
+   controls; the real title lives in normal flow just below it as a big
+   bold "large title" (see `.screen-large-title`). Once that title
+   scrolls up underneath the bar, `.scrolled` (toggled by
+   `useHeaderScrolled` in ui.tsx) fades in the bar's own small centered
+   title and its blurred background -- exactly how Settings/Mail/Messages
+   behave on iOS. */
 
-.screen-header {
+.screen-header-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 -20px;
+  padding: env(safe-area-inset-top) 20px 0;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.screen-header-bar.scrolled {
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom-color: var(--border);
+}
+
+.screen-header-bar-inner {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0 12px;
-  gap: 12px;
+  height: 44px;
+  gap: 8px;
 }
 
-.screen-header-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
+.screen-header-bar-title {
+  position: absolute;
+  inset-inline: 0;
+  text-align: center;
+  max-width: 100%;
+  padding: 0 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 650;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.screen-header-bar.scrolled .screen-header-bar-title {
+  opacity: 1;
+}
+
+.screen-header-bar .icon-btn,
+.screen-header-right {
+  position: relative;
+  z-index: 1;
 }
 
 .screen-header-right {
@@ -579,23 +640,28 @@ ul {
   gap: 8px;
 }
 
-.home-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 0 14px;
+.screen-large-title-wrap {
+  padding: 4px 0 8px;
+}
+
+.screen-large-title {
+  font-size: 34px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* A screen rendering the sticky header bar handles its own top safe-area
+   spacing (see `.screen-header-bar`'s padding above) -- `.screen`'s own
+   padding-top would otherwise double it before the first scroll. */
+.screen:has(> .screen-header-bar) {
+  padding-top: 0;
 }
 
 .home-greeting {
-  font-size: 14px;
+  font-size: var(--text-subhead);
   color: var(--text-secondary);
-}
-
-.home-title {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  margin-top: 1px;
+  margin-bottom: 2px;
 }
 
 /* ---------- segmented + toggle ---------- */
@@ -1048,8 +1114,10 @@ input[type="date"] {
 }
 
 .section-title {
-  font-size: 17px;
-  font-weight: 650;
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: none;
   letter-spacing: -0.01em;
 }
 
@@ -1946,6 +2014,9 @@ input[type="date"] {
 }
 
 .detail-actions-danger {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
 }
@@ -2024,9 +2095,16 @@ input[type="date"] {
   color: var(--text-tertiary);
 }
 
+/** Authentic iOS "grouped list" (Settings.app-style): flat, borderless,
+ *  a subtle 10px radius -- distinct from `.card`'s bordered/shadowed
+ *  freestanding look, since a grouped list reads as content sitting on
+ *  the grouped background rather than a card floating above it. */
 .list-card {
   padding: 4px 16px;
   margin-top: 12px;
+  border: none;
+  box-shadow: none;
+  border-radius: 10px;
 }
 
 .sub-hero-next {
@@ -2784,4 +2862,100 @@ input[type="date"] {
     opacity: 1;
     transform: none;
   }
+}
+
+/* ============================================================
+   Android / Material theme layer
+   The app is designed around Apple HIG by default (see the rest of this
+   file), since that's the primary iOS build -- but the identical
+   codebase also ships to the Play Store, where an app that merely looks
+   like a transplanted iOS screen reads as low-effort. `data-platform`
+   is set once at boot from `Capacitor.getPlatform()` (see `usePlatform`
+   in App.tsx, mirroring the existing `data-theme`/`data-accent` pattern).
+   Placed last so these overrides always win regardless of any base
+   rule's position earlier in the file.
+   ============================================================ */
+
+:root[data-platform="android"] {
+  --font-android: Roboto, "Noto Sans Hebrew", "Segoe UI", Arial, sans-serif;
+}
+
+[data-platform="android"] body {
+  font-family: var(--font-android);
+}
+
+/* Material 3 filled/tonal buttons are fully-rounded pills, not iOS's
+   moderately-rounded rectangle -- radius = half the button's own height. */
+[data-platform="android"] .btn {
+  border-radius: 22px;
+  letter-spacing: 0;
+}
+[data-platform="android"] .btn-lg {
+  border-radius: 26px;
+}
+[data-platform="android"] .btn-sm {
+  border-radius: 18px;
+}
+
+/* Material icon buttons are circular. */
+[data-platform="android"] .icon-btn {
+  border-radius: 50%;
+}
+
+/* Material's press feedback is a darkening "state layer" overlay, not
+   iOS's scale-down -- most noticeable on buttons and pressable cards. */
+[data-platform="android"] .btn:active,
+[data-platform="android"] .card-pressable:active,
+[data-platform="android"] .icon-btn:active {
+  transform: none;
+  filter: brightness(0.92);
+}
+
+/* Material list/preference screens are edge-to-edge with a much smaller
+   corner radius than iOS's rounded grouped-list card, and use a subtle
+   elevation shadow instead of a flat borderless surface. */
+[data-platform="android"] .list-card {
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+:root[data-platform="android"][data-theme="dark"] .list-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.36);
+}
+
+/* Material 3 switch: larger thumb, more rectangular track, thumb grows
+   when on (approximating the checkmark-bearing M3 switch without needing
+   an actual checkmark icon). */
+[data-platform="android"] .toggle {
+  width: 52px;
+  height: 32px;
+  border-radius: 16px;
+}
+[data-platform="android"] .toggle-knob {
+  top: 4px;
+  inset-inline-start: 4px;
+  width: 20px;
+  height: 20px;
+}
+[data-platform="android"] .toggle.on .toggle-knob {
+  top: 2px;
+  width: 24px;
+  height: 24px;
+  transform: translateX(20px);
+  background: #fff;
+}
+[dir="rtl"][data-platform="android"] .toggle.on .toggle-knob {
+  transform: translateX(-20px);
+}
+
+/* Material bottom sheets use a smaller top-corner radius than iOS's. */
+[data-platform="android"] .sheet {
+  border-radius: 16px 16px 0 0;
+}
+
+/* Android's top app bar title uses Roboto Medium with normal tracking,
+   not SF Pro's tight, heavier "large title" tracking. */
+[data-platform="android"] .screen-large-title,
+[data-platform="android"] .screen-header-bar-title {
+  font-weight: 600;
+  letter-spacing: 0;
 }

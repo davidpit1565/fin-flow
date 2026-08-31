@@ -124,7 +124,7 @@ export const subscriptions = {
   cancelRecordButton: "Cancel subscription record",
   cancelRecordTitle: "Cancel subscription record?",
   cancelRecordMessage: (name: string) =>
-    `${name} will be marked as cancelled and kept in your history. Flow only tracks subscriptions — it never cancels the real one.`,
+    `${name} will be marked as cancelled and its reminders stopped. You can reactivate it later. Flow only tracks subscriptions — it never cancels the real one.`,
   cancelRecordConfirmLabel: "Cancel record",
   recordCancelledToast: "Record cancelled",
   reactivateButton: "Reactivate",

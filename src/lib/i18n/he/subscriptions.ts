@@ -137,7 +137,7 @@ export const subscriptions: typeof SubscriptionsEn = {
   cancelRecordButton: "ביטול רישום המנוי",
   cancelRecordTitle: "לבטל את רישום המנוי?",
   cancelRecordMessage: (name) =>
-    `${name} יסומן כמבוטל וישמר בהיסטוריה שלך. Flow רק עוקבת אחרי מנויים — היא אף פעם לא מבטלת את המנוי האמיתי.`,
+    `${name} יסומן כמבוטל והתזכורות עליו ייפסקו. ניתן להפעיל אותו מחדש בכל שלב. Flow רק עוקבת אחרי מנויים — היא אף פעם לא מבטלת את המנוי האמיתי.`,
   cancelRecordConfirmLabel: "ביטול רישום",
   recordCancelledToast: "הרישום בוטל",
   reactivateButton: "הפעלה מחדש",

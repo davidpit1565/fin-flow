@@ -184,23 +184,26 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
             )}
           </button>
         )}
-        {status !== "cancelled" && (
-          <button className="btn btn-secondary" onClick={() => void doCancel()}>
-            <XCircle size={16} strokeWidth={2} /> {t.subscriptions.cancelRecordButton}
-          </button>
-        )}
-        {status === "cancelled" && (
-          <button
-            className="btn btn-secondary"
-            onClick={() => {
-              updateSubscription(subscription.id, { status: "active" });
-              toast(t.subscriptions.reactivatedToast);
-            }}
-          >
-            <RefreshCcw size={16} strokeWidth={2} /> {t.subscriptions.reactivateButton}
-          </button>
-        )}
+        {/* Pause is an instant, one-tap-reversible toggle -- everything below
+            this divider changes the subscription's recorded status and needs
+            its own visual tier so it doesn't read as equally casual. */}
         <div className="detail-actions-danger">
+          {status !== "cancelled" && (
+            <button className="btn btn-secondary" onClick={() => void doCancel()}>
+              <XCircle size={16} strokeWidth={2} /> {t.subscriptions.cancelRecordButton}
+            </button>
+          )}
+          {status === "cancelled" && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                updateSubscription(subscription.id, { status: "active" });
+                toast(t.subscriptions.reactivatedToast);
+              }}
+            >
+              <RefreshCcw size={16} strokeWidth={2} /> {t.subscriptions.reactivateButton}
+            </button>
+          )}
           <button className="btn btn-danger-outline" onClick={() => void doDelete()}>
             <Trash2 size={16} strokeWidth={2} /> {t.common.delete}
           </button>
