@@ -40,6 +40,7 @@ import {
 import { requestPermission } from "../lib/notifications";
 import type { ImportRow } from "../lib/csv";
 import type { BackupPayload } from "../lib/backup";
+import { useT } from "../lib/i18n";
 import { Haptics, NotificationType } from "@capacitor/haptics";
 import { isNative } from "../lib/platform";
 
@@ -163,6 +164,7 @@ interface AppState {
 const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const t = useT();
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -296,10 +298,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
       const txn: Transaction = { ...input, id, createdAt: now, updatedAt: now };
       setTransactions((prev) => [...prev, txn]);
-      void storage.put("transactions", txn).catch(() => toast("Something went wrong. Please try again."));
+      void storage.put("transactions", txn).catch(() => toast(t.common.somethingWentWrong));
       return id;
     },
-    [toast]
+    [toast, t]
   );
 
   const updateTransaction = useCallback(
@@ -307,22 +309,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTransactions((prev) => {
         const next = prev.map((t) => (t.id === id ? { ...t, ...patch, updatedAt: Date.now() } : t));
         const updated = next.find((t) => t.id === id);
-        if (updated) void storage.put("transactions", updated).catch(() => toast("Something went wrong. Please try again."));
+        if (updated) void storage.put("transactions", updated).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   const deleteTransaction = useCallback(
     (id: string) => {
       setTransactions((prev) => {
         const next = prev.filter((t) => t.id !== id);
-        void storage.remove("transactions", id).catch(() => toast("Something went wrong. Please try again."));
+        void storage.remove("transactions", id).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   /* ---------- subscription actions ---------- */
@@ -332,11 +334,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
       const sub: Subscription = { ...input, id, payments: [], createdAt: now, updatedAt: now };
       setSubscriptions((prev) => [...prev, sub]);
-      void storage.put("subscriptions", sub).catch(() => toast("Something went wrong. Please try again."));
+      void storage.put("subscriptions", sub).catch(() => toast(t.common.somethingWentWrong));
       if (settings) void syncSubscriptionReminder(sub, settings);
       return id;
     },
-    [settings, toast]
+    [settings, toast, t]
   );
 
   const updateSubscription = useCallback(
@@ -345,25 +347,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const next = prev.map((s) => (s.id === id ? { ...s, ...patch, updatedAt: Date.now() } : s));
         const updated = next.find((s) => s.id === id);
         if (updated) {
-          void storage.put("subscriptions", updated).catch(() => toast("Something went wrong. Please try again."));
+          void storage.put("subscriptions", updated).catch(() => toast(t.common.somethingWentWrong));
           if (settings) void syncSubscriptionReminder(updated, settings);
         }
         return next;
       });
     },
-    [settings, toast]
+    [settings, toast, t]
   );
 
   const deleteSubscription = useCallback(
     (id: string) => {
       setSubscriptions((prev) => {
         const next = prev.filter((s) => s.id !== id);
-        void storage.remove("subscriptions", id).catch(() => toast("Something went wrong. Please try again."));
+        void storage.remove("subscriptions", id).catch(() => toast(t.common.somethingWentWrong));
         void clearSubscriptionReminder(id);
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   /** Mark the next payment as paid: record history, advance the date, create a transaction. */
@@ -380,7 +382,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           payments: [...sub.payments, { date: paymentDate, amountCents: sub.amountCents }],
           updatedAt: Date.now(),
         };
-        void storage.put("subscriptions", updated).catch(() => toast("Something went wrong. Please try again."));
+        void storage.put("subscriptions", updated).catch(() => toast(t.common.somethingWentWrong));
         if (settings) void syncSubscriptionReminder(updated, settings);
         // Create a real transaction so subscription spending is visible.
         const txn: Transaction = {
@@ -400,11 +402,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           updatedAt: Date.now(),
         };
         setTransactions((prevTxns) => [...prevTxns, txn]);
-        void storage.put("transactions", txn).catch(() => toast("Something went wrong. Please try again."));
+        void storage.put("transactions", txn).catch(() => toast(t.common.somethingWentWrong));
         return prev.map((s) => (s.id === id ? updated : s));
       });
     },
-    [settings, toast]
+    [settings, toast, t]
   );
 
   /* ---------- category actions ---------- */
@@ -412,10 +414,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (name: string, icon: string): Category => {
       const cat: Category = { id: crypto.randomUUID(), name, icon, tint: null, isSystem: false, createdAt: Date.now() };
       setCategories((prev) => [...prev, cat]);
-      void storage.put("categories", cat).catch(() => toast("Something went wrong. Please try again."));
+      void storage.put("categories", cat).catch(() => toast(t.common.somethingWentWrong));
       return cat;
     },
-    [toast]
+    [toast, t]
   );
 
   const updateCategory = useCallback(
@@ -423,17 +425,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCategories((prev) => {
         const next = prev.map((c) => (c.id === id ? { ...c, ...patch } : c));
         const updated = next.find((c) => c.id === id);
-        if (updated) void storage.put("categories", updated).catch(() => toast("Something went wrong. Please try again."));
+        if (updated) void storage.put("categories", updated).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   const deleteCategory = useCallback(
     (id: string, reassignToId: string | null) => {
       setCategories((prev) => prev.filter((c) => c.id !== id));
-      void storage.remove("categories", id).catch(() => toast("Something went wrong. Please try again."));
+      void storage.remove("categories", id).catch(() => toast(t.common.somethingWentWrong));
       if (reassignToId) {
         setTransactions((prev) => {
           const next = prev.map((t) => (t.categoryId === id ? { ...t, categoryId: reassignToId, updatedAt: Date.now() } : t));
@@ -454,7 +456,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return prev.filter((b) => b.categoryId !== id);
       });
     },
-    [toast]
+    [toast, t]
   );
 
   /* ---------- budget actions ---------- */
@@ -464,7 +466,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const existing = prev.find((b) => b.categoryId === categoryId);
         if (existing) {
           const updated = { ...existing, amountCents, period, updatedAt: Date.now() };
-          void storage.put("budgets", updated).catch(() => toast("Something went wrong. Please try again."));
+          void storage.put("budgets", updated).catch(() => toast(t.common.somethingWentWrong));
           return prev.map((b) => (b.id === existing.id ? updated : b));
         }
         const budget: Budget = {
@@ -475,11 +477,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
-        void storage.put("budgets", budget).catch(() => toast("Something went wrong. Please try again."));
+        void storage.put("budgets", budget).catch(() => toast(t.common.somethingWentWrong));
         return [...prev, budget];
       });
     },
-    [toast]
+    [toast, t]
   );
 
   const updateBudget = useCallback(
@@ -487,19 +489,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setBudgets((prev) => {
         const next = prev.map((b) => (b.id === id ? { ...b, amountCents, period, updatedAt: Date.now() } : b));
         const updated = next.find((b) => b.id === id);
-        if (updated) void storage.put("budgets", updated).catch(() => toast("Something went wrong. Please try again."));
+        if (updated) void storage.put("budgets", updated).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   const deleteBudget = useCallback(
     (id: string) => {
       setBudgets((prev) => prev.filter((b) => b.id !== id));
-      void storage.remove("budgets", id).catch(() => toast("Something went wrong. Please try again."));
+      void storage.remove("budgets", id).catch(() => toast(t.common.somethingWentWrong));
     },
-    [toast]
+    [toast, t]
   );
 
   /* ---------- goal actions ---------- */
@@ -508,9 +510,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
       const goal: Goal = { id: crypto.randomUUID(), name, icon, targetCents, currentCents: 0, targetDate, createdAt: now, updatedAt: now };
       setGoals((prev) => [...prev, goal]);
-      void storage.put("goals", goal).catch(() => toast("Something went wrong. Please try again."));
+      void storage.put("goals", goal).catch(() => toast(t.common.somethingWentWrong));
     },
-    [toast]
+    [toast, t]
   );
 
   /* ---------- debt actions ---------- */
@@ -519,9 +521,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
       const debt: Debt = { id: crypto.randomUUID(), name, remainingCents, aprPercent, minPaymentCents, createdAt: now, updatedAt: now };
       setDebts((prev) => [...prev, debt]);
-      void storage.put("debts", debt).catch(() => toast("Something went wrong. Please try again."));
+      void storage.put("debts", debt).catch(() => toast(t.common.somethingWentWrong));
     },
-    [toast]
+    [toast, t]
   );
 
   const updateGoal = useCallback(
@@ -529,11 +531,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setGoals((prev) => {
         const next = prev.map((g) => (g.id === id ? { ...g, ...patch, updatedAt: Date.now() } : g));
         const updated = next.find((g) => g.id === id);
-        if (updated) void storage.put("goals", updated).catch(() => toast("Something went wrong. Please try again."));
+        if (updated) void storage.put("goals", updated).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   const updateDebt = useCallback(
@@ -541,27 +543,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setDebts((prev) => {
         const next = prev.map((d) => (d.id === id ? { ...d, ...patch, updatedAt: Date.now() } : d));
         const updated = next.find((d) => d.id === id);
-        if (updated) void storage.put("debts", updated).catch(() => toast("Something went wrong. Please try again."));
+        if (updated) void storage.put("debts", updated).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   const deleteGoal = useCallback(
     (id: string) => {
       setGoals((prev) => prev.filter((g) => g.id !== id));
-      void storage.remove("goals", id).catch(() => toast("Something went wrong. Please try again."));
+      void storage.remove("goals", id).catch(() => toast(t.common.somethingWentWrong));
     },
-    [toast]
+    [toast, t]
   );
 
   const deleteDebt = useCallback(
     (id: string) => {
       setDebts((prev) => prev.filter((d) => d.id !== id));
-      void storage.remove("debts", id).catch(() => toast("Something went wrong. Please try again."));
+      void storage.remove("debts", id).catch(() => toast(t.common.somethingWentWrong));
     },
-    [toast]
+    [toast, t]
   );
 
   const contributeToGoal = useCallback(
@@ -571,11 +573,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           g.id === id ? { ...g, currentCents: Math.max(0, g.currentCents + deltaCents), updatedAt: Date.now() } : g
         );
         const updated = next.find((g) => g.id === id);
-        if (updated) void storage.put("goals", updated).catch(() => toast("Something went wrong. Please try again."));
+        if (updated) void storage.put("goals", updated).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   const recordDebtPayment = useCallback(
@@ -585,11 +587,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           d.id === id ? { ...d, remainingCents: Math.max(0, d.remainingCents - amountCents), updatedAt: Date.now() } : d
         );
         const updated = next.find((d) => d.id === id);
-        if (updated) void storage.put("debts", updated).catch(() => toast("Something went wrong. Please try again."));
+        if (updated) void storage.put("debts", updated).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   /* ---------- net worth actions ---------- */
@@ -598,9 +600,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
       const item: NetWorthItem = { id: crypto.randomUUID(), kind, name, category, valueCents, createdAt: now, updatedAt: now };
       setNetWorthItems((prev) => [...prev, item]);
-      void storage.put("netWorthItems", item).catch(() => toast("Something went wrong. Please try again."));
+      void storage.put("netWorthItems", item).catch(() => toast(t.common.somethingWentWrong));
     },
-    [toast]
+    [toast, t]
   );
 
   const updateNetWorthItem = useCallback(
@@ -608,19 +610,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setNetWorthItems((prev) => {
         const next = prev.map((i) => (i.id === id ? { ...i, ...patch, updatedAt: Date.now() } : i));
         const updated = next.find((i) => i.id === id);
-        if (updated) void storage.put("netWorthItems", updated).catch(() => toast("Something went wrong. Please try again."));
+        if (updated) void storage.put("netWorthItems", updated).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   const deleteNetWorthItem = useCallback(
     (id: string) => {
       setNetWorthItems((prev) => prev.filter((i) => i.id !== id));
-      void storage.remove("netWorthItems", id).catch(() => toast("Something went wrong. Please try again."));
+      void storage.remove("netWorthItems", id).catch(() => toast(t.common.somethingWentWrong));
     },
-    [toast]
+    [toast, t]
   );
 
   /* ---------- settings ---------- */
@@ -629,11 +631,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSettings((prev) => {
         if (!prev) return prev;
         const next = { ...prev, ...patch, updatedAt: Date.now() };
-        void storage.put("settings", next).catch(() => toast("Something went wrong. Please try again."));
+        void storage.put("settings", next).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
     },
-    [toast]
+    [toast, t]
   );
 
   const completeOnboarding = useCallback(
@@ -641,12 +643,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSettings((prev) => {
         if (!prev) return prev;
         const next = { ...prev, ...patch, onboarded: true, updatedAt: Date.now() };
-        void storage.put("settings", next).catch(() => toast("Something went wrong. Please try again."));
+        void storage.put("settings", next).catch(() => toast(t.common.somethingWentWrong));
         return next;
       });
       if (patch.notifications?.enabled) void requestPermission();
     },
-    [toast]
+    [toast, t]
   );
 
   /* ---------- import / delete all ---------- */
@@ -655,10 +657,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const now = Date.now();
       const txns = rows.map((r) => ({ ...r, id: crypto.randomUUID(), createdAt: now, updatedAt: now }));
       setTransactions((prev) => [...prev, ...txns]);
-      for (const t of txns) void storage.put("transactions", t).catch(() => toast("Something went wrong. Please try again."));
+      for (const txn of txns) void storage.put("transactions", txn).catch(() => toast(t.common.somethingWentWrong));
       return txns.length;
     },
-    [toast]
+    [toast, t]
   );
 
   const deleteAllData = useCallback(async () => {
@@ -843,6 +845,7 @@ function ToastView({ message }: { message: string }) {
 }
 
 function ConfirmView({ opts, onDone }: { opts: ConfirmOptions & { resolve: (v: boolean) => void }; onDone: (v: boolean) => void }) {
+  const t = useT();
   return (
     <div
       className="overlay"
@@ -856,7 +859,7 @@ function ConfirmView({ opts, onDone }: { opts: ConfirmOptions & { resolve: (v: b
         <p>{opts.message}</p>
         <div className="dialog-actions">
           <button className="btn btn-secondary" autoFocus={opts.danger} onClick={() => onDone(false)}>
-            Cancel
+            {t.common.cancel}
           </button>
           <button
             className={opts.danger ? "btn btn-danger" : "btn btn-primary"}

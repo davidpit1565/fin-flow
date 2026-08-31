@@ -12,4 +12,5 @@ export const common: typeof CommonEn = {
   loading: "טוען…",
   retry: "נסה שוב",
   deleted: "נמחק",
+  somethingWentWrong: "משהו השתבש. נסה שוב.",
 };

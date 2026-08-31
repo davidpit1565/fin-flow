@@ -15,4 +15,5 @@ export const common = {
   loading: "Loading…",
   retry: "Retry",
   deleted: "Deleted",
+  somethingWentWrong: "Something went wrong. Please try again.",
 };
