@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowDownRight, ArrowUpRight, ChevronRight, Plus, Settings as SettingsIcon, Sparkles } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
+import { useT } from "../lib/i18n";
 import {
   activeSubscriptions,
   categoryTotals,
@@ -17,7 +18,6 @@ import {
   incomeInRange,
   budgetStatus,
   monthlyEquivalent,
-  frequencyInterval,
 } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
 import { iconByName } from "../lib/icons";
@@ -30,11 +30,12 @@ type Period = "month" | "last" | "3m" | "year";
 export function Home({ onAdd }: { onAdd: () => void }) {
   const { settings, transactions, subscriptions, categories, budgets } = useApp();
   const { push } = useNavigation();
+  const t = useT();
   const [period, setPeriod] = useState<Period>("month");
 
   const now = new Date();
   const hour = now.getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting = hour < 12 ? t.home.greetingMorning : hour < 18 ? t.home.greetingAfternoon : t.home.greetingEvening;
 
   const range = useMemo(() => {
     switch (period) {
@@ -51,15 +52,6 @@ export function Home({ onAdd }: { onAdd: () => void }) {
 
   if (!settings) return null;
   const { currency } = settings;
-
-  const periodLabel =
-    period === "month"
-      ? "this month"
-      : period === "last"
-        ? "previous month"
-        : period === "3m"
-          ? "the last 3 months"
-          : "this year";
 
   const spend = useMemo(() => spendingWithComparison(transactions, range), [transactions, range]);
   const income = useMemo(() => incomeInRange(transactions, range), [transactions, range]);
@@ -91,15 +83,11 @@ export function Home({ onAdd }: { onAdd: () => void }) {
   const comparisonText = useMemo(() => {
     if (spend.percent === null) return null;
     const lower = spend.change < 0;
-    const verb = lower ? "less" : "more";
     return {
       lower,
-      text: `${formatMoney(Math.abs(spend.change), currency)} ${verb} than the previous period`,
+      text: t.home.comparedToPrevious(formatMoney(Math.abs(spend.change), currency), lower),
     };
-  }, [spend, currency]);
-
-  const budgetPeriodLabel = overallPeriod === "daily" ? "daily" : overallPeriod === "weekly" ? "weekly" : "monthly";
-  const budgetPeriodRemainingPhrase = overallPeriod === "daily" ? "today" : overallPeriod === "weekly" ? "this week" : "this month";
+  }, [spend, currency, t]);
 
   const budgetCopy = useMemo(() => {
     if (!overallStatus) return null;
@@ -107,16 +95,14 @@ export function Home({ onAdd }: { onAdd: () => void }) {
     if (level === "over") {
       return {
         tone: "over" as const,
-        text: `You've exceeded your ${budgetPeriodLabel} budget by ${formatMoney(-remainingCents, currency)}.`,
+        text: t.home.budgetExceeded(overallPeriod, formatMoney(-remainingCents, currency)),
       };
     }
-    if (level === "reached") return { tone: "over" as const, text: `You've reached your ${budgetPeriodLabel} budget.` };
-    if (level === "high")
-      return { tone: "warn" as const, text: `You've used ${Math.round(percent)}% of your ${budgetPeriodLabel} budget.` };
-    if (level === "close")
-      return { tone: "warn" as const, text: `You're getting close to your ${budgetPeriodLabel} budget.` };
-    return { tone: "ok" as const, text: `${formatMoney(remainingCents, currency)} remaining ${budgetPeriodRemainingPhrase}` };
-  }, [overallStatus, currency, budgetPeriodLabel, budgetPeriodRemainingPhrase]);
+    if (level === "reached") return { tone: "over" as const, text: t.home.budgetReached(overallPeriod) };
+    if (level === "high") return { tone: "warn" as const, text: t.home.budgetHigh(overallPeriod, Math.round(percent)) };
+    if (level === "close") return { tone: "warn" as const, text: t.home.budgetClose(overallPeriod) };
+    return { tone: "ok" as const, text: t.home.budgetRemaining(overallPeriod, formatMoney(remainingCents, currency)) };
+  }, [overallStatus, currency, overallPeriod, t]);
 
   const empty = totalTransactions === 0 && subscriptions.length === 0 && budgets.length === 0;
 
@@ -125,11 +111,11 @@ export function Home({ onAdd }: { onAdd: () => void }) {
       <header className="home-header">
         <div>
           <p className="home-greeting">{greeting}</p>
-          <h1 className="home-title">Your finances</h1>
+          <h1 className="home-title">{t.home.title}</h1>
         </div>
         <button
           className="icon-btn"
-          aria-label="Settings"
+          aria-label={t.home.settingsAriaLabel}
           onClick={() => push({ tab: "settings", name: "settings" })}
         >
           <SettingsIcon size={20} strokeWidth={2} />
@@ -140,11 +126,11 @@ export function Home({ onAdd }: { onAdd: () => void }) {
         <div className="home-empty">
           <EmptyState
             icon={Sparkles}
-            title="Start tracking your money"
-            message="Add your first expense to see your spending here."
+            title={t.home.emptyTitle}
+            message={t.home.emptyMessage}
             action={
               <button className="btn btn-primary btn-lg" onClick={onAdd}>
-                <Plus size={18} strokeWidth={2} /> Add expense
+                <Plus size={18} strokeWidth={2} /> {t.home.addExpense}
               </button>
             }
           />
@@ -156,21 +142,21 @@ export function Home({ onAdd }: { onAdd: () => void }) {
           <Card className="spend-card">
             <div className="spend-card-top">
               <div>
-                <p className="spend-label">Spent {periodLabel}</p>
+                <p className="spend-label">{t.home.spentLabel(period)}</p>
                 <Money cents={spend.spent} currency={currency} amount="large" />
               </div>
             </div>
             <Segmented
               className="segmented-full"
               options={[
-                { value: "month", label: "This month" },
-                { value: "last", label: "Prev. month" },
-                { value: "3m", label: "3 months" },
-                { value: "year", label: "This year" },
+                { value: "month", label: t.home.periodOptionMonth },
+                { value: "last", label: t.home.periodOptionLast },
+                { value: "3m", label: t.home.periodOption3m },
+                { value: "year", label: t.home.periodOptionYear },
               ]}
               value={period}
               onChange={setPeriod}
-              ariaLabel="Spending period"
+              ariaLabel={t.home.spendingPeriodAriaLabel}
             />
             {comparisonText && (
               <p className={`spend-compare ${comparisonText.lower ? "positive" : "negative"}`}>
@@ -185,15 +171,15 @@ export function Home({ onAdd }: { onAdd: () => void }) {
             {(income > 0 || expenses > 0) && (
               <div className="spend-strip">
                 <div className="spend-strip-item">
-                  <span className="spend-strip-label">Income</span>
+                  <span className="spend-strip-label">{t.home.income}</span>
                   <span className="spend-strip-value">{formatMoney(income, currency)}</span>
                 </div>
                 <div className="spend-strip-item">
-                  <span className="spend-strip-label">Expenses</span>
+                  <span className="spend-strip-label">{t.home.expenses}</span>
                   <span className="spend-strip-value">{formatMoney(expenses, currency)}</span>
                 </div>
                 <div className="spend-strip-item">
-                  <span className="spend-strip-label">Remaining</span>
+                  <span className="spend-strip-label">{t.home.remaining}</span>
                   <span className={`spend-strip-value ${remaining < 0 ? "negative" : ""}`}>{formatMoney(remaining, currency)}</span>
                 </div>
               </div>
@@ -203,15 +189,15 @@ export function Home({ onAdd }: { onAdd: () => void }) {
           {/* quick summary */}
           <div className="stat-grid">
             <Card className="stat-tile">
-              <span className="stat-label">Expenses</span>
+              <span className="stat-label">{t.home.expenses}</span>
               <span className="stat-value">{formatMoney(monthExpenses, currency)}</span>
             </Card>
             <Card className="stat-tile">
-              <span className="stat-label">Subscriptions</span>
-              <span className="stat-value">{formatMoney(subMonthly, currency)}/mo</span>
+              <span className="stat-label">{t.home.subscriptions}</span>
+              <span className="stat-value">{t.home.perMonth(formatMoney(subMonthly, currency))}</span>
             </Card>
             <Card className="stat-tile">
-              <span className="stat-label">Upcoming</span>
+              <span className="stat-label">{t.home.upcoming}</span>
               <span className="stat-value">{formatMoney(upcomingTotal, currency)}</span>
             </Card>
           </div>
@@ -219,22 +205,22 @@ export function Home({ onAdd }: { onAdd: () => void }) {
           {/* coming up */}
           <section className="section">
             <div className="section-head">
-              <h2 className="section-title">Coming up</h2>
+              <h2 className="section-title">{t.home.comingUp}</h2>
               <button
                 className="section-action"
                 onClick={() => push({ tab: "subscriptions", name: "root" })}
               >
-                View all <ChevronRight size={14} strokeWidth={2.2} className="icon-directional" />
+                {t.home.viewAll} <ChevronRight size={14} strokeWidth={2.2} className="icon-directional" />
               </button>
             </div>
             {upcoming.length === 0 ? (
               <Card className="card-soft">
                 <p className="card-soft-text">
-                  No upcoming payments.{" "}
+                  {t.home.noUpcomingPayments}{" "}
                   <button className="link" onClick={() => push({ tab: "subscriptions", name: "root" })}>
-                    Add a subscription
+                    {t.home.addSubscriptionLink}
                   </button>{" "}
-                  to see them here.
+                  {t.home.toSeeThemHere}
                 </p>
               </Card>
             ) : (
@@ -250,7 +236,7 @@ export function Home({ onAdd }: { onAdd: () => void }) {
                       <IconBadge icon={Icon} size="sm" />
                       <div className="coming-main">
                         <span className="row-title">{u.subscription.name}</span>
-                        <span className="row-sub">Every {frequencyInterval(u.subscription.frequency)}</span>
+                        <span className="row-sub">{t.home.every(u.subscription.frequency)}</span>
                       </div>
                       <div className="coming-end">
                         <span className="row-amount">{formatMoney(u.amountCents, currency)}</span>
@@ -270,7 +256,7 @@ export function Home({ onAdd }: { onAdd: () => void }) {
           {categoriesThisMonth.length > 0 && (
             <section className="section">
               <div className="section-head">
-                <h2 className="section-title">Where your money goes</h2>
+                <h2 className="section-title">{t.home.whereYourMoneyGoes}</h2>
               </div>
               <Card className="category-list">
                 {categoriesThisMonth.map((c) => (
@@ -291,9 +277,9 @@ export function Home({ onAdd }: { onAdd: () => void }) {
           {overallBudget && overallStatus ? (
             <section className="section">
               <div className="section-head">
-                <h2 className="section-title">{budgetPeriodLabel[0].toUpperCase()}{budgetPeriodLabel.slice(1)} budget</h2>
+                <h2 className="section-title">{t.home.budgetSectionTitle(overallPeriod)}</h2>
                 <button className="section-action" onClick={() => push({ tab: "settings", name: "budgets" })}>
-                  Manage <ChevronRight size={14} strokeWidth={2.2} className="icon-directional" />
+                  {t.home.manage} <ChevronRight size={14} strokeWidth={2.2} className="icon-directional" />
                 </button>
               </div>
               <Card className="budget-card">
@@ -311,9 +297,9 @@ export function Home({ onAdd }: { onAdd: () => void }) {
             <section className="section">
               <Card className="card-soft">
                 <p className="card-soft-text">
-                  Set a budget to keep an eye on your spending.{" "}
+                  {t.home.setBudgetPrompt}{" "}
                   <button className="link" onClick={() => push({ tab: "settings", name: "budgets" })}>
-                    Set budget
+                    {t.home.setBudgetLink}
                   </button>
                 </p>
               </Card>
@@ -324,33 +310,36 @@ export function Home({ onAdd }: { onAdd: () => void }) {
           {activeSubscriptions(subscriptions).length > 0 && (
             <section className="section">
               <div className="section-head">
-                <h2 className="section-title">Potential savings</h2>
+                <h2 className="section-title">{t.home.potentialSavings}</h2>
               </div>
               <Card className="savings-card">
                 <div className="savings-head">
                   <IconBadge icon={Sparkles} size="sm" />
                   <p className="savings-text">
-                    You currently spend <strong>{formatMoney(subMonthly, currency)}/month</strong> on subscriptions.
+                    {t.home.currentlySpendPrefix}{" "}
+                    <strong>{t.home.currentlySpendAmount(formatMoney(subMonthly, currency))}</strong>
+                    {t.home.currentlySpendSuffix}
                   </p>
                 </div>
                 {savingsCandidates.length > 0 && (
                   <>
                     <p className="savings-estimate">
-                      You could save approximately{" "}
+                      {t.home.savingsEstimatePrefix}{" "}
                       <strong>
-                        {formatMoney(
-                          savingsCandidates.reduce((s, sub) => s + monthlyEquivalent(sub), 0),
-                          currency
+                        {t.home.savingsEstimateAmount(
+                          formatMoney(
+                            savingsCandidates.reduce((s, sub) => s + monthlyEquivalent(sub), 0),
+                            currency
+                          )
                         )}
-                        /month
-                      </strong>{" "}
-                      by reviewing:
+                      </strong>
+                      {t.home.savingsEstimateSuffix}
                     </p>
                     <ul className="savings-list">
                       {savingsCandidates.slice(0, 4).map((s) => (
                         <li key={s.id}>
                           <span>{s.name}</span>
-                          <span className="row-sub">{s.usage === "unused" ? "Unused" : "Rarely used"}</span>
+                          <span className="row-sub">{s.usage === "unused" ? t.home.unused : t.home.rarelyUsed}</span>
                         </li>
                       ))}
                     </ul>
