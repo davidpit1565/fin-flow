@@ -17,6 +17,7 @@ import { SubscriptionDetail } from "./screens/SubscriptionDetail";
 import { Insights } from "./screens/Insights";
 import { Settings } from "./screens/Settings";
 import { BudgetsScreen } from "./screens/BudgetsScreen";
+import { NetWorthScreen } from "./screens/NetWorthScreen";
 import { CategoriesScreen } from "./screens/CategoriesScreen";
 import { PrivacyScreen, SupportScreen, TermsScreen } from "./screens/Legal";
 import { AddTransactionSheet } from "./components/AddTransactionSheet";
@@ -71,6 +72,8 @@ function App() {
         switch (current.name) {
           case "budgets":
             return <BudgetsScreen />;
+          case "networth":
+            return <NetWorthScreen />;
           case "categories":
             return <CategoriesScreen />;
           case "privacy":

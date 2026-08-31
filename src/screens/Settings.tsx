@@ -3,7 +3,8 @@ import { ChevronRight, Download, FolderCog, LifeBuoy, Scale, Shield, Trash2, Upl
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
 import { authenticateWithBiometrics, checkBiometryAvailable } from "../lib/appLock";
-import { CURRENCIES, symbolFor } from "../lib/currency";
+import { computeNetWorth } from "../lib/calc";
+import { CURRENCIES, formatMoney, symbolFor } from "../lib/currency";
 import { buildCSV, downloadCSV, fileToText, parseImportCSV } from "../lib/csv";
 import { notificationsSupported, permissionState, requestPermission, triggersSupported } from "../lib/notifications";
 import { isNative } from "../lib/platform";
@@ -18,6 +19,7 @@ export function Settings() {
     budgets,
     transactions,
     subscriptions,
+    netWorthItems,
     updateSettings,
     importTransactions,
     deleteAllData,
@@ -119,6 +121,7 @@ export function Settings() {
   };
 
   const permission = permissionState();
+  const netWorth = computeNetWorth(netWorthItems);
 
   return (
     <div className="screen">
@@ -177,6 +180,17 @@ export function Settings() {
             label="Monthly budgets"
             value={`${budgets.length} ${budgets.length === 1 ? "budget" : "budgets"}`}
             onPress={() => push({ tab: "settings", name: "budgets" })}
+            last
+          />
+        </Card>
+      </SettingsSection>
+
+      <SettingsSection title="Net worth">
+        <Card className="list-card">
+          <SettingsRow
+            label="Net worth"
+            value={formatMoney(netWorth.netCents, currency)}
+            onPress={() => push({ tab: "settings", name: "networth" })}
             last
           />
         </Card>

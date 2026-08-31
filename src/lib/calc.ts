@@ -3,6 +3,7 @@ import type {
   Category,
   CategoryTotal,
   MonthlySummary,
+  NetWorthItem,
   Subscription,
   Transaction,
   UpcomingPayment,
@@ -247,6 +248,24 @@ export function budgetStatus(
   else if (percent >= 90) level = "high";
   else if (percent >= 80) level = "close";
   return { budget, spentCents, remainingCents: budget.amountCents - spentCents, percent, level };
+}
+
+/* ---------- net worth ---------- */
+
+export interface NetWorthTotals {
+  assetsCents: number;
+  liabilitiesCents: number;
+  netCents: number;
+}
+
+export function computeNetWorth(items: NetWorthItem[]): NetWorthTotals {
+  let assetsCents = 0;
+  let liabilitiesCents = 0;
+  for (const item of items) {
+    if (item.kind === "asset") assetsCents += item.valueCents;
+    else liabilitiesCents += item.valueCents;
+  }
+  return { assetsCents, liabilitiesCents, netCents: assetsCents - liabilitiesCents };
 }
 
 /* ---------- insights ---------- */
