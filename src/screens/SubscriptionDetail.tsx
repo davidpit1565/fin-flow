@@ -41,7 +41,8 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
   const Icon = iconByName(category?.icon);
   const { currency } = settings;
   const status = subscription.status;
-  const nextLabel = relativeDayLabel(t, subscription.nextPaymentDate) ?? shortDate(subscription.nextPaymentDate, { includeYear: true });
+  const nextLabel =
+    relativeDayLabel(t, subscription.nextPaymentDate) ?? shortDate(subscription.nextPaymentDate, { includeYear: true, format: settings.dateFormat });
 
   const doDelete = async () => {
     const ok = await confirm({
@@ -159,7 +160,7 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
               <div className="row" key={i}>
                 <IconBadge icon={CheckCircle2} size="sm" muted />
                 <div className="row-main">
-                  <span className="row-title">{shortDate(p.date, { includeYear: true })}</span>
+                  <span className="row-title">{shortDate(p.date, { includeYear: true, format: settings.dateFormat })}</span>
                   <span className="row-sub">{t.subscriptions.paymentRecorded}</span>
                 </div>
                 <span className="row-amount">{formatMoney(p.amountCents, currency)}</span>

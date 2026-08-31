@@ -158,7 +158,7 @@ export function GoalsScreen() {
                     <span className="row-sub">{Math.round(percent)}%</span>
                   </div>
                   <ProgressBar percent={percent} tone="ok" />
-                  {projected && <p className="budget-msg ok">{t.goals.onTrackBy(shortDate(projected))}</p>}
+                  {projected && <p className="budget-msg ok">{t.goals.onTrackBy(shortDate(projected, { format: settings.dateFormat }))}</p>}
                   <div className="sub-toolbar">
                     <Button
                       variant="secondary"

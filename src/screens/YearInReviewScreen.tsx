@@ -111,7 +111,8 @@ export function YearInReviewScreen() {
               <span className="stat-label">{t.yearInReview.biggestExpenseLabel}</span>
               <span className="insight-tile-title">{review.biggestExpense.merchant || "—"}</span>
               <span className="insight-tile-value">
-                {formatMoney(review.biggestExpense.amountCents, currency)} · {shortDate(review.biggestExpense.date)}
+                {formatMoney(review.biggestExpense.amountCents, currency)} ·{" "}
+                {shortDate(review.biggestExpense.date, { format: settings.dateFormat })}
               </span>
             </Card>
           )}

@@ -68,7 +68,7 @@ describe("upcoming payments", () => {
       sub({ id: "far", nextPaymentDate: "2027-01-01" }),
       sub({ id: "paused", nextPaymentDate: "2026-09-01", status: "paused" }),
     ];
-    const upcoming = upcomingPayments(subs, en, now);
+    const upcoming = upcomingPayments(subs, en, "auto", now);
     expect(upcoming.map((u) => u.subscription.id)).toEqual(["overdue", "soon"]);
     expect(upcoming[0].label.startsWith("Overdue")).toBe(true);
   });

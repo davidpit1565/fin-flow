@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import { ChevronRight, Repeat, Trash2 } from "lucide-react";
-import type { Category, CurrencyCode, Subscription, Transaction } from "../types";
+import type { Category, CurrencyCode, DateFormatPreference, Subscription, Transaction } from "../types";
 import { iconByName } from "../lib/icons";
 import { monthlyEquivalent } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
@@ -203,12 +203,14 @@ export function SubscriptionRow({
   subscription,
   category,
   currency,
+  dateFormat,
   onTap,
   onDelete,
 }: {
   subscription: Subscription;
   category?: Category;
   currency: CurrencyCode;
+  dateFormat: DateFormatPreference;
   onTap?: () => void;
   onDelete?: () => void;
 }) {
@@ -234,7 +236,11 @@ export function SubscriptionRow({
         <div className="row-main">
           <span className="row-title">{subscription.name}</span>
           <span className="row-sub">
-            {t.subscriptions.rowMeta(subscription.status, subscription.frequency, shortDate(subscription.nextPaymentDate, { includeYear: true }))}
+            {t.subscriptions.rowMeta(
+              subscription.status,
+              subscription.frequency,
+              shortDate(subscription.nextPaymentDate, { includeYear: true, format: dateFormat })
+            )}
           </span>
         </div>
         <div className="row-end">

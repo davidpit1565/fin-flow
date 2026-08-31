@@ -30,7 +30,7 @@ export function TransactionDetail({ transactionId }: { transactionId: string }) 
   const categoryLabel = category ? categoryDisplayName(t, category) : undefined;
   const Icon = iconByName(category?.icon);
   const isIncome = transaction.type === "income";
-  const dateLabel = relativeDayLabel(t, transaction.date) ?? shortDate(transaction.date, { includeYear: true });
+  const dateLabel = relativeDayLabel(t, transaction.date) ?? shortDate(transaction.date, { includeYear: true, format: settings.dateFormat });
 
   const doDelete = async () => {
     const ok = await confirm({
@@ -73,7 +73,7 @@ export function TransactionDetail({ transactionId }: { transactionId: string }) 
             label={t.transactionDetail.recurringLabel}
             value={`${transaction.frequency ? t.transactionDetail.frequency[transaction.frequency] : t.transactionDetail.recurringFallback}${
               transaction.nextOccurrence
-                ? ` · ${t.transactionDetail.nextOccurrence(shortDate(transaction.nextOccurrence, { includeYear: true }))}`
+                ? ` · ${t.transactionDetail.nextOccurrence(shortDate(transaction.nextOccurrence, { includeYear: true, format: settings.dateFormat }))}`
                 : ""
             }`}
             icon={<Repeat size={15} strokeWidth={2} />}

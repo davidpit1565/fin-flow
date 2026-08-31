@@ -30,7 +30,7 @@ export function TransactionList({
   onEmpty?: () => void;
 }) {
   const t = useT();
-  const { deleteTransaction, updateTransaction, confirm, toast, haptic } = useApp();
+  const { settings, deleteTransaction, updateTransaction, confirm, toast, haptic } = useApp();
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
 
   const sorted = useMemo(
@@ -93,7 +93,7 @@ export function TransactionList({
       {groups.map((g) => (
         <div key={g.date} className="txn-group">
           <div className="txn-group-header">
-            <span className="txn-group-date">{relativeDayLabel(t, g.date) ?? shortDate(g.date)}</span>
+            <span className="txn-group-date">{relativeDayLabel(t, g.date) ?? shortDate(g.date, { format: settings?.dateFormat })}</span>
           </div>
           {g.items.map((tx) => (
             <TransactionRow

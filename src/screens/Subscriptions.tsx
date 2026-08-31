@@ -26,7 +26,7 @@ export function Subscriptions() {
   const monthly = subscriptionMonthlyTotal(subscriptions);
   const yearly = subscriptionYearlyTotal(subscriptions);
   const activeCount = activeSubscriptions(subscriptions).length;
-  const upcomingCount = upcomingPayments(subscriptions, t).length;
+  const upcomingCount = upcomingPayments(subscriptions, t, settings.dateFormat).length;
 
   const sorted = useMemo(
     () => [...subscriptions].sort((a, b) => (a.nextPaymentDate < b.nextPaymentDate ? -1 : 1)),
@@ -108,6 +108,7 @@ export function Subscriptions() {
               subscription={s}
               category={categories.find((c) => c.id === s.categoryId)}
               currency={currency}
+              dateFormat={settings.dateFormat}
               onTap={() => push({ tab: "subscriptions", name: "detail", subscriptionId: s.id })}
               onDelete={() => void doDelete(s.id, s.name)}
             />
