@@ -12,6 +12,7 @@ export const STORES = {
   meta: "meta",
   goals: "goals",
   netWorthItems: "netWorthItems",
+  debts: "debts",
 } as const;
 
 function openDB(): Promise<IDBDatabase> {
@@ -44,6 +45,9 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORES.netWorthItems)) {
         db.createObjectStore(STORES.netWorthItems, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(STORES.debts)) {
+        db.createObjectStore(STORES.debts, { keyPath: "id" });
       }
     };
     req.onsuccess = () => resolve(req.result);

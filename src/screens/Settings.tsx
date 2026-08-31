@@ -18,6 +18,7 @@ export function Settings() {
     categories,
     budgets,
     goals,
+    debts,
     transactions,
     subscriptions,
     netWorthItems,
@@ -62,12 +63,12 @@ export function Settings() {
   };
 
   const onDeleteAll = async () => {
-    const itemCount = transactions.length + subscriptions.length + budgets.length + goals.length;
+    const itemCount = transactions.length + subscriptions.length + budgets.length + goals.length + debts.length;
     const ok = await confirm({
       title: "Delete all data?",
       message:
         itemCount > 0
-          ? `This permanently deletes ${transactions.length} transaction${transactions.length === 1 ? "" : "s"}, ${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}, ${budgets.length} budget${budgets.length === 1 ? "" : "s"}, and ${goals.length} goal${goals.length === 1 ? "" : "s"} from this device, along with every setting. Export a backup first if you might need this later — it cannot be undone.`
+          ? `This permanently deletes ${transactions.length} transaction${transactions.length === 1 ? "" : "s"}, ${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}, ${budgets.length} budget${budgets.length === 1 ? "" : "s"}, ${goals.length} goal${goals.length === 1 ? "" : "s"}, and ${debts.length} debt${debts.length === 1 ? "" : "s"} from this device, along with every setting. Export a backup first if you might need this later — it cannot be undone.`
           : "This removes every setting from this device. It cannot be undone.",
       confirmLabel: "Delete everything",
       danger: true,
@@ -197,6 +198,17 @@ export function Settings() {
             label="Net worth"
             value={formatMoney(netWorth.netCents, currency)}
             onPress={() => push({ tab: "settings", name: "networth" })}
+            last
+          />
+        </Card>
+      </SettingsSection>
+
+      <SettingsSection title="Debts">
+        <Card className="list-card">
+          <SettingsRow
+            label="Debt payoff planner"
+            value={`${debts.length} ${debts.length === 1 ? "debt" : "debts"}`}
+            onPress={() => push({ tab: "settings", name: "debts" })}
             last
           />
         </Card>

@@ -13,6 +13,7 @@ import type {
   BudgetPeriod,
   Category,
   CurrencyCode,
+  Debt,
   Goal,
   NetWorthItem,
   NetWorthItemKind,
@@ -123,6 +124,7 @@ interface AppState {
   budgets: Budget[];
   goals: Goal[];
   netWorthItems: NetWorthItem[];
+  debts: Debt[];
   addTransaction: (input: NewTransaction) => string;
   updateTransaction: (id: string, patch: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
@@ -143,6 +145,10 @@ interface AppState {
   addNetWorthItem: (kind: NetWorthItemKind, name: string, category: string, valueCents: number) => void;
   updateNetWorthItem: (id: string, patch: Partial<Pick<NetWorthItem, "name" | "category" | "valueCents">>) => void;
   deleteNetWorthItem: (id: string) => void;
+  addDebt: (name: string, remainingCents: number, aprPercent: number, minPaymentCents: number) => void;
+  updateDebt: (id: string, patch: Partial<Pick<Debt, "name" | "remainingCents" | "aprPercent" | "minPaymentCents">>) => void;
+  deleteDebt: (id: string) => void;
+  recordDebtPayment: (id: string, amountCents: number) => void;
   updateSettings: (patch: Partial<UserSettings>) => void;
   completeOnboarding: (patch: Partial<UserSettings>) => void;
   importTransactions: (rows: ImportRow[]) => number;
@@ -165,6 +171,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [netWorthItems, setNetWorthItems] = useState<NetWorthItem[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
   const [toastState, setToastState] = useState<{ message: string; id: number } | null>(null);
   const [confirmState, setConfirmState] = useState<(ConfirmOptions & { resolve: (v: boolean) => void }) | null>(null);
   const toastTimer = useRef<number | null>(null);
@@ -188,12 +195,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         for (const c of missing) await storage.put("categories", c);
         cats = [...cats, ...missing];
       }
-      const [txns, subs, bdgs, gls, netWorth] = await Promise.all([
+      const [txns, subs, bdgs, gls, netWorth, dbts] = await Promise.all([
         storage.getAll<Transaction>("transactions"),
         storage.getAll<Subscription>("subscriptions"),
         storage.getAll<Budget>("budgets"),
         storage.getAll<Goal>("goals"),
         storage.getAll<NetWorthItem>("netWorthItems"),
+        storage.getAll<Debt>("debts"),
       ]);
       if (cancelled) return;
       setSettings(s);
@@ -203,6 +211,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setBudgets(bdgs);
       setGoals(gls);
       setNetWorthItems(netWorth);
+      setDebts(dbts);
       setReady(true);
     })().catch(() => {
       // Local storage (IndexedDB) is unavailable or broken -- e.g. Safari
@@ -502,12 +511,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [toast]
   );
 
+  /* ---------- debt actions ---------- */
+  const addDebt = useCallback(
+    (name: string, remainingCents: number, aprPercent: number, minPaymentCents: number) => {
+      const now = Date.now();
+      const debt: Debt = { id: crypto.randomUUID(), name, remainingCents, aprPercent, minPaymentCents, createdAt: now, updatedAt: now };
+      setDebts((prev) => [...prev, debt]);
+      void storage.put("debts", debt).catch(() => toast("Something went wrong. Please try again."));
+    },
+    [toast]
+  );
+
   const updateGoal = useCallback(
     (id: string, patch: Partial<Pick<Goal, "name" | "icon" | "targetCents" | "targetDate">>) => {
       setGoals((prev) => {
         const next = prev.map((g) => (g.id === id ? { ...g, ...patch, updatedAt: Date.now() } : g));
         const updated = next.find((g) => g.id === id);
         if (updated) void storage.put("goals", updated).catch(() => toast("Something went wrong. Please try again."));
+        return next;
+      });
+    },
+    [toast]
+  );
+
+  const updateDebt = useCallback(
+    (id: string, patch: Partial<Pick<Debt, "name" | "remainingCents" | "aprPercent" | "minPaymentCents">>) => {
+      setDebts((prev) => {
+        const next = prev.map((d) => (d.id === id ? { ...d, ...patch, updatedAt: Date.now() } : d));
+        const updated = next.find((d) => d.id === id);
+        if (updated) void storage.put("debts", updated).catch(() => toast("Something went wrong. Please try again."));
         return next;
       });
     },
@@ -522,6 +554,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [toast]
   );
 
+  const deleteDebt = useCallback(
+    (id: string) => {
+      setDebts((prev) => prev.filter((d) => d.id !== id));
+      void storage.remove("debts", id).catch(() => toast("Something went wrong. Please try again."));
+    },
+    [toast]
+  );
+
   const contributeToGoal = useCallback(
     (id: string, deltaCents: number) => {
       setGoals((prev) => {
@@ -530,6 +570,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
         );
         const updated = next.find((g) => g.id === id);
         if (updated) void storage.put("goals", updated).catch(() => toast("Something went wrong. Please try again."));
+        return next;
+      });
+    },
+    [toast]
+  );
+
+  const recordDebtPayment = useCallback(
+    (id: string, amountCents: number) => {
+      setDebts((prev) => {
+        const next = prev.map((d) =>
+          d.id === id ? { ...d, remainingCents: Math.max(0, d.remainingCents - amountCents), updatedAt: Date.now() } : d
+        );
+        const updated = next.find((d) => d.id === id);
+        if (updated) void storage.put("debts", updated).catch(() => toast("Something went wrong. Please try again."));
         return next;
       });
     },
@@ -609,7 +663,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await Promise.all(subscriptions.map((s) => clearSubscriptionReminder(s.id)));
     await clearMonthlySummaryReminder();
     await Promise.all(
-      ["transactions", "subscriptions", "budgets", "categories", "meta", "goals", "netWorthItems"].map((store) =>
+      ["transactions", "subscriptions", "budgets", "categories", "meta", "goals", "netWorthItems", "debts"].map((store) =>
         storage.clear(store)
       )
     );
@@ -624,6 +678,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBudgets([]);
     setGoals([]);
     setNetWorthItems([]);
+    setDebts([]);
     setReady(true);
   }, [subscriptions]);
 
@@ -640,6 +695,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       budgets,
       goals,
       netWorthItems,
+      debts,
       addTransaction,
       updateTransaction,
       deleteTransaction,
@@ -660,6 +716,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addNetWorthItem,
       updateNetWorthItem,
       deleteNetWorthItem,
+      addDebt,
+      updateDebt,
+      deleteDebt,
+      recordDebtPayment,
       updateSettings,
       completeOnboarding,
       importTransactions,
@@ -679,6 +739,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       budgets,
       goals,
       netWorthItems,
+      debts,
       addTransaction,
       updateTransaction,
       deleteTransaction,
@@ -699,6 +760,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addNetWorthItem,
       updateNetWorthItem,
       deleteNetWorthItem,
+      addDebt,
+      updateDebt,
+      deleteDebt,
+      recordDebtPayment,
       updateSettings,
       completeOnboarding,
       importTransactions,
