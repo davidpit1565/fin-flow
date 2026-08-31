@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /** Local-time ISO date (YYYY-MM-DD), matching the app's date handling. */
 export function localISO(date: Date): string {
@@ -141,6 +141,35 @@ export async function addSubscription(
 export async function openSettings(page: Page) {
   await page.getByRole("button", { name: "Settings" }).first().click();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+}
+
+/** Switch the app language via Settings and wait for `<html dir>` to reflect
+ *  it -- the source of truth `SwipeRow`'s RTL handling reads. */
+export async function setLanguage(page: Page, language: "en" | "he") {
+  await openSettings(page);
+  await page.getByRole("radio", { name: language === "he" ? "עברית" : "English" }).click();
+  await expect(page.locator("html")).toHaveAttribute("dir", language === "he" ? "rtl" : "ltr");
+  await page.getByRole("button", { name: language === "he" ? "חזרה" : "Back" }).click();
+}
+
+/** Drags a `SwipeRow`'s `.swipe-track` by `dxPx` physical pixels (positive =
+ *  drag right, negative = drag left) using real mouse/pointer events, then
+ *  waits for the CSS snap transition to settle. `dxPx`'s sign is always a
+ *  physical screen direction, in both LTR and RTL -- see the RTL note on
+ *  `SwipeRow` in src/components/rows.tsx for why. */
+export async function dragSwipeTrack(page: Page, track: Locator, dxPx: number) {
+  const box = await track.boundingBox();
+  if (!box) throw new Error("swipe track not found");
+  const startX = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(startX, y);
+  await page.mouse.down();
+  // Several intermediate steps so the component's own move-distance/angle
+  // gesture-detection (dx vs dy, >10px threshold) actually engages.
+  await page.mouse.move(startX + dxPx / 2, y, { steps: 5 });
+  await page.mouse.move(startX + dxPx, y, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(260); // > the .swipe-track 0.22s snap transition
 }
 
 /** Go to a tab by its label. */

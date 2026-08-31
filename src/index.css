@@ -749,6 +749,19 @@ ul {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   border-radius: 14px;
+  /* Amounts are always typed and read left-to-right, even in the Hebrew UI.
+     Without this, the field inherits `direction: rtl` from <html> and
+     digits can appear to insert/edit in reverse order as the user types. */
+  direction: ltr;
+}
+
+/* Native number/date inputs: keep digits and date segments left-to-right
+   regardless of page direction, for the same reason as .input-amount above.
+   Scoped to these two input types only -- free-text fields (name, notes,
+   search) must keep inheriting RTL so Hebrew text still types correctly. */
+.input[type="number"],
+.input[type="date"] {
+  direction: ltr;
 }
 
 .textarea {
@@ -1177,12 +1190,22 @@ input[type="date"] {
   z-index: 1;
 }
 
+/* RTL note: these use logical (not physical) inset properties on purpose.
+   `leftAction` is always the reading-start-side action (e.g. "mark as
+   recurring") and `rightAction` the reading-end/destructive one (delete) --
+   see the comment on SwipeRow in components/rows.tsx for the full reasoning.
+   `inset-inline-start`/`inset-inline-end` put `leftAction` on the physical
+   left in LTR and the physical right in RTL (and vice-versa for
+   `rightAction`), which is exactly what's needed: the drag gesture itself
+   (translateX in rows.tsx) is a physical, direction-agnostic transform that
+   is deliberately left untouched, so flipping *which action lives on which
+   physical side* is the only thing that needs to change for RTL. */
 .swipe-action-left {
-  left: 0;
+  inset-inline-start: 0;
 }
 
 .swipe-action-right {
-  right: 0;
+  inset-inline-end: 0;
 }
 
 .swipe-action-btn {
