@@ -220,29 +220,32 @@ test.describe("transactions", () => {
     test("RTL: the swipe gesture mirrors -- physical swipe right reveals delete, swipe left reveals recurring", async ({
       page,
     }) => {
-      await setLanguage(page, "he");
+      // Create both transactions while still in English (the shared
+      // addExpense/openAddSheet helpers use English locators), then switch to
+      // Hebrew -- which also translates every button/toast, not just `dir` --
+      // for the actual swipe-mirroring assertions below.
       await addExpense(page, { amount: "10.00", merchant: "Swipe RTL Delete" });
-      await page.getByRole("button", { name: "Transactions", exact: true }).click();
+      await addExpense(page, { amount: "10.00", merchant: "Swipe RTL Recurring" });
+      await setLanguage(page, "he");
+      await page.getByRole("button", { name: "תנועות", exact: true }).click();
       const deleteRow = page.locator(".swipe-row").filter({ hasText: "Swipe RTL Delete" });
       const deleteTrack = deleteRow.locator(".swipe-track");
 
       // Mirrored from the LTR case: dragging right (not left) now reveals delete.
       await dragSwipeTrack(page, deleteTrack, 100);
-      await deleteRow.getByRole("button", { name: "Delete transaction" }).click();
+      await deleteRow.getByRole("button", { name: "מחיקת התנועה" }).click();
       await expect(page.locator(".dialog")).toBeVisible();
-      await page.locator(".dialog").getByRole("button", { name: "Delete", exact: true }).click();
-      await expect(page.locator(".toast")).toContainText("Deleted");
+      await page.locator(".dialog").getByRole("button", { name: "מחיקה", exact: true }).click();
+      await expect(page.locator(".toast")).toContainText("נמחק");
       await expect(page.getByText("Swipe RTL Delete")).toHaveCount(0);
 
-      await addExpense(page, { amount: "10.00", merchant: "Swipe RTL Recurring" });
-      await page.getByRole("button", { name: "Transactions", exact: true }).click();
       const recurringRow = page.locator(".swipe-row").filter({ hasText: "Swipe RTL Recurring" });
       const recurringTrack = recurringRow.locator(".swipe-track");
 
       // Mirrored from the LTR case: dragging left (not right) now reveals recurring.
       await dragSwipeTrack(page, recurringTrack, -100);
-      await recurringRow.getByRole("button", { name: "Mark as recurring" }).click();
-      await expect(page.locator(".toast")).toContainText("Marked as recurring");
+      await recurringRow.getByRole("button", { name: "סימון כתנועה חוזרת" }).click();
+      await expect(page.locator(".toast")).toContainText("סומנה כחוזרת");
     });
   });
 });
