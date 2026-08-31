@@ -7,6 +7,8 @@ import { transactionForm } from "./transactionForm";
 import { transactionList } from "./transactionList";
 import { categories } from "./categories";
 import { categoryPicker } from "./categoryPicker";
+import { settings } from "./settings";
+import { legal } from "./legal";
 
 /** Typed against `En` so TypeScript fails the build the moment a Hebrew
  *  namespace is missing a key the English one has (or has an extra one) --
@@ -20,4 +22,6 @@ export const he: typeof En = {
   transactionList,
   categories,
   categoryPicker,
+  settings,
+  legal,
 };

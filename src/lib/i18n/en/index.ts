@@ -11,6 +11,8 @@ import { transactionForm } from "./transactionForm";
 import { transactionList } from "./transactionList";
 import { categories } from "./categories";
 import { categoryPicker } from "./categoryPicker";
+import { settings } from "./settings";
+import { legal } from "./legal";
 
 export const en = {
   common,
@@ -21,4 +23,6 @@ export const en = {
   transactionList,
   categories,
   categoryPicker,
+  settings,
+  legal,
 };

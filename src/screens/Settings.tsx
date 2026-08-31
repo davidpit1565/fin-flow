@@ -7,7 +7,7 @@ import { computeNetWorth } from "../lib/calc";
 import { CURRENCIES, formatMoney, symbolFor } from "../lib/currency";
 import { buildCSV, downloadCSV, fileToText, parseImportCSV } from "../lib/csv";
 import { decryptBackup, downloadBackupFile, encryptBackup, type BackupPayload } from "../lib/backup";
-import { LANGUAGE_NAMES } from "../lib/i18n";
+import { LANGUAGE_NAMES, useT } from "../lib/i18n";
 import { notificationsSupported, permissionState, requestPermission, triggersSupported } from "../lib/notifications";
 import { isNative } from "../lib/platform";
 import { resyncAllReminders } from "../lib/reminders";
@@ -34,6 +34,7 @@ export function Settings() {
     haptic,
   } = useApp();
   const { back, push } = useNavigation();
+  const t = useT();
   const [showCurrency, setShowCurrency] = useState(false);
   const [biometryAvailable, setBiometryAvailable] = useState<boolean | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -65,24 +66,30 @@ export function Settings() {
       updateSettings({ appLockEnabled: false });
       return;
     }
-    const ok = await authenticateWithBiometrics("Confirm Face ID to turn on app lock");
+    const ok = await authenticateWithBiometrics(t.settings.confirmFaceIdReason);
     if (!ok) {
-      toast("Couldn't verify Face ID — app lock not enabled");
+      toast(t.settings.faceIdNotVerified);
       return;
     }
     updateSettings({ appLockEnabled: true });
-    toast("App lock enabled");
+    toast(t.settings.appLockEnabledToast);
   };
 
   const onDeleteAll = async () => {
     const itemCount = transactions.length + subscriptions.length + budgets.length + goals.length + debts.length;
     const ok = await confirm({
-      title: "Delete all data?",
+      title: t.settings.deleteAllTitle,
       message:
         itemCount > 0
-          ? `This permanently deletes ${transactions.length} transaction${transactions.length === 1 ? "" : "s"}, ${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}, ${budgets.length} budget${budgets.length === 1 ? "" : "s"}, ${goals.length} goal${goals.length === 1 ? "" : "s"}, and ${debts.length} debt${debts.length === 1 ? "" : "s"} from this device, along with every setting. Export a backup first if you might need this later — it cannot be undone.`
-          : "This removes every setting from this device. It cannot be undone.",
-      confirmLabel: "Delete everything",
+          ? t.settings.deleteAllMessage({
+              transactions: transactions.length,
+              subscriptions: subscriptions.length,
+              budgets: budgets.length,
+              goals: goals.length,
+              debts: debts.length,
+            })
+          : t.settings.deleteAllMessageEmpty,
+      confirmLabel: t.settings.deleteEverything,
       danger: true,
     });
     if (!ok) return;
@@ -96,9 +103,9 @@ export function Settings() {
         buildCSV({ transactions, subscriptions, categories, currency }),
         `flow-data-${todayISO()}.csv`
       );
-      toast("Export ready");
+      toast(t.settings.exportReady);
     } catch {
-      toast("We couldn't export your data. Please try again.");
+      toast(t.settings.exportFailed);
     }
   };
 
@@ -108,12 +115,12 @@ export function Settings() {
       const parsed = parseImportCSV(text, categories);
       if (parsed.rows.length > 0) {
         const n = importTransactions(parsed.rows);
-        toast(`Imported ${n} ${n === 1 ? "transaction" : "transactions"}`);
+        toast(t.settings.importedCount(n));
       } else {
-        toast(parsed.errors.length > 0 ? "Nothing imported — check the file format." : "No transactions found in the file.");
+        toast(parsed.errors.length > 0 ? t.settings.importNothingFormat : t.settings.importNoneFound);
       }
     } catch {
-      toast("We couldn't import that file. Please try again.");
+      toast(t.settings.importFailed);
     } finally {
       if (fileRef.current) fileRef.current.value = "";
     }
@@ -142,10 +149,10 @@ export function Settings() {
       };
       const encrypted = await encryptBackup(payload, exportPassword);
       await downloadBackupFile(encrypted, `flow-backup-${todayISO()}.flowbackup`);
-      toast("Backup exported");
+      toast(t.settings.backupExported);
       closeExportBackup();
     } catch {
-      toast("We couldn't create the backup. Please try again.");
+      toast(t.settings.backupExportFailed);
     } finally {
       setExporting(false);
     }
@@ -167,24 +174,23 @@ export function Settings() {
     } catch (err) {
       // decryptBackup's message ("Wrong password or corrupted file") tells
       // the user exactly what to try again -- worth surfacing verbatim.
-      toast(err instanceof Error ? err.message : "We couldn't restore that backup. Please try again.");
+      toast(err instanceof Error ? err.message : t.settings.restoreFailed);
       setRestoring(false);
       return;
     }
     try {
       const ok = await confirm({
-        title: "Restore from backup?",
-        message:
-          "This replaces every transaction, subscription, budget, goal, net worth item, debt, and setting currently on this device with what's in the backup file. This cannot be undone.",
-        confirmLabel: "Restore",
+        title: t.settings.restoreTitle,
+        message: t.settings.restoreMessage,
+        confirmLabel: t.settings.restoreConfirmLabel,
         danger: true,
       });
       if (!ok) return;
       await restoreBackup(payload);
-      toast("Backup restored");
+      toast(t.settings.backupRestored);
       closeRestoreBackup();
     } catch {
-      toast("We couldn't restore that backup. Please try again.");
+      toast(t.settings.restoreFailed);
     } finally {
       setRestoring(false);
     }
@@ -196,10 +202,10 @@ export function Settings() {
       void (async () => {
         const granted = await requestPermission();
         if (!granted) {
-          toast("Notifications are blocked by your browser.");
+          toast(t.settings.notificationsBlockedByBrowser);
         } else {
           void resyncAllReminders(subscriptions, { ...settings, notifications: { ...settings.notifications, enabled: true } });
-          toast("Notifications on");
+          toast(t.settings.notificationsOnToast);
         }
       })();
     }
@@ -210,64 +216,64 @@ export function Settings() {
 
   return (
     <div className="screen">
-      <ScreenHeader title="Settings" onBack={back} />
+      <ScreenHeader title={t.settings.title} onBack={back} />
 
-      <SettingsSection title="Preferences">
+      <SettingsSection title={t.settings.sectionPreferences}>
         <Card className="list-card">
           <SettingsRow
-            label="Currency"
+            label={t.settings.currency}
             value={currency}
             onPress={() => setShowCurrency(true)}
             last
           />
-          <SettingsRow label="Start of week" valueAsControl={
+          <SettingsRow label={t.settings.startOfWeek} valueAsControl={
             <ChipGroup
               options={[
-                { value: "monday", label: "Mon" },
-                { value: "sunday", label: "Sun" },
+                { value: "monday", label: t.settings.weekMon },
+                { value: "sunday", label: t.settings.weekSun },
               ]}
               value={settings.startWeekOn}
               onChange={(v) => updateSettings({ startWeekOn: v })}
-              ariaLabel="Start of week"
+              ariaLabel={t.settings.startOfWeek}
             />
           } />
-          <SettingsRow label="Date format" valueAsControl={
+          <SettingsRow label={t.settings.dateFormat} valueAsControl={
             <ChipGroup
               options={[
-                { value: "auto", label: "Auto" },
-                { value: "dmy", label: "DD/MM" },
-                { value: "mdy", label: "MM/DD" },
-                { value: "iso", label: "ISO" },
+                { value: "auto", label: t.settings.dateFormatAuto },
+                { value: "dmy", label: t.settings.dateFormatDMY },
+                { value: "mdy", label: t.settings.dateFormatMDY },
+                { value: "iso", label: t.settings.dateFormatISO },
               ]}
               value={settings.dateFormat}
               onChange={(v) => updateSettings({ dateFormat: v })}
-              ariaLabel="Date format"
+              ariaLabel={t.settings.dateFormat}
             />
           } />
-          <SettingsRow label="Theme" valueAsControl={
+          <SettingsRow label={t.settings.theme} valueAsControl={
             <ChipGroup
               options={[
-                { value: "system", label: "System" },
-                { value: "light", label: "Light" },
-                { value: "dark", label: "Dark" },
+                { value: "system", label: t.settings.themeSystem },
+                { value: "light", label: t.settings.themeLight },
+                { value: "dark", label: t.settings.themeDark },
               ]}
               value={settings.theme}
               onChange={(v) => updateSettings({ theme: v })}
-              ariaLabel="Theme"
+              ariaLabel={t.settings.theme}
             />
           } />
-          <SettingsRow label="Accent color" valueAsControl={
+          <SettingsRow label={t.settings.accentColor} valueAsControl={
             <ChipGroup
               options={[
-                { value: "green", label: "Green" },
-                { value: "blue", label: "Blue" },
-                { value: "purple", label: "Purple" },
-                { value: "orange", label: "Orange" },
-                { value: "pink", label: "Pink" },
+                { value: "green", label: t.settings.accentGreen },
+                { value: "blue", label: t.settings.accentBlue },
+                { value: "purple", label: t.settings.accentPurple },
+                { value: "orange", label: t.settings.accentOrange },
+                { value: "pink", label: t.settings.accentPink },
               ]}
               value={settings.accentColor ?? "green"}
               onChange={(v) => updateSettings({ accentColor: v })}
-              ariaLabel="Accent color"
+              ariaLabel={t.settings.accentColor}
             />
           } />
           <SettingsRow label="Language" valueAsControl={
@@ -281,26 +287,26 @@ export function Settings() {
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Budgets">
+      <SettingsSection title={t.settings.sectionBudgets}>
         <Card className="list-card">
           <SettingsRow
-            label="Monthly budgets"
-            value={`${budgets.length} ${budgets.length === 1 ? "budget" : "budgets"}`}
+            label={t.settings.monthlyBudgets}
+            value={t.settings.budgetsCount(budgets.length)}
             onPress={() => push({ tab: "settings", name: "budgets" })}
           />
           <SettingsRow
-            label="Savings goals"
-            value={`${goals.length} ${goals.length === 1 ? "goal" : "goals"}`}
+            label={t.settings.savingsGoals}
+            value={t.settings.goalsCount(goals.length)}
             onPress={() => push({ tab: "settings", name: "goals" })}
             last
           />
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Net worth">
+      <SettingsSection title={t.settings.sectionNetWorth}>
         <Card className="list-card">
           <SettingsRow
-            label="Net worth"
+            label={t.settings.netWorthRow}
             value={formatMoney(netWorth.netCents, currency)}
             onPress={() => push({ tab: "settings", name: "networth" })}
             last
@@ -308,98 +314,96 @@ export function Settings() {
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Debts">
+      <SettingsSection title={t.settings.sectionDebts}>
         <Card className="list-card">
           <SettingsRow
-            label="Debt payoff planner"
-            value={`${debts.length} ${debts.length === 1 ? "debt" : "debts"}`}
+            label={t.settings.debtPayoffPlanner}
+            value={t.settings.debtsCount(debts.length)}
             onPress={() => push({ tab: "settings", name: "debts" })}
             last
           />
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Year in review">
+      <SettingsSection title={t.settings.sectionYearInReview}>
         <Card className="list-card">
           <SettingsRow
-            label="Year in review"
-            sub="A Wrapped-style recap of your year"
+            label={t.settings.yearInReviewRow}
+            sub={t.settings.yearInReviewSub}
             onPress={() => push({ tab: "settings", name: "yearinreview" })}
             last
           />
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Notifications">
+      <SettingsSection title={t.settings.sectionNotifications}>
         <Card className="list-card">
           <div className="settings-toggle-row">
             <div>
-              <span className="row-title">Notifications</span>
+              <span className="row-title">{t.settings.notificationsTitle}</span>
               <span className="row-sub">
                 {!notificationsSupported()
-                  ? "Not supported by this browser"
+                  ? t.settings.notificationsNotSupported
                   : permission === "granted"
-                    ? "On — reminders at 9:00 AM"
+                    ? t.settings.notificationsOnSub
                     : permission === "denied"
-                      ? "Blocked by your browser"
-                      : "Payment reminders and budget alerts"}
+                      ? t.settings.notificationsBlockedSub
+                      : t.settings.notificationsDefaultSub}
               </span>
             </div>
             <Toggle
               checked={settings.notifications.enabled}
               onChange={(v) => setNotifications({ enabled: v })}
-              label="Enable notifications"
+              label={t.settings.enableNotifications}
               disabled={!notificationsSupported()}
             />
           </div>
           <div className="settings-toggle-row">
             <div>
-              <span className="row-title">Subscription reminders</span>
-              <span className="row-sub">Before each payment is due</span>
+              <span className="row-title">{t.settings.subscriptionReminders}</span>
+              <span className="row-sub">{t.settings.subscriptionRemindersSub}</span>
             </div>
             <Toggle
               checked={settings.notifications.subscriptionReminders}
               onChange={(v) => setNotifications({ subscriptionReminders: v })}
-              label="Subscription reminders"
+              label={t.settings.subscriptionReminders}
               disabled={!settings.notifications.enabled}
             />
           </div>
           <div className="settings-toggle-row">
             <div>
-              <span className="row-title">Budget alerts</span>
-              <span className="row-sub">When you approach or pass a budget</span>
+              <span className="row-title">{t.settings.budgetAlerts}</span>
+              <span className="row-sub">{t.settings.budgetAlertsSub}</span>
             </div>
             <Toggle
               checked={settings.notifications.budgetAlerts}
               onChange={(v) => setNotifications({ budgetAlerts: v })}
-              label="Budget alerts"
+              label={t.settings.budgetAlerts}
               disabled={!settings.notifications.enabled}
             />
           </div>
           <div className="settings-toggle-row">
             <div>
-              <span className="row-title">Monthly summary</span>
-              <span className="row-sub">A short recap at the start of each month</span>
+              <span className="row-title">{t.settings.monthlySummary}</span>
+              <span className="row-sub">{t.settings.monthlySummarySub}</span>
             </div>
             <Toggle
               checked={settings.notifications.monthlySummary}
               onChange={(v) => setNotifications({ monthlySummary: v })}
-              label="Monthly summary"
+              label={t.settings.monthlySummary}
               disabled={!settings.notifications.enabled}
             />
           </div>
           {settings.notifications.enabled && !triggersSupported() && (
-            <p className="settings-note">
-              Scheduled reminders need Chrome or Edge. Other browsers show them when you open Flow.
-            </p>
+            <p className="settings-note">{t.settings.triggersUnsupportedNote}</p>
           )}
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Data">
+      <SettingsSection title={t.settings.sectionData}>
         <Card className="list-card">
-          <SettingsRow label="Export my data" sub="CSV — transactions and subscriptions" icon={Download} onPress={() => void onExport()} />
-          <SettingsRow label="Import data" sub="CSV file from Flow or another tracker" icon={Upload} onPress={() => fileRef.current?.click()} />
+          <SettingsRow label={t.settings.exportMyData} sub={t.settings.exportMyDataSub} icon={Download} onPress={() => void onExport()} />
+          <SettingsRow label={t.settings.importData} sub={t.settings.importDataSub} icon={Upload} onPress={() => fileRef.current?.click()} />
           <input
             ref={fileRef}
             type="file"
@@ -412,8 +416,8 @@ export function Settings() {
             }}
           />
           <SettingsRow
-            label="Delete all data"
-            sub="Erase everything on this device"
+            label={t.settings.deleteAllData}
+            sub={t.settings.deleteAllDataSub}
             icon={Trash2}
             danger
             onPress={() => void onDeleteAll()}
@@ -422,17 +426,17 @@ export function Settings() {
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Backup">
+      <SettingsSection title={t.settings.sectionBackup}>
         <Card className="list-card">
           <SettingsRow
-            label="Export encrypted backup"
-            sub="Everything — protected by a password you choose"
+            label={t.settings.exportEncryptedBackup}
+            sub={t.settings.exportEncryptedBackupSub}
             icon={Lock}
             onPress={() => setShowExportBackup(true)}
           />
           <SettingsRow
-            label="Restore from backup"
-            sub="Replaces all current data on this device"
+            label={t.settings.restoreFromBackup}
+            sub={t.settings.restoreFromBackupSub}
             icon={Upload}
             onPress={() => backupFileRef.current?.click()}
             last
@@ -449,17 +453,14 @@ export function Settings() {
             }}
           />
         </Card>
-        <p className="settings-note">
-          The backup file is encrypted with the password you choose. Flow has no way to recover it if you
-          forget that password — keep it somewhere safe.
-        </p>
+        <p className="settings-note">{t.settings.backupNote}</p>
       </SettingsSection>
 
-      <SettingsSection title="Categories">
+      <SettingsSection title={t.settings.sectionCategories}>
         <Card className="list-card">
           <SettingsRow
-            label="Manage categories"
-            sub={`${categories.length} categories`}
+            label={t.settings.manageCategories}
+            sub={t.settings.categoriesCount(categories.length)}
             icon={FolderCog}
             onPress={() => push({ tab: "settings", name: "categories" })}
             last
@@ -467,28 +468,28 @@ export function Settings() {
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="About">
+      <SettingsSection title={t.settings.sectionAbout}>
         <Card className="list-card">
-          <SettingsRow label="Privacy Policy" icon={Shield} onPress={() => push({ tab: "settings", name: "privacy" })} />
-          <SettingsRow label="Terms of Use" icon={Scale} onPress={() => push({ tab: "settings", name: "terms" })} />
-          <SettingsRow label="Help & Support" icon={LifeBuoy} onPress={() => push({ tab: "settings", name: "support" })} />
+          <SettingsRow label={t.settings.privacyPolicy} icon={Shield} onPress={() => push({ tab: "settings", name: "privacy" })} />
+          <SettingsRow label={t.settings.termsOfUse} icon={Scale} onPress={() => push({ tab: "settings", name: "terms" })} />
+          <SettingsRow label={t.settings.helpAndSupport} icon={LifeBuoy} onPress={() => push({ tab: "settings", name: "support" })} />
           <div className="settings-toggle-row">
             <div>
-              <span className="row-title">App lock with Face ID</span>
+              <span className="row-title">{t.settings.appLockWithFaceId}</span>
               <span className="row-sub">
                 {!isNative()
-                  ? "Not available in the browser"
+                  ? t.settings.appLockNotAvailable
                   : biometryAvailable === null
-                    ? "Checking…"
+                    ? t.settings.appLockChecking
                     : biometryAvailable
-                      ? "Require Face ID to open Flow"
-                      : "Set up Face ID in iOS Settings first"}
+                      ? t.settings.appLockRequireFaceId
+                      : t.settings.appLockSetupFirst}
               </span>
             </div>
             <Toggle
               checked={settings.appLockEnabled ?? false}
               onChange={(v) => void onToggleAppLock(v)}
-              label="App lock with Face ID"
+              label={t.settings.appLockWithFaceId}
               disabled={!isNative() || !biometryAvailable}
             />
           </div>
@@ -496,12 +497,12 @@ export function Settings() {
       </SettingsSection>
 
       <div className="settings-footer">
-        <p className="settings-version">Flow {APP_VERSION}</p>
-        <p className="settings-privacy-note">Your financial data never leaves this device. No accounts, no servers, no ads.</p>
+        <p className="settings-version">{t.settings.version(APP_VERSION)}</p>
+        <p className="settings-privacy-note">{t.settings.privacyFooterNote}</p>
       </div>
 
       {showCurrency && (
-        <Sheet title="Currency" onClose={() => setShowCurrency(false)} ariaLabel="Choose currency">
+        <Sheet title={t.settings.currency} onClose={() => setShowCurrency(false)} ariaLabel={t.settings.chooseCurrency}>
           <div className="sheet-form">
             {CURRENCIES.map((c) => (
               <button
@@ -524,35 +525,32 @@ export function Settings() {
       )}
 
       {showExportBackup && (
-        <Sheet title="Export encrypted backup" onClose={closeExportBackup} ariaLabel="Export encrypted backup">
+        <Sheet title={t.settings.exportEncryptedBackup} onClose={closeExportBackup} ariaLabel={t.settings.exportEncryptedBackup}>
           <div className="sheet-form">
-            <p className="settings-note">
-              Choose a password to encrypt this backup. Flow never stores it — if you forget it, this backup
-              can't be recovered.
-            </p>
-            <Field label="Backup password">
+            <p className="settings-note">{t.settings.chooseBackupPasswordNote}</p>
+            <Field label={t.settings.backupPassword}>
               <TextInput
                 type="password"
                 value={exportPassword}
                 onChange={(e) => setExportPassword(e.target.value)}
                 autoFocus
                 autoComplete="new-password"
-                aria-label="Backup password"
+                aria-label={t.settings.backupPassword}
               />
             </Field>
-            <Field label="Confirm backup password">
+            <Field label={t.settings.confirmBackupPassword}>
               <TextInput
                 type="password"
                 value={exportPasswordConfirm}
                 onChange={(e) => setExportPasswordConfirm(e.target.value)}
                 autoComplete="new-password"
-                aria-label="Confirm backup password"
+                aria-label={t.settings.confirmBackupPassword}
               />
             </Field>
             <FormError
               message={
                 exportPasswordConfirm.length > 0 && exportPassword !== exportPasswordConfirm
-                  ? "Passwords don't match"
+                  ? t.settings.passwordsDontMatch
                   : null
               }
             />
@@ -564,24 +562,24 @@ export function Settings() {
               disabled={exporting || exportPassword.length === 0 || exportPassword !== exportPasswordConfirm}
               onClick={() => void onExportBackup()}
             >
-              {exporting ? "Exporting…" : "Export backup"}
+              {exporting ? t.settings.exporting : t.settings.exportBackupButton}
             </Button>
           </div>
         </Sheet>
       )}
 
       {restoreFile && (
-        <Sheet title="Restore from backup" onClose={closeRestoreBackup} ariaLabel="Restore from backup">
+        <Sheet title={t.settings.restoreFromBackup} onClose={closeRestoreBackup} ariaLabel={t.settings.restoreFromBackup}>
           <div className="sheet-form">
-            <p className="settings-note">Enter the password used to encrypt this backup.</p>
-            <Field label="Backup password">
+            <p className="settings-note">{t.settings.enterBackupPasswordNote}</p>
+            <Field label={t.settings.backupPassword}>
               <TextInput
                 type="password"
                 value={restorePassword}
                 onChange={(e) => setRestorePassword(e.target.value)}
                 autoFocus
                 autoComplete="current-password"
-                aria-label="Backup password"
+                aria-label={t.settings.backupPassword}
               />
             </Field>
           </div>
@@ -592,7 +590,7 @@ export function Settings() {
               disabled={restoring || restorePassword.length === 0}
               onClick={() => void onRestoreBackup()}
             >
-              {restoring ? "Restoring…" : "Restore"}
+              {restoring ? t.settings.restoring : t.settings.restoreConfirmLabel}
             </Button>
           </div>
         </Sheet>
