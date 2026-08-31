@@ -18,6 +18,7 @@ import { Insights } from "./screens/Insights";
 import { Settings } from "./screens/Settings";
 import { BudgetsScreen } from "./screens/BudgetsScreen";
 import { GoalsScreen } from "./screens/GoalsScreen";
+import { NetWorthScreen } from "./screens/NetWorthScreen";
 import { CategoriesScreen } from "./screens/CategoriesScreen";
 import { PrivacyScreen, SupportScreen, TermsScreen } from "./screens/Legal";
 import { AddTransactionSheet } from "./components/AddTransactionSheet";
@@ -74,6 +75,8 @@ function App() {
             return <BudgetsScreen />;
           case "goals":
             return <GoalsScreen />;
+          case "networth":
+            return <NetWorthScreen />;
           case "categories":
             return <CategoriesScreen />;
           case "privacy":

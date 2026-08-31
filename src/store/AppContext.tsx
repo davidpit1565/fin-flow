@@ -14,6 +14,8 @@ import type {
   Category,
   CurrencyCode,
   Goal,
+  NetWorthItem,
+  NetWorthItemKind,
   PaymentMethod,
   RecurringFrequency,
   Subscription,
@@ -120,6 +122,7 @@ interface AppState {
   subscriptions: Subscription[];
   budgets: Budget[];
   goals: Goal[];
+  netWorthItems: NetWorthItem[];
   addTransaction: (input: NewTransaction) => string;
   updateTransaction: (id: string, patch: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
@@ -137,6 +140,9 @@ interface AppState {
   updateGoal: (id: string, patch: Partial<Pick<Goal, "name" | "icon" | "targetCents" | "targetDate">>) => void;
   deleteGoal: (id: string) => void;
   contributeToGoal: (id: string, deltaCents: number) => void;
+  addNetWorthItem: (kind: NetWorthItemKind, name: string, category: string, valueCents: number) => void;
+  updateNetWorthItem: (id: string, patch: Partial<Pick<NetWorthItem, "name" | "category" | "valueCents">>) => void;
+  deleteNetWorthItem: (id: string) => void;
   updateSettings: (patch: Partial<UserSettings>) => void;
   completeOnboarding: (patch: Partial<UserSettings>) => void;
   importTransactions: (rows: ImportRow[]) => number;
@@ -158,6 +164,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [netWorthItems, setNetWorthItems] = useState<NetWorthItem[]>([]);
   const [toastState, setToastState] = useState<{ message: string; id: number } | null>(null);
   const [confirmState, setConfirmState] = useState<(ConfirmOptions & { resolve: (v: boolean) => void }) | null>(null);
   const toastTimer = useRef<number | null>(null);
@@ -181,11 +188,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         for (const c of missing) await storage.put("categories", c);
         cats = [...cats, ...missing];
       }
-      const [txns, subs, bdgs, gls] = await Promise.all([
+      const [txns, subs, bdgs, gls, netWorth] = await Promise.all([
         storage.getAll<Transaction>("transactions"),
         storage.getAll<Subscription>("subscriptions"),
         storage.getAll<Budget>("budgets"),
         storage.getAll<Goal>("goals"),
+        storage.getAll<NetWorthItem>("netWorthItems"),
       ]);
       if (cancelled) return;
       setSettings(s);
@@ -194,6 +202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSubscriptions(subs);
       setBudgets(bdgs);
       setGoals(gls);
+      setNetWorthItems(netWorth);
       setReady(true);
     })().catch(() => {
       // Local storage (IndexedDB) is unavailable or broken -- e.g. Safari
@@ -527,6 +536,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [toast]
   );
 
+  /* ---------- net worth actions ---------- */
+  const addNetWorthItem = useCallback(
+    (kind: NetWorthItemKind, name: string, category: string, valueCents: number) => {
+      const now = Date.now();
+      const item: NetWorthItem = { id: crypto.randomUUID(), kind, name, category, valueCents, createdAt: now, updatedAt: now };
+      setNetWorthItems((prev) => [...prev, item]);
+      void storage.put("netWorthItems", item).catch(() => toast("Something went wrong. Please try again."));
+    },
+    [toast]
+  );
+
+  const updateNetWorthItem = useCallback(
+    (id: string, patch: Partial<Pick<NetWorthItem, "name" | "category" | "valueCents">>) => {
+      setNetWorthItems((prev) => {
+        const next = prev.map((i) => (i.id === id ? { ...i, ...patch, updatedAt: Date.now() } : i));
+        const updated = next.find((i) => i.id === id);
+        if (updated) void storage.put("netWorthItems", updated).catch(() => toast("Something went wrong. Please try again."));
+        return next;
+      });
+    },
+    [toast]
+  );
+
+  const deleteNetWorthItem = useCallback(
+    (id: string) => {
+      setNetWorthItems((prev) => prev.filter((i) => i.id !== id));
+      void storage.remove("netWorthItems", id).catch(() => toast("Something went wrong. Please try again."));
+    },
+    [toast]
+  );
+
   /* ---------- settings ---------- */
   const updateSettings = useCallback(
     (patch: Partial<UserSettings>) => {
@@ -569,7 +609,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await Promise.all(subscriptions.map((s) => clearSubscriptionReminder(s.id)));
     await clearMonthlySummaryReminder();
     await Promise.all(
-      ["transactions", "subscriptions", "budgets", "categories", "meta", "goals"].map((store) => storage.clear(store))
+      ["transactions", "subscriptions", "budgets", "categories", "meta", "goals", "netWorthItems"].map((store) =>
+        storage.clear(store)
+      )
     );
     const cats = seedCategories();
     setCategories(cats);
@@ -581,6 +623,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSubscriptions([]);
     setBudgets([]);
     setGoals([]);
+    setNetWorthItems([]);
     setReady(true);
   }, [subscriptions]);
 
@@ -596,6 +639,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       subscriptions,
       budgets,
       goals,
+      netWorthItems,
       addTransaction,
       updateTransaction,
       deleteTransaction,
@@ -613,6 +657,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateGoal,
       deleteGoal,
       contributeToGoal,
+      addNetWorthItem,
+      updateNetWorthItem,
+      deleteNetWorthItem,
       updateSettings,
       completeOnboarding,
       importTransactions,
@@ -631,6 +678,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       subscriptions,
       budgets,
       goals,
+      netWorthItems,
       addTransaction,
       updateTransaction,
       deleteTransaction,
@@ -648,6 +696,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateGoal,
       deleteGoal,
       contributeToGoal,
+      addNetWorthItem,
+      updateNetWorthItem,
+      deleteNetWorthItem,
       updateSettings,
       completeOnboarding,
       importTransactions,

@@ -10,6 +10,7 @@ export type Route =
   | { tab: "settings"; name: "settings" }
   | { tab: "settings"; name: "budgets" }
   | { tab: "settings"; name: "goals" }
+  | { tab: "settings"; name: "networth" }
   | { tab: "settings"; name: "categories" }
   | { tab: "settings"; name: "notifications" }
   | { tab: "settings"; name: "privacy" }

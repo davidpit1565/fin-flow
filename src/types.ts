@@ -130,6 +130,22 @@ export interface MonthlySummary {
   vsPreviousPercent: number | null;
 }
 
+export type NetWorthItemKind = "asset" | "liability";
+
+export interface NetWorthItem {
+  id: string;
+  kind: NetWorthItemKind;
+  name: string;
+  /** Free-form label, e.g. "Cash", "Investments", "Property", "Vehicle", "Other"
+   *  for assets; "Loan", "Credit Card", "Mortgage", "Other" for liabilities. */
+  category: string;
+  /** Always a positive magnitude regardless of kind -- a liability's
+   *  contribution to net worth is subtracted, not stored as negative. */
+  valueCents: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface CategoryTotal {
   category: Category;
   spentCents: number;

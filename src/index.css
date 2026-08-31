@@ -2159,6 +2159,16 @@ input[type="date"] {
   letter-spacing: 0.02em;
 }
 
+/* ---------- net worth ---------- */
+
+.networth-total-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
 /* ---------- settings ---------- */
 
 .settings-toggle-row {
