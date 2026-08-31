@@ -9,6 +9,7 @@ export type Route =
   | { tab: "subscriptions"; name: "detail"; subscriptionId: string }
   | { tab: "settings"; name: "settings" }
   | { tab: "settings"; name: "budgets" }
+  | { tab: "settings"; name: "goals" }
   | { tab: "settings"; name: "categories" }
   | { tab: "settings"; name: "notifications" }
   | { tab: "settings"; name: "privacy" }

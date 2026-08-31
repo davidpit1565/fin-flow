@@ -2,13 +2,14 @@ import type {
   Budget,
   Category,
   CategoryTotal,
+  Goal,
   MonthlySummary,
   Subscription,
   Transaction,
   UpcomingPayment,
   WeekStart,
 } from "../types";
-import { addDays, addMonths, diffDays, lastMonths, monthLabel, parseISO, relativeDay, shortDate, startOfMonth, startOfWeek, todayISO } from "./dates";
+import { addDays, addMonths, diffDays, lastMonths, monthLabel, parseISO, relativeDay, shortDate, startOfMonth, startOfWeek, todayISO, toISO } from "./dates";
 
 /* ---------- periods ---------- */
 
@@ -387,6 +388,34 @@ export function advanceSubscriptionDate(sub: Subscription): string {
     case "yearly":
       return addMonths(sub.nextPaymentDate, 12);
   }
+}
+
+/* ---------- savings goals ---------- */
+
+export function goalProgressPercent(goal: Goal): number {
+  if (goal.targetCents <= 0) return 0;
+  return Math.min(100, (goal.currentCents / goal.targetCents) * 100);
+}
+
+/** Linear projection of when a goal will hit its target, based on the
+ *  average saving rate since it was created (currentCents / days elapsed).
+ *  Returns null -- rather than NaN/Infinity/a nonsensical date -- when
+ *  there's nothing sensible to project from: the goal is already met, no
+ *  progress has been made yet, or essentially no time has elapsed since it
+ *  was created. */
+export function projectedGoalCompletion(goal: Goal, now = todayISO()): string | null {
+  if (goal.targetCents <= 0) return null;
+  if (goal.currentCents <= 0) return null;
+  if (goal.currentCents >= goal.targetCents) return null;
+  const createdISO = toISO(new Date(goal.createdAt));
+  const daysElapsed = diffDays(createdISO, now);
+  if (daysElapsed <= 0) return null;
+  const rate = goal.currentCents / daysElapsed; // cents saved per day
+  if (!(rate > 0) || !Number.isFinite(rate)) return null;
+  const remainingCents = goal.targetCents - goal.currentCents;
+  const daysNeeded = Math.ceil(remainingCents / rate);
+  if (!Number.isFinite(daysNeeded) || daysNeeded < 0) return null;
+  return addDays(now, daysNeeded);
 }
 
 /** Suggests a category for a new transaction from the user's own history --

@@ -16,6 +16,7 @@ export function Settings() {
     settings,
     categories,
     budgets,
+    goals,
     transactions,
     subscriptions,
     updateSettings,
@@ -177,6 +178,11 @@ export function Settings() {
             label="Monthly budgets"
             value={`${budgets.length} ${budgets.length === 1 ? "budget" : "budgets"}`}
             onPress={() => push({ tab: "settings", name: "budgets" })}
+          />
+          <SettingsRow
+            label="Savings goals"
+            value={`${goals.length} ${goals.length === 1 ? "goal" : "goals"}`}
+            onPress={() => push({ tab: "settings", name: "goals" })}
             last
           />
         </Card>
