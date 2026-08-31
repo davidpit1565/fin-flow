@@ -2,10 +2,12 @@ import { useMemo, useRef, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
+import { useT } from "../lib/i18n";
 import { ICON_SET, iconByName } from "../lib/icons";
 import { Button, Card, Field, IconBadge, ScreenHeader, Sheet, TextInput, rovingNextIndex } from "../components/ui";
 
 export function CategoriesScreen() {
+  const t = useT();
   const { categories, transactions, subscriptions, addCategory, updateCategory, deleteCategory, confirm, toast, haptic } = useApp();
   const { back } = useNavigation();
   const [editing, setEditing] = useState<{ id: string | null; name: string; icon: string } | null>(null);
@@ -15,7 +17,7 @@ export function CategoriesScreen() {
 
   const usageCount = useMemo(() => {
     const map = new Map<string, number>();
-    for (const t of transactions) map.set(t.categoryId, (map.get(t.categoryId) ?? 0) + 1);
+    for (const tx of transactions) map.set(tx.categoryId, (map.get(tx.categoryId) ?? 0) + 1);
     for (const s of subscriptions) map.set(s.categoryId, (map.get(s.categoryId) ?? 0) + 1);
     return map;
   }, [transactions, subscriptions]);
@@ -24,27 +26,27 @@ export function CategoriesScreen() {
     if (!editing) return;
     const name = editing.name.trim();
     if (!name) {
-      toast("Please enter a category name.");
+      toast(t.categories.toastEnterName);
       return;
     }
     const duplicate = categories.some((c) => c.id !== editing.id && c.name.toLowerCase() === name.toLowerCase());
     if (duplicate) {
-      toast("A category with this name already exists.");
+      toast(t.categories.toastDuplicateName);
       return;
     }
     if (editing.id) {
       updateCategory(editing.id, { name, icon: editing.icon });
-      toast("Category updated");
+      toast(t.categories.toastCategoryUpdated);
     } else {
       addCategory(name, editing.icon);
-      toast("Category added");
+      toast(t.categories.toastCategoryAdded);
     }
     setEditing(null);
   };
 
   const remove = async (id: string, name: string) => {
     if (categories.length <= 1) {
-      toast("You need at least one category.");
+      toast(t.categories.toastNeedOneCategory);
       return;
     }
     const count = usageCount.get(id) ?? 0;
@@ -52,9 +54,9 @@ export function CategoriesScreen() {
       // Requires reassignment; no destination is chosen yet.
       setReassignTarget(null);
       const ok = await confirm({
-        title: `Reassign ${name}?`,
-        message: `${count} ${count === 1 ? "transaction or subscription uses" : "transactions or subscriptions use"} this category. Choose a category to move them to before deleting.`,
-        confirmLabel: "Reassign & delete",
+        title: t.categories.reassignConfirmTitle(name),
+        message: t.categories.reassignConfirmMessage(count),
+        confirmLabel: t.categories.reassignConfirmLabel,
         danger: true,
       });
       if (!ok) return;
@@ -63,15 +65,15 @@ export function CategoriesScreen() {
       return;
     }
     const ok = await confirm({
-      title: `Delete ${name}?`,
-      message: "This cannot be undone.",
-      confirmLabel: "Delete",
+      title: t.categories.deleteConfirmTitle(name),
+      message: t.categories.deleteConfirmMessage,
+      confirmLabel: t.common.delete,
       danger: true,
     });
     if (!ok) return;
     deleteCategory(id, null);
     haptic("warning");
-    toast("Deleted");
+    toast(t.common.deleted);
   };
 
   const confirmDeleteWithReassign = () => {
@@ -80,12 +82,12 @@ export function CategoriesScreen() {
     setPendingDelete(null);
     setReassignTarget(null);
     haptic("warning");
-    toast("Deleted");
+    toast(t.common.deleted);
   };
 
   return (
     <div className="screen">
-      <ScreenHeader title="Categories" subtitle="Rename, re-icon, or add your own" onBack={back} />
+      <ScreenHeader title={t.categories.screenTitle} subtitle={t.categories.screenSubtitle} onBack={back} />
 
       <Card className="list-card">
         {categories.map((c) => {
@@ -96,19 +98,20 @@ export function CategoriesScreen() {
               <IconBadge icon={Icon} size="sm" />
               <div className="row-main">
                 <span className="row-title">{c.name}</span>
-                <span className="row-sub">
-                  {count} {count === 1 ? "item" : "items"}
-                  {c.isSystem ? " · default" : ""}
-                </span>
+                <span className="row-sub">{t.categories.rowSummary(count, !!c.isSystem)}</span>
               </div>
               <button
                 className="icon-btn icon-btn-sm"
-                aria-label={`Edit ${c.name}`}
+                aria-label={t.categories.editAriaLabel(c.name)}
                 onClick={() => setEditing({ id: c.id, name: c.name, icon: c.icon })}
               >
                 <Pencil size={15} strokeWidth={2} />
               </button>
-              <button className="icon-btn icon-btn-sm danger" aria-label={`Delete ${c.name}`} onClick={() => void remove(c.id, c.name)}>
+              <button
+                className="icon-btn icon-btn-sm danger"
+                aria-label={t.categories.deleteAriaLabel(c.name)}
+                onClick={() => void remove(c.id, c.name)}
+              >
                 <Trash2 size={15} strokeWidth={2} />
               </button>
             </div>
@@ -118,24 +121,28 @@ export function CategoriesScreen() {
 
       <div className="sub-toolbar">
         <Button variant="secondary" onClick={() => setEditing({ id: null, name: "", icon: "Ellipsis" })}>
-          <Plus size={17} strokeWidth={2} /> Add category
+          <Plus size={17} strokeWidth={2} /> {t.categories.addCategoryButton}
         </Button>
       </div>
 
       {editing && (
-        <Sheet title={editing.id ? "Edit category" : "Add category"} onClose={() => setEditing(null)} ariaLabel="Edit category">
+        <Sheet
+          title={editing.id ? t.categories.editCategorySheetTitle : t.categories.addCategoryButton}
+          onClose={() => setEditing(null)}
+          ariaLabel={t.categories.editCategoryAriaLabel}
+        >
           <div className="sheet-form">
-            <Field label="Name" htmlFor="cat-name">
+            <Field label={t.categories.nameLabel} htmlFor="cat-name">
               <TextInput
                 id="cat-name"
                 value={editing.name}
                 onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                 autoFocus
-                placeholder="Category name"
+                placeholder={t.categories.namePlaceholder}
               />
             </Field>
-            <Field label="Icon">
-              <div className="icon-grid" role="radiogroup" aria-label="Category icon">
+            <Field label={t.categories.iconLabel}>
+              <div className="icon-grid" role="radiogroup" aria-label={t.categories.iconGridAriaLabel}>
                 {(() => {
                   const selectedIconIndex = Math.max(
                     0,
@@ -171,7 +178,7 @@ export function CategoriesScreen() {
           </div>
           <div className="sheet-footer">
             <Button size="lg" className="btn-block" onClick={save}>
-              {editing.id ? "Save changes" : "Add category"}
+              {editing.id ? t.categories.saveChangesButton : t.categories.addCategoryButton}
             </Button>
           </div>
         </Sheet>
@@ -179,15 +186,15 @@ export function CategoriesScreen() {
 
       {pendingDelete && (
         <Sheet
-          title={`Move ${pendingDelete.name} items`}
+          title={t.categories.moveSheetTitle(pendingDelete.name)}
           onClose={() => {
             setPendingDelete(null);
             setReassignTarget(null);
           }}
-          ariaLabel="Choose destination category"
+          ariaLabel={t.categories.moveSheetAriaLabel}
         >
           <div className="sheet-form">
-            <Field label="Move to">
+            <Field label={t.categories.moveToLabel}>
               <div className="chip-group wrap">
                 {categories
                   .filter((c) => c.id !== pendingDelete.id)
@@ -205,7 +212,7 @@ export function CategoriesScreen() {
           </div>
           <div className="sheet-footer">
             <Button size="lg" className="btn-block" disabled={!reassignTarget} onClick={confirmDeleteWithReassign}>
-              Move items & delete {pendingDelete.name}
+              {t.categories.moveButtonText(pendingDelete.name)}
             </Button>
           </div>
         </Sheet>

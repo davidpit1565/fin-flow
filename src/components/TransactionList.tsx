@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Category, CurrencyCode, Transaction } from "../types";
 import { useApp } from "../store/AppContext";
+import { useT } from "../lib/i18n";
 import { relativeDay, shortDate } from "../lib/dates";
 import { TransactionRow } from "./rows";
 
@@ -28,6 +29,7 @@ export function TransactionList({
   onOpen: (id: string) => void;
   onEmpty?: () => void;
 }) {
+  const t = useT();
   const { deleteTransaction, updateTransaction, confirm, toast, haptic } = useApp();
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
 
@@ -63,27 +65,27 @@ export function TransactionList({
     return <>{onEmpty?.() ?? null}</>;
   }
 
-  const doDelete = async (t: Transaction) => {
+  const doDelete = async (tx: Transaction) => {
     const ok = await confirm({
-      title: "Delete transaction?",
-      message: "This cannot be undone.",
-      confirmLabel: "Delete",
+      title: t.transactionList.deleteConfirmTitle,
+      message: t.transactionList.deleteConfirmMessage,
+      confirmLabel: t.common.delete,
       danger: true,
     });
     if (!ok) return;
-    deleteTransaction(t.id);
+    deleteTransaction(tx.id);
     haptic("warning");
-    toast("Deleted");
+    toast(t.common.deleted);
   };
 
-  const toggleRecurring = (t: Transaction) => {
-    const next = !t.recurring;
-    updateTransaction(t.id, {
+  const toggleRecurring = (tx: Transaction) => {
+    const next = !tx.recurring;
+    updateTransaction(tx.id, {
       recurring: next,
-      frequency: next ? t.frequency ?? "monthly" : null,
-      nextOccurrence: next ? t.nextOccurrence ?? t.date : null,
+      frequency: next ? tx.frequency ?? "monthly" : null,
+      nextOccurrence: next ? tx.nextOccurrence ?? tx.date : null,
     });
-    toast(next ? "Marked as recurring" : "Recurring removed");
+    toast(next ? t.transactionList.toastMarkedRecurring : t.transactionList.toastRecurringRemoved);
   };
 
   return (
@@ -93,23 +95,23 @@ export function TransactionList({
           <div className="txn-group-header">
             <span className="txn-group-date">{relativeDay(g.date) ?? shortDate(g.date)}</span>
           </div>
-          {g.items.map((t) => (
+          {g.items.map((tx) => (
             <TransactionRow
-              key={t.id}
-              transaction={t}
-              category={categories.find((c) => c.id === t.categoryId)}
+              key={tx.id}
+              transaction={tx}
+              category={categories.find((c) => c.id === tx.categoryId)}
               currency={currency}
-              onTap={() => onOpen(t.id)}
+              onTap={() => onOpen(tx.id)}
               swipe={{
                 leftAction: {
-                  label: "Recurring",
-                  ariaLabel: t.recurring ? "Remove recurring" : "Mark as recurring",
-                  onPress: () => toggleRecurring(t),
+                  label: t.transactionList.recurringSwipeLabel,
+                  ariaLabel: tx.recurring ? t.transactionList.removeRecurring : t.transactionList.markRecurring,
+                  onPress: () => toggleRecurring(tx),
                 },
                 rightAction: {
-                  label: "Delete",
-                  ariaLabel: "Delete transaction",
-                  onPress: () => void doDelete(t),
+                  label: t.common.delete,
+                  ariaLabel: t.transactionList.deleteAriaLabel,
+                  onPress: () => void doDelete(tx),
                 },
               }}
             />

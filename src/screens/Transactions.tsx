@@ -2,39 +2,19 @@ import { useMemo, useState } from "react";
 import { ArrowDownUp, Plus, Search, Settings as SettingsIcon, SlidersHorizontal, X } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
+import { useT } from "../lib/i18n";
 import { Button, ChipGroup, DateInput, EmptyState, Field, NumericInput, ScreenHeader, Sheet } from "../components/ui";
 import { TransactionList } from "../components/TransactionList";
 
 type FilterType = "all" | "expense" | "income" | "recurring";
 type SortKey = "newest" | "oldest" | "highest" | "lowest" | "alpha";
 
-const FILTERS: { value: FilterType; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "expense", label: "Expenses" },
-  { value: "income", label: "Income" },
-  { value: "recurring", label: "Recurring" },
-];
-
-const SORTS: { value: SortKey; label: string }[] = [
-  { value: "newest", label: "Newest first" },
-  { value: "oldest", label: "Oldest first" },
-  { value: "highest", label: "Highest amount" },
-  { value: "lowest", label: "Lowest amount" },
-  { value: "alpha", label: "Alphabetical" },
-];
-
-const SORT_LABELS: Record<SortKey, string> = {
-  newest: "Newest",
-  oldest: "Oldest",
-  highest: "Highest",
-  lowest: "Lowest",
-  alpha: "A–Z",
-};
+const SORT_KEYS: SortKey[] = ["newest", "oldest", "highest", "lowest", "alpha"];
 
 function loadSort(): SortKey {
   try {
     const v = localStorage.getItem("flow-sort");
-    if (v && SORTS.some((s) => s.value === v)) return v as SortKey;
+    if (v && SORT_KEYS.includes(v as SortKey)) return v as SortKey;
   } catch {
     /* ignore */
   }
@@ -42,6 +22,7 @@ function loadSort(): SortKey {
 }
 
 export function Transactions({ onAdd }: { onAdd: () => void }) {
+  const t = useT();
   const { settings, transactions, categories } = useApp();
   const { push } = useNavigation();
   const [query, setQuery] = useState("");
@@ -56,30 +37,50 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
 
   if (!settings) return null;
 
+  const FILTERS: { value: FilterType; label: string }[] = [
+    { value: "all", label: t.transactions.filterAll },
+    { value: "expense", label: t.transactions.filterExpenses },
+    { value: "income", label: t.transactions.filterIncome },
+    { value: "recurring", label: t.transactions.filterRecurring },
+  ];
+
+  const SORT_LABELS: Record<SortKey, string> = {
+    newest: t.transactions.sortNewest,
+    oldest: t.transactions.sortOldest,
+    highest: t.transactions.sortHighest,
+    lowest: t.transactions.sortLowest,
+    alpha: t.transactions.sortAlpha,
+  };
+
+  const nextSort = (current: SortKey): SortKey => {
+    const idx = SORT_KEYS.indexOf(current);
+    return SORT_KEYS[(idx + 1) % SORT_KEYS.length];
+  };
+
   const hasActiveFilters = dateFrom !== "" || dateTo !== "" || categoryId !== null || minCents !== null || maxCents !== null;
 
   const filtered = useMemo(() => {
     let list = transactions;
     const q = query.trim().toLowerCase();
     if (q) {
-      list = list.filter((t) => {
-        const category = categories.find((c) => c.id === t.categoryId);
+      list = list.filter((tx) => {
+        const category = categories.find((c) => c.id === tx.categoryId);
         return (
-          t.merchant.toLowerCase().includes(q) ||
+          tx.merchant.toLowerCase().includes(q) ||
           (category?.name ?? "").toLowerCase().includes(q) ||
-          t.notes.toLowerCase().includes(q)
+          tx.notes.toLowerCase().includes(q)
         );
       });
     }
-    if (filter === "expense") list = list.filter((t) => t.type === "expense");
-    else if (filter === "income") list = list.filter((t) => t.type === "income");
-    else if (filter === "recurring") list = list.filter((t) => t.recurring);
+    if (filter === "expense") list = list.filter((tx) => tx.type === "expense");
+    else if (filter === "income") list = list.filter((tx) => tx.type === "income");
+    else if (filter === "recurring") list = list.filter((tx) => tx.recurring);
 
-    if (dateFrom) list = list.filter((t) => t.date >= dateFrom);
-    if (dateTo) list = list.filter((t) => t.date <= dateTo);
-    if (categoryId) list = list.filter((t) => t.categoryId === categoryId);
-    if (minCents !== null) list = list.filter((t) => t.amountCents >= minCents);
-    if (maxCents !== null) list = list.filter((t) => t.amountCents <= maxCents);
+    if (dateFrom) list = list.filter((tx) => tx.date >= dateFrom);
+    if (dateTo) list = list.filter((tx) => tx.date <= dateTo);
+    if (categoryId) list = list.filter((tx) => tx.categoryId === categoryId);
+    if (minCents !== null) list = list.filter((tx) => tx.amountCents >= minCents);
+    if (maxCents !== null) list = list.filter((tx) => tx.amountCents <= maxCents);
 
     const sorted = [...list];
     switch (sort) {
@@ -113,9 +114,9 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="screen">
       <ScreenHeader
-        title="Transactions"
+        title={t.transactions.title}
         right={
-          <button className="icon-btn" aria-label="Settings" onClick={() => push({ tab: "settings", name: "settings" })}>
+          <button className="icon-btn" aria-label={t.transactions.settingsButton} onClick={() => push({ tab: "settings", name: "settings" })}>
             <SettingsIcon size={20} strokeWidth={2} />
           </button>
         }
@@ -126,20 +127,20 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
           <Search size={16} strokeWidth={2} aria-hidden="true" />
           <input
             className="search-input"
-            placeholder="Search transactions"
+            placeholder={t.transactions.searchPlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search transactions"
+            aria-label={t.transactions.searchPlaceholder}
           />
           {query && (
-            <button className="search-clear" aria-label="Clear search" onClick={() => setQuery("")}>
+            <button className="search-clear" aria-label={t.transactions.clearSearchAriaLabel} onClick={() => setQuery("")}>
               <X size={14} strokeWidth={2} />
             </button>
           )}
         </div>
         <button
           className={`icon-btn filter-btn ${hasActiveFilters ? "active" : ""}`}
-          aria-label="Filter transactions"
+          aria-label={t.transactions.filterButtonAriaLabel}
           onClick={() => setShowFilters(true)}
         >
           <SlidersHorizontal size={17} strokeWidth={2} />
@@ -147,9 +148,13 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
       </div>
 
       <div className="filter-row">
-        <ChipGroup options={FILTERS} value={filter} onChange={setFilter} ariaLabel="Transaction type filter" />
+        <ChipGroup options={FILTERS} value={filter} onChange={setFilter} ariaLabel={t.transactions.typeFilterAriaLabel} />
         <div className="sort-menu">
-          <button className="sort-btn" onClick={() => changeSort(nextSort(sort))} aria-label={`Sort: ${SORT_LABELS[sort]}. Change sorting`}>
+          <button
+            className="sort-btn"
+            onClick={() => changeSort(nextSort(sort))}
+            aria-label={t.transactions.sortButtonAriaLabel(SORT_LABELS[sort])}
+          >
             <ArrowDownUp size={14} strokeWidth={2} />
             {SORT_LABELS[sort]}
           </button>
@@ -161,16 +166,16 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
           {transactions.length === 0 ? (
             <EmptyState
               icon={Search}
-              title="Nothing here yet"
-              message="Add your first expense to start understanding your spending."
+              title={t.transactions.emptyTitle}
+              message={t.transactions.emptyMessage}
               action={
                 <button className="btn btn-primary" onClick={onAdd}>
-                  <Plus size={18} strokeWidth={2} /> Add expense
+                  <Plus size={18} strokeWidth={2} /> {t.transactions.addExpenseButton}
                 </button>
               }
             />
           ) : (
-            <EmptyState icon={Search} title="No results" message="Try another search or filter." />
+            <EmptyState icon={Search} title={t.transactions.noResultsTitle} message={t.transactions.noResultsMessage} />
           )}
         </div>
       ) : (
@@ -183,21 +188,21 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
       )}
 
       {showFilters && (
-        <Sheet title="Filters" onClose={() => setShowFilters(false)} ariaLabel="Filter transactions">
+        <Sheet title={t.transactions.filtersSheetTitle} onClose={() => setShowFilters(false)} ariaLabel={t.transactions.filterButtonAriaLabel}>
           <div className="sheet-form">
-            <Field label="Date range">
+            <Field label={t.transactions.dateRangeLabel}>
               <div className="field-grid">
-                <DateInput value={dateFrom} onChange={setDateFrom} aria-label="From date" />
-                <DateInput value={dateTo} onChange={setDateTo} aria-label="To date" />
+                <DateInput value={dateFrom} onChange={setDateFrom} aria-label={t.transactions.fromDateAriaLabel} />
+                <DateInput value={dateTo} onChange={setDateTo} aria-label={t.transactions.toDateAriaLabel} />
               </div>
             </Field>
-            <Field label="Category">
+            <Field label={t.transactions.categoryLabel}>
               <div className="chip-group wrap">
                 <button
                   className={`chip ${categoryId === null ? "chip-active" : ""}`}
                   onClick={() => setCategoryId(null)}
                 >
-                  All
+                  {t.transactions.allCategoriesChip}
                 </button>
                 {categories.map((c) => (
                   <button
@@ -211,11 +216,21 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
               </div>
             </Field>
             <div className="field-grid">
-              <Field label="Min amount">
-                <NumericInput cents={minCents} onCentsChange={setMinCents} placeholder="0.00" aria-label="Minimum amount" />
+              <Field label={t.transactions.minAmountLabel}>
+                <NumericInput
+                  cents={minCents}
+                  onCentsChange={setMinCents}
+                  placeholder={t.transactions.amountPlaceholder}
+                  aria-label={t.transactions.minAmountAriaLabel}
+                />
               </Field>
-              <Field label="Max amount">
-                <NumericInput cents={maxCents} onCentsChange={setMaxCents} placeholder="0.00" aria-label="Maximum amount" />
+              <Field label={t.transactions.maxAmountLabel}>
+                <NumericInput
+                  cents={maxCents}
+                  onCentsChange={setMaxCents}
+                  placeholder={t.transactions.amountPlaceholder}
+                  aria-label={t.transactions.maxAmountAriaLabel}
+                />
               </Field>
             </div>
           </div>
@@ -230,19 +245,14 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
                 setMaxCents(null);
               }}
             >
-              Reset
+              {t.transactions.resetButton}
             </Button>
             <Button size="lg" className="btn-grow" onClick={() => setShowFilters(false)}>
-              Show {filtered.length} {filtered.length === 1 ? "result" : "results"}
+              {t.transactions.showResultsButton(filtered.length)}
             </Button>
           </div>
         </Sheet>
       )}
     </div>
   );
-}
-
-function nextSort(current: SortKey): SortKey {
-  const idx = SORTS.findIndex((s) => s.value === current);
-  return SORTS[(idx + 1) % SORTS.length].value;
 }

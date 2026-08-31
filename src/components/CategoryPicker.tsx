@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { useApp } from "../store/AppContext";
+import { useT } from "../lib/i18n";
 import { iconByName } from "../lib/icons";
 import { Check } from "lucide-react";
 import { rovingNextIndex } from "./ui";
@@ -13,6 +14,7 @@ export function CategoryPicker({
   onChange: (id: string) => void;
   ariaLabel?: string;
 }) {
+  const t = useT();
   const { categories } = useApp();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const selectedIndex = Math.max(
@@ -21,7 +23,7 @@ export function CategoryPicker({
   );
 
   return (
-    <div className="category-grid" role="radiogroup" aria-label={ariaLabel ?? "Category"}>
+    <div className="category-grid" role="radiogroup" aria-label={ariaLabel ?? t.categoryPicker.defaultAriaLabel}>
       {categories.map((c, i) => {
         const Icon = iconByName(c.icon);
         const selected = value === c.id;

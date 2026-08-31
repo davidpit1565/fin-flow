@@ -5,6 +5,7 @@ import { iconByName } from "../lib/icons";
 import { frequencyLabel, monthlyEquivalent } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
 import { shortDate } from "../lib/dates";
+import { useT } from "../lib/i18n";
 import { IconBadge } from "./ui";
 
 /* ---------- swipe row ---------- */
@@ -137,10 +138,11 @@ export function TransactionRow({
   onTap?: () => void;
   swipe?: { leftAction?: SwipeRowProps["leftAction"]; rightAction?: SwipeRowProps["rightAction"] };
 }) {
+  const t = useT();
   const Icon = iconByName(category?.icon);
-  const title = transaction.merchant || category?.name || "Transaction";
+  const title = transaction.merchant || category?.name || t.transactionDetail.fallbackName;
   const subtitle = transaction.recurring
-    ? `${category?.name ?? ""}${category ? " · " : ""}Recurring`
+    ? `${category?.name ?? ""}${category ? " · " : ""}${t.transactionList.recurringSwipeLabel}`
     : category?.name ?? "";
   const isIncome = transaction.type === "income";
   return (
@@ -176,6 +178,7 @@ export function SubscriptionRow({
   onTap?: () => void;
   onDelete?: () => void;
 }) {
+  const t = useT();
   const paused = subscription.status === "paused";
   const cancelled = subscription.status === "cancelled";
   const Icon = iconByName(category?.icon);
@@ -185,7 +188,7 @@ export function SubscriptionRow({
       rightAction={
         onDelete
           ? {
-              label: "Delete",
+              label: t.common.delete,
               onPress: onDelete,
               ariaLabel: `Delete ${subscription.name}`,
             }

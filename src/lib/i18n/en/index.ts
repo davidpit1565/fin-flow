@@ -5,8 +5,20 @@
  *  add one import + one property here and in ../he/index.ts. */
 import { common } from "./common";
 import { appShell } from "./appShell";
+import { transactions } from "./transactions";
+import { transactionDetail } from "./transactionDetail";
+import { transactionForm } from "./transactionForm";
+import { transactionList } from "./transactionList";
+import { categories } from "./categories";
+import { categoryPicker } from "./categoryPicker";
 
 export const en = {
   common,
   appShell,
+  transactions,
+  transactionDetail,
+  transactionForm,
+  transactionList,
+  categories,
+  categoryPicker,
 };
