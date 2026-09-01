@@ -65,6 +65,7 @@ function AppInner() {
   const isDark = useTheme(settings?.theme ?? "system");
   useAccentColor(settings?.accentColor);
   usePlatform();
+  useVisualViewportHeight();
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
   const settingsLoaded = ready && (settings?.onboarded ?? false);
@@ -515,6 +516,38 @@ function useAccentColor(accentColor: AccentColor | undefined) {
 function usePlatform(): void {
   useEffect(() => {
     document.documentElement.dataset.platform = Capacitor.getPlatform();
+  }, []);
+}
+
+/** Tracks the real visible viewport height via the VisualViewport API and
+ *  exposes it as `--app-vh` / `--app-vh-offset-bottom` custom properties.
+ *
+ *  This app's viewport meta (index.html) sets `interactive-widget=resizes-visual`,
+ *  under which the iOS/Android on-screen keyboard shrinks only
+ *  `window.visualViewport`, not the CSS layout viewport -- so `100dvh` (used
+ *  by `.app-frame`) stays full-height with the keyboard up, and a `position:
+ *  fixed` element anchored with `bottom: 0` (like `.sheet`) keeps sitting at
+ *  the bottom of that full, un-shrunk viewport -- behind the keyboard --
+ *  instead of just above it. `--app-vh`/`--app-vh-offset-bottom` give
+ *  `.app-frame`/`.sheet` in index.css a live-updating height/offset that
+ *  actually tracks the keyboard, superseding the dvh-only sizing that
+ *  can't see it. */
+function useVisualViewportHeight(): void {
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const offsetBottom = window.innerHeight - vv.height - vv.offsetTop;
+      document.documentElement.style.setProperty("--app-vh", `${vv.height}px`);
+      document.documentElement.style.setProperty("--app-vh-offset-bottom", `${Math.max(0, offsetBottom)}px`);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
   }, []);
 }
 

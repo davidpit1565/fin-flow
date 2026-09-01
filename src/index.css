@@ -197,6 +197,11 @@ ul {
   margin: 0 auto;
   height: 100vh; /* fallback for engines without dynamic viewport units */
   height: 100dvh;
+  /* `--app-vh` (set from the VisualViewport API in App.tsx) actually tracks
+     the on-screen keyboard, unlike `dvh` under this app's
+     `interactive-widget=resizes-visual` viewport meta -- see the comment on
+     `useVisualViewportHeight`. Falls back to `dvh` before the effect runs. */
+  height: var(--app-vh, 100dvh);
   background: var(--bg);
   position: relative;
   display: flex;
@@ -1680,13 +1685,19 @@ input[type="date"] {
 
 .sheet {
   position: fixed;
-  bottom: 0;
+  /* Anchored to the bottom of the full, un-shrunk layout viewport by
+     default -- `--app-vh-offset-bottom` (see useVisualViewportHeight in
+     App.tsx) lifts it by exactly the on-screen keyboard's height once one
+     is open, so the sheet (and its pinned footer button) end up sitting
+     just above the keyboard instead of partly behind it. */
+  bottom: var(--app-vh-offset-bottom, 0px);
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
   max-width: 520px;
   max-height: 90vh; /* fallback for engines without dynamic viewport units */
   max-height: 90dvh;
+  max-height: calc(var(--app-vh, 100dvh) * 0.9);
   background: var(--surface);
   border-radius: 28px 28px 0 0;
   z-index: 91;

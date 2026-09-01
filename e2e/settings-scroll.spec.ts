@@ -24,13 +24,15 @@ test.describe("settings mobile scrolling", () => {
     await scroller.evaluate((el: HTMLElement, top: number) => {
       el.scrollTop = top;
     }, target);
-    // Let the collapsing-header's scroll listener (`useHeaderScrolled`) settle
-    // its re-render before clicking -- without this, Playwright's click
-    // actionability check can race that update and end up scrolling the row
-    // into view from scratch instead of clicking it where it already is.
-    await page.waitForTimeout(150);
-
-    await currencyRow.click();
+    // Playwright's click actionability check polls the target's bounding box
+    // for stability before clicking; it can race a React re-render triggered
+    // by an unrelated scroll/resize listener elsewhere in the app (e.g. the
+    // collapsing header's `useHeaderScrolled`) and "help" by scrolling the
+    // row into view from scratch instead of clicking it where it already is.
+    // `force: true` skips that check -- a real tap doesn't do this polling
+    // either, so this matches actual user behavior rather than working
+    // around a timing quirk with a magic wait.
+    await currencyRow.click({ force: true });
     await expect(page.getByRole("dialog", { name: "Choose currency" })).toBeVisible();
 
     // Reference position once the sheet is open.

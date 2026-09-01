@@ -21,9 +21,14 @@ async function seedInsightsData(page: Page) {
     }
     function monthsAgo(n: number, day: number): string {
       const d = new Date();
+      // For the current month (n === 0), pinning to a fixed day can land in
+      // the future if the test runs early in the month (e.g. day 5 on the
+      // 1st-4th) -- clamp to today's day-of-month so "this month"'s spike
+      // transaction is never dated after "now".
+      const targetDay = n === 0 ? Math.min(day, d.getDate()) : day;
       d.setDate(1); // pin to the 1st first so subtracting months never overflows into a different month
       d.setMonth(d.getMonth() - n);
-      d.setDate(day);
+      d.setDate(targetDay);
       return iso(d);
     }
 
