@@ -7,6 +7,19 @@ const PRECACHE = [
   "/icons/icon-192.png",
   "/icons/icon-512.png",
 ];
+// Every build emits freshly content-hashed JS/CSS filenames, so old builds'
+// chunks are never requested again but were never evicted either -- this
+// caps the runtime cache so it can't grow unbounded across the app's
+// lifetime, evicting the oldest entries first (precached shell files are
+// re-added on every fetch anyway, so trimming them is harmless).
+const MAX_RUNTIME_ENTRIES = 60;
+
+async function trimCache(cacheName, maxEntries) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  const excess = keys.length - maxEntries;
+  if (excess > 0) await Promise.all(keys.slice(0, excess).map((k) => cache.delete(k)));
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -37,7 +50,12 @@ self.addEventListener("fetch", (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put("/index.html", copy));
+          event.waitUntil(
+            caches
+              .open(CACHE)
+              .then((c) => c.put("/index.html", copy))
+              .then(() => trimCache(CACHE, MAX_RUNTIME_ENTRIES))
+          );
           return res;
         })
         .catch(() => caches.match("/index.html"))
@@ -51,7 +69,12 @@ self.addEventListener("fetch", (event) => {
         .then((res) => {
           if (res.ok) {
             const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy));
+            event.waitUntil(
+              caches
+                .open(CACHE)
+                .then((c) => c.put(req, copy))
+                .then(() => trimCache(CACHE, MAX_RUNTIME_ENTRIES))
+            );
           }
           return res;
         })

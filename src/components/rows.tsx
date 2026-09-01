@@ -1,10 +1,11 @@
 import { useRef, useState, type ReactNode } from "react";
 import { ChevronRight, Repeat, Trash2 } from "lucide-react";
-import type { Category, CurrencyCode, Subscription, Transaction } from "../types";
+import type { Category, CurrencyCode, DateFormatPreference, Subscription, Transaction } from "../types";
 import { iconByName } from "../lib/icons";
-import { frequencyLabel, monthlyEquivalent } from "../lib/calc";
+import { monthlyEquivalent } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
 import { shortDate } from "../lib/dates";
+import { categoryDisplayName, useT } from "../lib/i18n";
 import { IconBadge } from "./ui";
 
 /* ---------- swipe row ---------- */
@@ -19,6 +20,40 @@ interface SwipeRowProps {
 
 const REVEAL = 84;
 
+/** Swipe-to-reveal row (leftAction/rightAction panels underneath a draggable
+ *  `.swipe-track`).
+ *
+ *  RTL decision: the drag gesture itself is left as pure physical pixel math
+ *  (`dx = e.clientX - start.x`, translateX on the track) and is NOT flipped
+ *  for RTL. A touch/pointer drag is a physical motion -- dragging your
+ *  finger physically further right always increases `clientX`, in Hebrew or
+ *  English, so re-deriving `dx` from `dir` would be solving a problem that
+ *  doesn't exist (and would desync from `.swipe-track`'s own transform,
+ *  which the CSS engine never flips automatically -- same reason
+ *  `.toggle-knob` needed its own `[dir="rtl"]` override elsewhere).
+ *
+ *  What *does* need to change is which action ends up on which physical
+ *  side, to match the RTL reading-order convention real RTL apps use (e.g.
+ *  Gmail/Mail mirror their leading/trailing swipe actions in Hebrew/Arabic):
+ *  the reading-start-side action (`leftAction`, e.g. "mark as recurring")
+ *  should sit at the reading-start edge, and the reading-end/destructive one
+ *  (`rightAction`, delete) at the reading-end edge -- left/right in LTR,
+ *  right/left in RTL. That's handled entirely in CSS: `.swipe-action-left`
+ *  and `.swipe-action-right` (index.css) are positioned with
+ *  `inset-inline-start`/`inset-inline-end` instead of physical `left`/
+ *  `right`, so the browser places them on the correct physical side for the
+ *  current `dir` with no JS involved.
+ *
+ *  Concretely, in RTL: dragging right-to-left (negative dx) still slides the
+ *  track the same physical way, which still uncovers the physical-right
+ *  panel -- but that panel is now `leftAction` (since `inset-inline-start`
+ *  resolves to physical-right in RTL), not `rightAction` as it would be in
+ *  LTR. Dragging left-to-right (positive dx) uncovers the physical-left
+ *  panel, now `rightAction` (delete). Net effect: the delete gesture mirrors
+ *  from "swipe left" (LTR) to "swipe right" (RTL), matching the Hebrew
+ *  reading-order mental model, while every line of gesture math below is
+ *  completely unaware of `dir` and stays internally consistent by
+ *  construction (the panels move, not the meaning of `dx`). */
 export function SwipeRow({ children, onTap, onOpenChange, leftAction, rightAction }: SwipeRowProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
@@ -137,11 +172,13 @@ export function TransactionRow({
   onTap?: () => void;
   swipe?: { leftAction?: SwipeRowProps["leftAction"]; rightAction?: SwipeRowProps["rightAction"] };
 }) {
+  const t = useT();
   const Icon = iconByName(category?.icon);
-  const title = transaction.merchant || category?.name || "Transaction";
+  const categoryLabel = category ? categoryDisplayName(t, category) : "";
+  const title = transaction.merchant || categoryLabel || t.transactionDetail.fallbackName;
   const subtitle = transaction.recurring
-    ? `${category?.name ?? ""}${category ? " · " : ""}Recurring`
-    : category?.name ?? "";
+    ? `${categoryLabel}${category ? " · " : ""}${t.transactionList.recurringSwipeLabel}`
+    : categoryLabel;
   const isIncome = transaction.type === "income";
   return (
     <SwipeRow onTap={onTap} leftAction={swipe?.leftAction} rightAction={swipe?.rightAction}>
@@ -152,8 +189,7 @@ export function TransactionRow({
           <span className="row-sub">{subtitle}</span>
         </div>
         <span className={`row-amount ${isIncome ? "income" : "expense"}`}>
-          {isIncome ? "+" : "−"}
-          {formatMoney(transaction.amountCents, currency)}
+          {formatMoney(isIncome ? transaction.amountCents : -transaction.amountCents, currency, { sign: true })}
         </span>
         <ChevronRight className="row-chevron" size={16} strokeWidth={2} aria-hidden="true" />
       </div>
@@ -167,15 +203,18 @@ export function SubscriptionRow({
   subscription,
   category,
   currency,
+  dateFormat,
   onTap,
   onDelete,
 }: {
   subscription: Subscription;
   category?: Category;
   currency: CurrencyCode;
+  dateFormat: DateFormatPreference;
   onTap?: () => void;
   onDelete?: () => void;
 }) {
+  const t = useT();
   const paused = subscription.status === "paused";
   const cancelled = subscription.status === "cancelled";
   const Icon = iconByName(category?.icon);
@@ -185,9 +224,9 @@ export function SubscriptionRow({
       rightAction={
         onDelete
           ? {
-              label: "Delete",
+              label: t.common.delete,
               onPress: onDelete,
-              ariaLabel: `Delete ${subscription.name}`,
+              ariaLabel: t.subscriptions.deleteAriaLabel(subscription.name),
             }
           : undefined
       }
@@ -197,13 +236,16 @@ export function SubscriptionRow({
         <div className="row-main">
           <span className="row-title">{subscription.name}</span>
           <span className="row-sub">
-            {paused ? "Paused · " : cancelled ? "Cancelled · " : ""}
-            {frequencyLabel(subscription.frequency)} · next {shortDate(subscription.nextPaymentDate, { includeYear: true })}
+            {t.subscriptions.rowMeta(
+              subscription.status,
+              subscription.frequency,
+              shortDate(subscription.nextPaymentDate, { includeYear: true, format: dateFormat })
+            )}
           </span>
         </div>
         <div className="row-end">
           <span className="row-amount">{formatMoney(subscription.amountCents, currency)}</span>
-          <span className="row-sub">{formatMoney(monthlyEquivalent(subscription), currency)}/mo</span>
+          <span className="row-sub">{t.subscriptions.monthlyEquivalentInline(formatMoney(monthlyEquivalent(subscription), currency))}</span>
         </div>
       </div>
     </SwipeRow>
@@ -225,14 +267,15 @@ export function CategoryRow({
   currency: CurrencyCode;
   onTap?: () => void;
 }) {
+  const t = useT();
   const Icon = iconByName(category.icon);
   return (
     <SwipeRow onTap={onTap}>
       <div className="row">
         <IconBadge icon={Icon} size="sm" />
         <div className="row-main">
-          <span className="row-title">{category.name}</span>
-          {percent !== undefined && <span className="row-sub">{Math.round(percent)}% of spending</span>}
+          <span className="row-title">{categoryDisplayName(t, category)}</span>
+          {percent !== undefined && <span className="row-sub">{t.common.percentOfSpending(Math.round(percent))}</span>}
         </div>
         <span className="row-amount">{formatMoney(spentCents, currency)}</span>
         <ChevronRight className="row-chevron" size={16} strokeWidth={2} aria-hidden="true" />

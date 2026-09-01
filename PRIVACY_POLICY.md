@@ -1,8 +1,10 @@
 # Privacy Policy for Flow
 
-**Last updated: [DATE — fill in before publishing]**
+**This is the source copy.** The live, hosted version App Store Connect points to is at <https://claude.ai/code/artifact/28fab5e5-6faf-43b8-93ef-5f18b81479a5> — edit that page (or ask for it to be regenerated from this file) if the policy changes; this file won't update the live page by itself.
 
-Flow ("the app") is developed by Solfay Group ("we", "us"). This policy explains how Flow handles your information.
+**Last updated: August 25, 2026**
+
+Flow ("the app") is developed by Actually Works ("we", "us"). This policy explains how Flow handles your information.
 
 ## The short version
 
@@ -41,4 +43,4 @@ If this policy changes, the "Last updated" date above will be updated and the ne
 
 ## Contact
 
-Questions about this policy or the app can be sent to: **[SUPPORT EMAIL — fill in]**
+Questions about this policy or the app: see the [Support page](https://claude.ai/code/artifact/e250bc59-e7e9-4d41-a7b0-c4c094a13cf0).

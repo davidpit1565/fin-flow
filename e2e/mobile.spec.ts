@@ -119,7 +119,7 @@ test.describe("mobile UX", () => {
 
     await openSettings(page);
     await page.getByRole("button", { name: "Monthly budgets" }).click();
-    await page.getByRole("button", { name: "Set monthly budget" }).click();
+    await page.getByRole("button", { name: "Add budget" }).click();
     await expect(page.getByLabel("Budget amount")).toHaveAttribute("inputmode", "decimal");
   });
 

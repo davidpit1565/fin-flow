@@ -21,17 +21,23 @@ platform :ios do
       export_method: "app-store"
     )
     upload_to_app_store(
-      submit_for_review: false, # flip to true once screenshots + review notes are in App Store Connect
+      submit_for_review: false, # flip to true once you've reviewed the listing in App Store Connect
       automatic_release: false,
       force: true,
       skip_metadata: false,
-      skip_screenshots: true    # screenshots must be added manually the first time (real device/simulator captures)
+      skip_screenshots: false   # real screenshots are in ./screenshots/en-US -- swap in ones from an actual
+                                 # device/simulator if you'd rather use those instead
     )
   end
 
   desc "Push just the text metadata (description, keywords, etc.) from ./metadata"
   lane :metadata do
     upload_to_app_store(skip_binary_upload: true, skip_screenshots: true, force: true)
+  end
+
+  desc "Push just the screenshots from ./screenshots"
+  lane :screenshots do
+    upload_to_app_store(skip_binary_upload: true, skip_metadata: true, force: true)
   end
 end
 

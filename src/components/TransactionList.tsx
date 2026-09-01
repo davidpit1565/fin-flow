@@ -1,8 +1,20 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Category, CurrencyCode, Transaction } from "../types";
 import { useApp } from "../store/AppContext";
-import { relativeDay, shortDate } from "../lib/dates";
+import { relativeDayLabel, useT } from "../lib/i18n";
+import { shortDate } from "../lib/dates";
 import { TransactionRow } from "./rows";
+
+// Mounting every row at once measured at ~2.7s to render and visibly
+// janked the moment the Transactions tab opened once a real user had
+// accumulated a few years of history (tested with 1500 transactions,
+// far from an unrealistic worst case for a personal finance app). This
+// caps how many rows are actually in the DOM and grows the cap as the
+// user nears the bottom of the shared `.app-scroll` container, instead
+// of adopting a full virtualization library -- which would need its own
+// scroll container and would fight the app's cross-route scroll
+// restoration and per-row swipe gestures.
+const BATCH_SIZE = 60;
 
 export function TransactionList({
   transactions,
@@ -17,44 +29,63 @@ export function TransactionList({
   onOpen: (id: string) => void;
   onEmpty?: () => void;
 }) {
-  const { deleteTransaction, updateTransaction, confirm, toast, haptic } = useApp();
+  const t = useT();
+  const { settings, deleteTransaction, updateTransaction, confirm, toast, haptic } = useApp();
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+
+  const sorted = useMemo(
+    () => [...transactions].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.createdAt - a.createdAt)),
+    [transactions]
+  );
+
+  useEffect(() => {
+    if (visibleCount >= sorted.length) return;
+    const scroller = document.querySelector<HTMLElement>(".app-scroll");
+    if (!scroller) return;
+    const onScroll = () => {
+      const nearBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 600;
+      if (nearBottom) setVisibleCount((n) => Math.min(n + BATCH_SIZE, sorted.length));
+    };
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, [visibleCount, sorted.length]);
 
   const groups = useMemo(() => {
-    const sorted = [...transactions].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.createdAt - a.createdAt));
+    const visible = sorted.slice(0, visibleCount);
     const out: { date: string; items: Transaction[] }[] = [];
-    for (const t of sorted) {
+    for (const t of visible) {
       const last = out[out.length - 1];
       if (last && last.date === t.date) last.items.push(t);
       else out.push({ date: t.date, items: [t] });
     }
     return out;
-  }, [transactions]);
+  }, [sorted, visibleCount]);
 
   if (groups.length === 0) {
     return <>{onEmpty?.() ?? null}</>;
   }
 
-  const doDelete = async (t: Transaction) => {
+  const doDelete = async (tx: Transaction) => {
     const ok = await confirm({
-      title: "Delete transaction?",
-      message: "This cannot be undone.",
-      confirmLabel: "Delete",
+      title: t.transactionList.deleteConfirmTitle,
+      message: t.transactionList.deleteConfirmMessage,
+      confirmLabel: t.common.delete,
       danger: true,
     });
     if (!ok) return;
-    deleteTransaction(t.id);
+    deleteTransaction(tx.id);
     haptic("warning");
-    toast("Deleted");
+    toast(t.common.deleted);
   };
 
-  const toggleRecurring = (t: Transaction) => {
-    const next = !t.recurring;
-    updateTransaction(t.id, {
+  const toggleRecurring = (tx: Transaction) => {
+    const next = !tx.recurring;
+    updateTransaction(tx.id, {
       recurring: next,
-      frequency: next ? t.frequency ?? "monthly" : null,
-      nextOccurrence: next ? t.nextOccurrence ?? t.date : null,
+      frequency: next ? tx.frequency ?? "monthly" : null,
+      nextOccurrence: next ? tx.nextOccurrence ?? tx.date : null,
     });
-    toast(next ? "Marked as recurring" : "Recurring removed");
+    toast(next ? t.transactionList.toastMarkedRecurring : t.transactionList.toastRecurringRemoved);
   };
 
   return (
@@ -62,25 +93,25 @@ export function TransactionList({
       {groups.map((g) => (
         <div key={g.date} className="txn-group">
           <div className="txn-group-header">
-            <span className="txn-group-date">{relativeDay(g.date) ?? shortDate(g.date)}</span>
+            <span className="txn-group-date">{relativeDayLabel(t, g.date) ?? shortDate(g.date, { format: settings?.dateFormat })}</span>
           </div>
-          {g.items.map((t) => (
+          {g.items.map((tx) => (
             <TransactionRow
-              key={t.id}
-              transaction={t}
-              category={categories.find((c) => c.id === t.categoryId)}
+              key={tx.id}
+              transaction={tx}
+              category={categories.find((c) => c.id === tx.categoryId)}
               currency={currency}
-              onTap={() => onOpen(t.id)}
+              onTap={() => onOpen(tx.id)}
               swipe={{
                 leftAction: {
-                  label: "Recurring",
-                  ariaLabel: t.recurring ? "Remove recurring" : "Mark as recurring",
-                  onPress: () => toggleRecurring(t),
+                  label: t.transactionList.recurringSwipeLabel,
+                  ariaLabel: tx.recurring ? t.transactionList.removeRecurring : t.transactionList.markRecurring,
+                  onPress: () => toggleRecurring(tx),
                 },
                 rightAction: {
-                  label: "Delete",
-                  ariaLabel: "Delete transaction",
-                  onPress: () => void doDelete(t),
+                  label: t.common.delete,
+                  ariaLabel: t.transactionList.deleteAriaLabel,
+                  onPress: () => void doDelete(tx),
                 },
               }}
             />

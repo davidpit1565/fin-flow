@@ -20,8 +20,13 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: "DARK",
     },
+    // "native" resizes the actual WKWebView frame when the keyboard shows, so
+    // the app's own 100vh/sticky-bottom layout (the tab bar included) shrinks
+    // and repositions consistently -- "body" only toggled the <body> element's
+    // height, which the app's fixed-height frame didn't follow, producing the
+    // tab bar jump / bad-fit-to-screen symptom during e.g. Add subscription.
     Keyboard: {
-      resize: "body",
+      resize: "native",
     },
   },
 };

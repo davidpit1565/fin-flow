@@ -1,7 +1,7 @@
 /** Minimal promise-based IndexedDB wrapper. All Flow data lives on-device. */
 
 const DB_NAME = "flow-db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const STORES = {
   transactions: "transactions",
@@ -10,6 +10,9 @@ export const STORES = {
   budgets: "budgets",
   settings: "settings",
   meta: "meta",
+  goals: "goals",
+  netWorthItems: "netWorthItems",
+  debts: "debts",
 } as const;
 
 function openDB(): Promise<IDBDatabase> {
@@ -37,6 +40,15 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORES.meta)) {
         db.createObjectStore(STORES.meta, { keyPath: "key" });
       }
+      if (!db.objectStoreNames.contains(STORES.goals)) {
+        db.createObjectStore(STORES.goals, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(STORES.netWorthItems)) {
+        db.createObjectStore(STORES.netWorthItems, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(STORES.debts)) {
+        db.createObjectStore(STORES.debts, { keyPath: "id" });
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error ?? new Error("Could not open local storage"));
@@ -46,7 +58,16 @@ function openDB(): Promise<IDBDatabase> {
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 function db(): Promise<IDBDatabase> {
-  if (!dbPromise) dbPromise = openDB();
+  if (!dbPromise) {
+    // Clear the cache on failure too, or a transient open error (or a
+    // blocked IndexedDB that later becomes available, e.g. leaving private
+    // browsing) would poison every future call with the same stale
+    // rejection forever, even after a caller explicitly retries.
+    dbPromise = openDB().catch((err: unknown) => {
+      dbPromise = null;
+      throw err;
+    });
+  }
   return dbPromise;
 }
 

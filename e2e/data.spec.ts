@@ -14,6 +14,9 @@ test.describe("data management", () => {
     const content = readFileSync((await download.path())!, "utf-8");
     expect(content).toContain("Export Me");
     expect(content).toContain("12.34");
+    // Regression: the Currency column used to always say the literal
+    // string "app currency" instead of the real currency code.
+    expect(content).not.toContain("app currency");
   });
 
   test("imports a CSV into transactions", async ({ page }) => {
@@ -34,7 +37,7 @@ test.describe("data management", () => {
     });
     await expect(page.locator(".toast")).toContainText("Imported 2 transactions");
 
-    await page.getByRole("button", { name: "Back" }).click();
+    await page.getByRole("button", { name: "Back", exact: true }).click();
     await page.getByRole("button", { name: "Transactions", exact: true }).click();
     await expect(page.getByText("Imported Coffee")).toBeVisible();
     await expect(page.getByText("Imported Salary")).toBeVisible();

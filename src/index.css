@@ -10,7 +10,7 @@
   --surface-3: #e7e7ec;
   --text: #1c1c1f;
   --text-secondary: #6d6d76;
-  --text-tertiary: #a1a1ab;
+  --text-tertiary: #6f6f78;
   --border: rgba(20, 20, 24, 0.08);
   --border-strong: rgba(20, 20, 24, 0.16);
   --accent: #0e8a5c;
@@ -24,8 +24,27 @@
   --shadow-sm: 0 1px 2px rgba(20, 20, 24, 0.05);
   --shadow-md: 0 10px 28px rgba(20, 20, 24, 0.09);
   --shadow-lg: 0 20px 48px rgba(20, 20, 24, 0.16);
-  --tabbar-h: 66px;
+  /* Matches real iOS's ~49pt tab bar content height (plus the safe area,
+     added separately below) -- was 66px, which measured out to ~12% of a
+     typical phone's screen height including the home-indicator safe area,
+     noticeably taller than the ~10% real iOS tab bars occupy. */
+  --tabbar-h: 54px;
   color-scheme: light;
+
+  /* Apple HIG type scale (San Francisco's default sizes at 100% Dynamic
+     Type) -- named so a screen reaches for "the headline size" rather
+     than picking a fresh px value each time. */
+  --text-large-title: 34px;
+  --text-title-1: 28px;
+  --text-title-2: 22px;
+  --text-title-3: 20px;
+  --text-headline: 17px;
+  --text-body: 17px;
+  --text-callout: 16px;
+  --text-subhead: 15px;
+  --text-footnote: 13px;
+  --text-caption-1: 12px;
+  --text-caption-2: 11px;
 }
 
 :root[data-theme="dark"] {
@@ -35,7 +54,7 @@
   --surface-3: #282a2f;
   --text: #f2f3f5;
   --text-secondary: #a3a5ad;
-  --text-tertiary: #696b73;
+  --text-tertiary: #82838b;
   --border: rgba(255, 255, 255, 0.09);
   --border-strong: rgba(255, 255, 255, 0.18);
   --accent: #34c98a;
@@ -50,6 +69,64 @@
   --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
+}
+
+/* ---------- accent colors ----------
+   `green` is the original default, defined above on bare `:root` /
+   `:root[data-theme="dark"]`, so it needs no override block here. Each other
+   color gets a light-mode block (applies whenever data-theme is absent or
+   "light") plus a `[data-theme="dark"]` combo block so it also reads right
+   over the dark palette -- same --accent/--accent-strong/--accent-soft
+   lightness relationship as green: a mid-dark solid in light mode with a
+   darker "strong" shade, and a lighter/brighter pair with a low-alpha soft
+   tint in dark mode. */
+
+:root[data-accent="blue"] {
+  --accent: #0284c7;
+  --accent-strong: #0369a1;
+  --accent-soft: rgba(2, 132, 199, 0.12);
+}
+
+:root[data-theme="dark"][data-accent="blue"] {
+  --accent: #38bdf8;
+  --accent-strong: #7dd3fc;
+  --accent-soft: rgba(56, 189, 248, 0.16);
+}
+
+:root[data-accent="purple"] {
+  --accent: #7c3aed;
+  --accent-strong: #6025c4;
+  --accent-soft: rgba(124, 58, 237, 0.12);
+}
+
+:root[data-theme="dark"][data-accent="purple"] {
+  --accent: #a78bfa;
+  --accent-strong: #c4b5fd;
+  --accent-soft: rgba(167, 139, 250, 0.16);
+}
+
+:root[data-accent="orange"] {
+  --accent: #c2410c;
+  --accent-strong: #9a3412;
+  --accent-soft: rgba(194, 65, 12, 0.12);
+}
+
+:root[data-theme="dark"][data-accent="orange"] {
+  --accent: #fb923c;
+  --accent-strong: #fdba74;
+  --accent-soft: rgba(251, 146, 60, 0.16);
+}
+
+:root[data-accent="pink"] {
+  --accent: #be185d;
+  --accent-strong: #9d174d;
+  --accent-soft: rgba(190, 24, 93, 0.12);
+}
+
+:root[data-theme="dark"][data-accent="pink"] {
+  --accent: #f472b6;
+  --accent-strong: #f9a8d4;
+  --accent-soft: rgba(244, 114, 182, 0.16);
 }
 
 /* ---------- base ---------- */
@@ -122,7 +199,17 @@ ul {
 .app-frame {
   max-width: 520px;
   margin: 0 auto;
-  height: 100vh;
+  height: 100vh; /* fallback for engines without dynamic viewport units */
+  height: 100dvh;
+  /* `--app-vh-offset-bottom` (set from the VisualViewport API in App.tsx,
+     see `useVisualViewportHeight`) is the gap the on-screen keyboard opens
+     up between the layout viewport and the real visible one -- zero
+     whenever there's no keyboard, including during ordinary browser-chrome
+     show/hide, which `dvh` already tracks correctly and smoothly on its
+     own. Subtracting it from `dvh` (rather than replacing `dvh` outright
+     with an absolute JS-computed height) fixes only the keyboard case and
+     never fights or duplicates the native dvh recalculation. */
+  height: calc(100dvh - var(--app-vh-offset-bottom, 0px));
   background: var(--bg);
   position: relative;
   display: flex;
@@ -134,6 +221,102 @@ ul {
     border-left: 1px solid var(--border);
     border-right: 1px solid var(--border);
   }
+}
+
+.sidebar {
+  display: none;
+  width: 248px;
+  flex-shrink: 0;
+  flex-direction: column;
+  padding: 28px 16px calc(20px + env(safe-area-inset-bottom));
+  border-inline-end: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.sidebar-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  margin-bottom: 28px;
+}
+
+.sidebar-mark span {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sidebar-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 650;
+  font-size: 14.5px;
+  margin-bottom: 22px;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar-add:hover {
+  background: var(--accent-strong);
+}
+
+.sidebar-add:active {
+  transform: scale(0.97);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+  text-align: start;
+}
+
+.sidebar-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.sidebar-item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* Wraps .app-scroll + .tabbar so the adaptive shell can lay the sidebar
+   beside them (see the >=768px rules at the end of this file). At every
+   width this must fill .app-frame's remaining height itself, or its .flex:1
+   child below has no constrained space to flex into. */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-scroll {
@@ -180,6 +363,42 @@ ul {
   justify-content: center;
   background: var(--bg);
   animation: fadeIn 0.4s ease both;
+}
+
+.privacy-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.lock-screen {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  background: var(--bg);
+  animation: fadeIn 0.4s ease both;
+}
+
+.lock-screen-title {
+  font-size: 17px;
+  font-weight: 650;
+  color: var(--text);
+  margin: 4px 0 0;
+}
+
+.lock-screen-hint {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  margin: 0;
 }
 
 @keyframes fadeIn {
@@ -333,6 +552,14 @@ ul {
   flex-shrink: 0;
 }
 
+/** For icons that visually encode a direction (back arrows, chevrons) rather
+ *  than a fixed symbol (trash can, checkmark) -- see the RTL correctness
+ *  notes in CLAUDE.md. Apply only to those, never blanket-flip a whole
+ *  icon-carrying container. */
+[dir="rtl"] .icon-directional {
+  transform: scaleX(-1);
+}
+
 .icon-btn:hover {
   background: var(--surface-3);
   color: var(--text);
@@ -357,21 +584,67 @@ ul {
   background: var(--danger-soft);
 }
 
-/* ---------- headers ---------- */
+/* ---------- headers ----------
+   iOS-style collapsing large title: a slim, initially-transparent bar
+   sticks to the top of `.app-scroll` and shows only the back/right
+   controls; the real title lives in normal flow just below it as a big
+   bold "large title" (see `.screen-large-title`). Once that title
+   scrolls up underneath the bar, `.scrolled` (toggled by
+   `useHeaderScrolled` in ui.tsx) fades in the bar's own small centered
+   title and its blurred background -- exactly how Settings/Mail/Messages
+   behave on iOS. */
 
-.screen-header {
+.screen-header-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 -20px;
+  padding: env(safe-area-inset-top) 20px 0;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.screen-header-bar.scrolled {
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom-color: var(--border);
+}
+
+.screen-header-bar-inner {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0 12px;
-  gap: 12px;
+  height: 44px;
+  gap: 8px;
 }
 
-.screen-header-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
+.screen-header-bar-title {
+  position: absolute;
+  inset-inline: 0;
+  text-align: center;
+  max-width: 100%;
+  padding: 0 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 650;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.screen-header-bar.scrolled .screen-header-bar-title {
+  opacity: 1;
+}
+
+.screen-header-bar .icon-btn,
+.screen-header-right {
+  position: relative;
+  z-index: 1;
 }
 
 .screen-header-right {
@@ -380,23 +653,28 @@ ul {
   gap: 8px;
 }
 
-.home-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 0 14px;
+.screen-large-title-wrap {
+  padding: 4px 0 8px;
+}
+
+.screen-large-title {
+  font-size: 34px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* A screen rendering the sticky header bar handles its own top safe-area
+   spacing (see `.screen-header-bar`'s padding above) -- `.screen`'s own
+   padding-top would otherwise double it before the first scroll. */
+.screen:has(> .screen-header-bar) {
+  padding-top: 0;
 }
 
 .home-greeting {
-  font-size: 14px;
+  font-size: var(--text-subhead);
   color: var(--text-secondary);
-}
-
-.home-title {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  margin-top: 1px;
+  margin-bottom: 2px;
 }
 
 /* ---------- segmented + toggle ---------- */
@@ -443,8 +721,11 @@ ul {
 
 /* Below this width the control always overflows (measured: scrollable at
    every width up to 430px, never at 480px+), so a fade at the trailing
-   edge is a reliable hint that more options sit off-screen, not a false one. */
-@media (max-width: 460px) {
+   edge is a reliable hint that more options sit off-screen, not a false one.
+   A container query (keyed to .spend-card's own width, set above) rather
+   than a viewport media query, since the adaptive shell can make this card
+   narrow on a wide screen too -- a plain page-width query would miss that. */
+@container (max-width: 460px) {
   .segmented-full {
     -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
     mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
@@ -478,7 +759,7 @@ ul {
 .toggle-knob {
   position: absolute;
   top: 2px;
-  left: 2px;
+  inset-inline-start: 2px;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -489,6 +770,13 @@ ul {
 
 .toggle.on .toggle-knob {
   transform: translateX(20px);
+}
+
+/* `translateX` is a physical transform -- it doesn't flip with `dir` the way
+   `inset-inline-start` does, so the "on" slide direction needs its own RTL
+   override to still move the knob toward the same logical end. */
+[dir="rtl"] .toggle.on .toggle-knob {
+  transform: translateX(-20px);
 }
 
 /* ---------- fields ---------- */
@@ -510,6 +798,10 @@ ul {
   color: var(--text-tertiary);
   margin-top: 6px;
   line-height: 1.45;
+}
+
+.field-hint-warn {
+  color: var(--warn);
 }
 
 .input {
@@ -537,6 +829,19 @@ ul {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   border-radius: 14px;
+  /* Amounts are always typed and read left-to-right, even in the Hebrew UI.
+     Without this, the field inherits `direction: rtl` from <html> and
+     digits can appear to insert/edit in reverse order as the user types. */
+  direction: ltr;
+}
+
+/* Native number/date inputs: keep digits and date segments left-to-right
+   regardless of page direction, for the same reason as .input-amount above.
+   Scoped to these two input types only -- free-text fields (name, notes,
+   search) must keep inheriting RTL so Hebrew text still types correctly. */
+.input[type="number"],
+.input[type="date"] {
+  direction: ltr;
 }
 
 .textarea {
@@ -717,7 +1022,7 @@ input[type="date"] {
 .category-chip-check {
   position: absolute;
   bottom: -1px;
-  right: -1px;
+  inset-inline-end: -1px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -785,7 +1090,7 @@ input[type="date"] {
 
 .card-pressable {
   transition: transform 0.12s ease, border-color 0.15s ease;
-  text-align: left;
+  text-align: start;
   width: 100%;
 }
 
@@ -822,8 +1127,10 @@ input[type="date"] {
 }
 
 .section-title {
-  font-size: 17px;
-  font-weight: 650;
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: none;
   letter-spacing: -0.01em;
 }
 
@@ -867,7 +1174,7 @@ input[type="date"] {
   border-bottom: 1px solid var(--border);
   min-width: 0;
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
 .row:last-child {
@@ -928,6 +1235,12 @@ input[type="date"] {
   flex-shrink: 0;
 }
 
+/* A row's chevron always points toward "deeper into the app" -- the
+   direction that flips with reading direction, unlike a fixed-symbol icon. */
+[dir="rtl"] .row-chevron {
+  transform: scaleX(-1);
+}
+
 .row-muted {
   opacity: 0.55;
 }
@@ -959,12 +1272,22 @@ input[type="date"] {
   z-index: 1;
 }
 
+/* RTL note: these use logical (not physical) inset properties on purpose.
+   `leftAction` is always the reading-start-side action (e.g. "mark as
+   recurring") and `rightAction` the reading-end/destructive one (delete) --
+   see the comment on SwipeRow in components/rows.tsx for the full reasoning.
+   `inset-inline-start`/`inset-inline-end` put `leftAction` on the physical
+   left in LTR and the physical right in RTL (and vice-versa for
+   `rightAction`), which is exactly what's needed: the drag gesture itself
+   (translateX in rows.tsx) is a physical, direction-agnostic transform that
+   is deliberately left untouched, so flipping *which action lives on which
+   physical side* is the only thing that needs to change for RTL. */
 .swipe-action-left {
-  left: 0;
+  inset-inline-start: 0;
 }
 
 .swipe-action-right {
-  right: 0;
+  inset-inline-end: 0;
 }
 
 .swipe-action-btn {
@@ -1056,6 +1379,11 @@ input[type="date"] {
 
 .spend-card {
   padding: 20px;
+  /* The period selector's overflow hint (below) needs to react to this
+     card's own rendered width, not the page viewport -- on the adaptive
+     desktop/tablet shell the card can be narrow in a two-column layout even
+     though the viewport itself is wide. */
+  container-type: inline-size;
 }
 
 .spend-card-top {
@@ -1165,7 +1493,7 @@ input[type="date"] {
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
 .coming-row:last-child {
@@ -1365,13 +1693,19 @@ input[type="date"] {
 
 .sheet {
   position: fixed;
-  bottom: 0;
+  /* Anchored to the bottom of the full, un-shrunk layout viewport by
+     default -- `--app-vh-offset-bottom` (see useVisualViewportHeight in
+     App.tsx) lifts it by exactly the on-screen keyboard's height once one
+     is open, so the sheet (and its pinned footer button) end up sitting
+     just above the keyboard instead of partly behind it. */
+  bottom: var(--app-vh-offset-bottom, 0px);
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
   max-width: 520px;
   max-height: 90vh; /* fallback for engines without dynamic viewport units */
   max-height: 90dvh;
+  max-height: calc((100dvh - var(--app-vh-offset-bottom, 0px)) * 0.9);
   background: var(--surface);
   border-radius: 28px 28px 0 0;
   z-index: 91;
@@ -1558,7 +1892,7 @@ input[type="date"] {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  height: 52px;
+  height: 44px;
   color: var(--text-tertiary);
   font-size: 10.5px;
   font-weight: 600;
@@ -1592,7 +1926,7 @@ input[type="date"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: -22px;
+  margin-top: -18px;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 45%, transparent);
   transition: transform 0.15s ease, background 0.15s ease;
 }
@@ -1674,7 +2008,7 @@ input[type="date"] {
 }
 
 .detail-row-value {
-  text-align: right;
+  text-align: end;
   font-weight: 550;
   min-width: 0;
   word-break: break-word;
@@ -1696,6 +2030,14 @@ input[type="date"] {
 
 .detail-actions-column .btn {
   width: 100%;
+}
+
+.detail-actions-danger {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
 .status-chip {
@@ -1772,9 +2114,19 @@ input[type="date"] {
   color: var(--text-tertiary);
 }
 
-.list-card {
+/** Authentic iOS "grouped list" (Settings.app-style): flat, borderless,
+ *  a subtle 10px radius -- distinct from `.card`'s bordered/shadowed
+ *  freestanding look, since a grouped list reads as content sitting on
+ *  the grouped background rather than a card floating above it.
+ *  `.budget-list` (Goals/Budgets/Debts/NetWorth item lists) shares the
+ *  same flat treatment -- it's the same "grouped list of rows" pattern. */
+.list-card,
+.budget-list {
   padding: 4px 16px;
   margin-top: 12px;
+  border: none;
+  box-shadow: none;
+  border-radius: 10px;
 }
 
 .sub-hero-next {
@@ -1962,12 +2314,138 @@ input[type="date"] {
   margin: 8px 0 16px;
 }
 
-/* ---------- budgets ---------- */
+/* ---------- AI insights: health score, narrative, callouts ---------- */
 
-.budget-list {
-  padding: 4px 16px;
-  margin-top: 12px;
+.health-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
 }
+
+.health-score {
+  display: block;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-tier {
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: capitalize;
+  padding: 5px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.health-tier-excellent,
+.health-tier-good {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.health-tier-fair {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.health-tier-needs-attention {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.health-factors {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+}
+
+.health-factor-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.narrative-list,
+.callout-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.narrative-list li {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  padding-inline-start: 14px;
+  position: relative;
+}
+
+.narrative-list li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.callout-card .spend-label {
+  margin-bottom: 10px;
+}
+
+.callout-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 550;
+  padding: 2px 0;
+}
+
+/* ---------- year in review ---------- */
+
+.year-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 4px 0 16px;
+}
+
+.year-picker-value {
+  font-size: 20px;
+  font-weight: 650;
+  min-width: 64px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.wrapped-hero {
+  padding: 24px 20px;
+  margin-bottom: 12px;
+  background: linear-gradient(160deg, var(--accent-soft), var(--surface) 70%);
+  border-color: var(--border-strong);
+}
+
+.wrapped-hero-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+/* ---------- budgets ---------- */
+/* .budget-list's flat-card treatment lives with .list-card's rule above. */
 
 .budget-item {
   padding: 12px 0;
@@ -1996,6 +2474,32 @@ input[type="date"] {
 .budget-item-actions {
   display: flex;
   gap: 6px;
+}
+
+.period-tag {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- net worth ---------- */
+
+.networth-total-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.debt-plan-result {
+  margin-top: 12px;
 }
 
 /* ---------- settings ---------- */
@@ -2106,6 +2610,21 @@ input[type="date"] {
   align-items: center;
   justify-content: center;
   margin-bottom: 6px;
+  /* A soft halo makes this the one thing the eye lands on first, instead of
+     a flat icon competing on equal footing with the title text below it. */
+  box-shadow: 0 0 0 14px color-mix(in srgb, var(--accent) 6%, transparent), 0 0 40px 6px color-mix(in srgb, var(--accent) 14%, transparent);
+  animation: onboardIconIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes onboardIconIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .onboarding-title {
@@ -2125,7 +2644,7 @@ input[type="date"] {
 .onboarding-setup {
   justify-content: flex-start;
   padding-top: 8px;
-  text-align: left;
+  text-align: start;
   align-items: flex-start;
 }
 
@@ -2238,7 +2757,7 @@ input[type="date"] {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 2px;
-  text-align: left;
+  text-align: start;
   font-size: 15px;
   font-weight: 600;
 }
@@ -2270,4 +2789,208 @@ input[type="date"] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ============================================================
+   Adaptive shell -- tablet portrait and up (iPad, laptop, desktop)
+   Placed last so these overrides always win regardless of any base
+   rule's position earlier in the file.
+   ============================================================ */
+
+@media (min-width: 768px) {
+  .app-frame {
+    max-width: none;
+    flex-direction: row;
+    border: none;
+  }
+
+  .app-main {
+    height: 100%;
+  }
+
+  .tabbar {
+    display: none;
+  }
+
+  .sidebar {
+    display: flex;
+  }
+
+  .app-scroll {
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 28px 40px;
+  }
+
+  .screen {
+    padding-top: 32px;
+  }
+
+  /* A bottom sheet sliding up from the edge of a wide screen reads as a
+     mobile leftover, not a native control -- present it as a centered
+     dialog instead, matching how dialogs already work on this breakpoint. */
+  .sheet-backdrop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .sheet {
+    position: static;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    border-radius: 20px;
+    animation: sheetInDesktop 0.22s cubic-bezier(0.32, 0.9, 0.4, 1) both;
+  }
+}
+
+/* iPad landscape and small laptops and up: there's finally enough width next
+   to the 248px sidebar for a genuine two-column Home layout without
+   squeezing either column below a comfortable reading width. */
+@media (min-width: 1024px) {
+  .app-scroll {
+    max-width: 900px;
+    padding: 0 40px 40px;
+  }
+
+  /* Home: use the extra width for a two-column layout instead of one long
+     scrolling stack -- the hero card and upcoming payments read first (left,
+     wider), category/budget/savings support it (right). minmax(0, ...) lets
+     each column shrink with its content instead of overflowing the grid. */
+  .home-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+}
+
+@keyframes sheetInDesktop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============================================================
+   Android / Material theme layer
+   The app is designed around Apple HIG by default (see the rest of this
+   file), since that's the primary iOS build -- but the identical
+   codebase also ships to the Play Store, where an app that merely looks
+   like a transplanted iOS screen reads as low-effort. `data-platform`
+   is set once at boot from `Capacitor.getPlatform()` (see `usePlatform`
+   in App.tsx, mirroring the existing `data-theme`/`data-accent` pattern).
+   Placed last so these overrides always win regardless of any base
+   rule's position earlier in the file.
+   ============================================================ */
+
+:root[data-platform="android"] {
+  --font-android: Roboto, "Noto Sans Hebrew", "Segoe UI", Arial, sans-serif;
+}
+
+[data-platform="android"] body {
+  font-family: var(--font-android);
+}
+
+/* Material 3 filled/tonal buttons are fully-rounded pills, not iOS's
+   moderately-rounded rectangle -- radius = half the button's own height. */
+[data-platform="android"] .btn {
+  border-radius: 22px;
+  letter-spacing: 0;
+}
+[data-platform="android"] .btn-lg {
+  border-radius: 26px;
+}
+[data-platform="android"] .btn-sm {
+  border-radius: 18px;
+}
+
+/* Material icon buttons are circular. */
+[data-platform="android"] .icon-btn {
+  border-radius: 50%;
+}
+
+/* Material's press feedback is a darkening "state layer" overlay, not
+   iOS's scale-down -- most noticeable on buttons and pressable cards. */
+[data-platform="android"] .btn:active,
+[data-platform="android"] .card-pressable:active,
+[data-platform="android"] .icon-btn:active {
+  transform: none;
+  filter: brightness(0.92);
+}
+
+/* Material list/preference screens are edge-to-edge with a much smaller
+   corner radius than iOS's rounded grouped-list card, and use a subtle
+   elevation shadow instead of a flat borderless surface. */
+[data-platform="android"] .list-card,
+[data-platform="android"] .budget-list {
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+:root[data-platform="android"][data-theme="dark"] .list-card,
+:root[data-platform="android"][data-theme="dark"] .budget-list {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.36);
+}
+
+/* Material 3 switch: larger thumb, more rectangular track, thumb grows
+   when on (approximating the checkmark-bearing M3 switch without needing
+   an actual checkmark icon). */
+[data-platform="android"] .toggle {
+  width: 52px;
+  height: 32px;
+  border-radius: 16px;
+}
+[data-platform="android"] .toggle-knob {
+  top: 4px;
+  inset-inline-start: 4px;
+  width: 20px;
+  height: 20px;
+}
+[data-platform="android"] .toggle.on .toggle-knob {
+  top: 2px;
+  width: 24px;
+  height: 24px;
+  transform: translateX(20px);
+  background: #fff;
+}
+[dir="rtl"][data-platform="android"] .toggle.on .toggle-knob {
+  transform: translateX(-20px);
+}
+
+/* Material bottom sheets use a smaller top-corner radius than iOS's. */
+[data-platform="android"] .sheet {
+  border-radius: 16px 16px 0 0;
+}
+
+/* Android's top app bar title uses Roboto Medium with normal tracking,
+   not SF Pro's tight, heavier "large title" tracking. */
+[data-platform="android"] .screen-large-title,
+[data-platform="android"] .screen-header-bar-title {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* Material 3 segmented buttons: fully-rounded track and pills, and the
+   selected segment reads via an accent tint rather than iOS's floating
+   white pill + shadow (Material avoids elevation on compact controls). */
+[data-platform="android"] .segmented {
+  border-radius: 999px;
+}
+[data-platform="android"] .segmented-item {
+  border-radius: 999px;
+}
+[data-platform="android"] .segmented-item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: none;
 }

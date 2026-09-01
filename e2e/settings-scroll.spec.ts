@@ -12,17 +12,27 @@ test.describe("settings mobile scrolling", () => {
     const currencyRow = page.getByRole("button", { name: "Currency" });
 
     // Position the page with a non-zero scroll offset while keeping the Currency
-    // row fully visible, so the click doesn't trigger an extra reveal scroll.
+    // row comfortably visible -- if it were scrolled out of view instead,
+    // clicking it snaps the scroller back to wherever the browser reveals
+    // it (observed to land exactly on 0), which isn't what this test is
+    // trying to exercise.
     const rowTop = await currencyRow.evaluate((el: HTMLElement) => {
       const s = el.closest(".app-scroll") as HTMLElement | null;
       return s ? el.getBoundingClientRect().top - s.getBoundingClientRect().top + s.scrollTop : 0;
     });
-    const target = Math.max(0, Math.floor(rowTop) - 30);
+    const target = Math.max(0, Math.floor(rowTop) - 50);
     await scroller.evaluate((el: HTMLElement, top: number) => {
       el.scrollTop = top;
     }, target);
-
-    await currencyRow.click();
+    // Playwright's click actionability check polls the target's bounding box
+    // for stability before clicking; it can race a React re-render triggered
+    // by an unrelated scroll/resize listener elsewhere in the app (e.g. the
+    // collapsing header's `useHeaderScrolled`) and "help" by scrolling the
+    // row into view from scratch instead of clicking it where it already is.
+    // `force: true` skips that check -- a real tap doesn't do this polling
+    // either, so this matches actual user behavior rather than working
+    // around a timing quirk with a magic wait.
+    await currencyRow.click({ force: true });
     await expect(page.getByRole("dialog", { name: "Choose currency" })).toBeVisible();
 
     // Reference position once the sheet is open.

@@ -40,6 +40,24 @@ describe("parseAmountToCents", () => {
     expect(parseAmountToCents("abc")).toBeNull();
     expect(parseAmountToCents("0")).toBeNull();
   });
+
+  test("rejects absurdly large amounts instead of silently corrupting into an imprecise number (regression)", () => {
+    expect(parseAmountToCents("999999999999999999999999999999")).toBeNull();
+    expect(parseAmountToCents("10000000000.00")).toBeNull(); // just over the cap
+    expect(parseAmountToCents("9999999999.99")).toBe(999999999999); // exactly at the cap
+  });
+
+  test("rounds a third decimal digit correctly despite float representation error (regression)", () => {
+    // Math.round(Number(s) * 100) used to get several of these wrong --
+    // e.g. 1.005 * 100 === 100.49999999999999 in IEEE 754, which rounds
+    // down to 100 instead of the correct half-up 101.
+    expect(parseAmountToCents("1.005")).toBe(101);
+    expect(parseAmountToCents("1.015")).toBe(102);
+    expect(parseAmountToCents("1.025")).toBe(103);
+    expect(parseAmountToCents("0.145")).toBe(15);
+    expect(parseAmountToCents("1.995")).toBe(200); // carries into the whole part
+    expect(parseAmountToCents("1.004")).toBe(100); // below the halfway point still rounds down
+  });
 });
 
 describe("centsToInput", () => {

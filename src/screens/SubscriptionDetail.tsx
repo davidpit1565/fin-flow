@@ -2,26 +2,13 @@ import { useRef, useState } from "react";
 import { CalendarCheck, CheckCircle2, Pause, Pencil, Play, RefreshCcw, Trash2, XCircle } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
-import { frequencyLabel, monthlyEquivalent, yearlyEquivalent } from "../lib/calc";
+import { monthlyEquivalent, yearlyEquivalent } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
-import { longDate, relativeDay, shortDate } from "../lib/dates";
+import { longDate, shortDate } from "../lib/dates";
 import { iconByName } from "../lib/icons";
+import { categoryDisplayName, relativeDayLabel, useT } from "../lib/i18n";
 import { Card, IconBadge, ScreenHeader } from "../components/ui";
 import { AddSubscriptionSheet } from "../components/AddSubscriptionSheet";
-
-const METHOD_LABELS: Record<string, string> = {
-  cash: "Cash",
-  card: "Card",
-  bank: "Bank",
-  other: "Other",
-};
-
-const REMINDER_LABELS: Record<number, string> = {
-  0: "Same day",
-  1: "1 day before",
-  3: "3 days before",
-  7: "7 days before",
-};
 
 export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string }) {
   const {
@@ -36,6 +23,7 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
     haptic,
   } = useApp();
   const { back } = useNavigation();
+  const t = useT();
   const [editing, setEditing] = useState(false);
 
   const subscription = subscriptions.find((s) => s.id === subscriptionId);
@@ -43,8 +31,8 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
   if (!subscription) {
     return (
       <div className="screen">
-        <ScreenHeader title="Subscription" onBack={back} />
-        <p className="screen-empty-text">This subscription no longer exists.</p>
+        <ScreenHeader title={t.subscriptions.detailTitle} onBack={back} largeTitle={false} />
+        <p className="screen-empty-text">{t.subscriptions.notFound}</p>
       </div>
     );
   }
@@ -53,40 +41,41 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
   const Icon = iconByName(category?.icon);
   const { currency } = settings;
   const status = subscription.status;
-  const nextLabel = relativeDay(subscription.nextPaymentDate) ?? shortDate(subscription.nextPaymentDate, { includeYear: true });
+  const nextLabel =
+    relativeDayLabel(t, subscription.nextPaymentDate) ?? shortDate(subscription.nextPaymentDate, { includeYear: true, format: settings.dateFormat });
 
   const doDelete = async () => {
     const ok = await confirm({
-      title: "Delete subscription?",
+      title: t.subscriptions.deleteConfirmTitle,
       message:
         status === "active"
-          ? `${subscription.name} is active. Deleting removes it from Flow. This cannot be undone.`
-          : "This cannot be undone.",
-      confirmLabel: "Delete",
+          ? t.subscriptions.deleteConfirmMessageActive(subscription.name)
+          : t.subscriptions.deleteConfirmMessageInactive,
+      confirmLabel: t.common.delete,
       danger: true,
     });
     if (!ok) return;
     deleteSubscription(subscription.id);
     haptic("warning");
-    toast("Deleted");
+    toast(t.common.deleted);
     back();
   };
 
   const doCancel = async () => {
     const ok = await confirm({
-      title: "Cancel subscription record?",
-      message: `${subscription.name} will be marked as cancelled and kept in your history. Flow only tracks subscriptions — it never cancels the real one.`,
-      confirmLabel: "Cancel record",
+      title: t.subscriptions.cancelRecordTitle,
+      message: t.subscriptions.cancelRecordMessage(subscription.name),
+      confirmLabel: t.subscriptions.cancelRecordConfirmLabel,
     });
     if (!ok) return;
     updateSubscription(subscription.id, { status: "cancelled" });
-    toast("Record cancelled");
+    toast(t.subscriptions.recordCancelledToast);
   };
 
   const togglePause = () => {
     const next = status === "paused" ? "active" : "paused";
     updateSubscription(subscription.id, { status: next });
-    toast(next === "paused" ? "Subscription paused" : "Subscription resumed");
+    toast(next === "paused" ? t.subscriptions.pausedToast : t.subscriptions.resumedToast);
   };
 
   // Guards against a double-tap recording two payments and advancing two
@@ -99,7 +88,7 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
     recordingPayment.current = true;
     recordSubscriptionPayment(subscription.id);
     haptic("success");
-    toast("Payment recorded");
+    toast(t.subscriptions.paymentRecorded);
     setTimeout(() => {
       recordingPayment.current = false;
     }, 500);
@@ -108,10 +97,11 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
   return (
     <div className="screen">
       <ScreenHeader
-        title="Subscription"
+        title={t.subscriptions.detailTitle}
         onBack={back}
+        largeTitle={false}
         right={
-          <button className="icon-btn" aria-label="Edit subscription" onClick={() => setEditing(true)}>
+          <button className="icon-btn" aria-label={t.subscriptions.editSubscription} onClick={() => setEditing(true)}>
             <Pencil size={18} strokeWidth={2} />
           </button>
         }
@@ -119,48 +109,51 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
 
       <div className="detail-hero">
         <IconBadge icon={Icon} size="lg" />
-        <span className={`status-chip status-${status}`}>{status === "active" ? "Active" : status === "paused" ? "Paused" : "Cancelled"}</span>
+        <span className={`status-chip status-${status}`}>{t.subscriptions.statusLabel(status)}</span>
         <span className="detail-merchant">{subscription.name}</span>
         <span className="detail-amount">
           {formatMoney(subscription.amountCents, currency)}
-          <span className="detail-amount-per"> / {frequencyLabel(subscription.frequency)}</span>
+          <span className="detail-amount-per">{t.subscriptions.perFrequency(subscription.frequency)}</span>
         </span>
         <p className="sub-hero-next">
-          Next payment {nextLabel}
-          {status !== "active" && " · reminders off"}
+          {t.subscriptions.nextPaymentPrefix} {nextLabel}
+          {status !== "active" && t.subscriptions.remindersOffSuffix}
         </p>
       </div>
 
       {status === "active" && (
         <button className="btn btn-primary btn-block" onClick={recordPayment}>
-          <CalendarCheck size={17} strokeWidth={2} /> Record payment
+          <CalendarCheck size={17} strokeWidth={2} /> {t.subscriptions.recordPaymentButton}
         </button>
       )}
 
       <div className="detail-card">
         <div className="equiv-row">
           <div className="equiv-cell">
-            <span className="stat-label">Monthly equivalent</span>
+            <span className="stat-label">{t.subscriptions.monthlyEquivalentLabel}</span>
             <span className="equiv-value">{formatMoney(monthlyEquivalent(subscription), currency)}</span>
           </div>
           <div className="equiv-cell">
-            <span className="stat-label">Yearly equivalent</span>
+            <span className="stat-label">{t.subscriptions.yearlyEquivalentLabel}</span>
             <span className="equiv-value">{formatMoney(yearlyEquivalent(subscription), currency)}</span>
           </div>
         </div>
-        <DetailRow label="Category" value={category?.name ?? "—"} />
-        <DetailRow label="Next payment" value={longDate(subscription.nextPaymentDate)} />
-        <DetailRow label="Payment method" value={subscription.paymentMethod ? METHOD_LABELS[subscription.paymentMethod] : "—"} />
-        <DetailRow label="Reminder" value={subscription.reminderDays !== null ? `${REMINDER_LABELS[subscription.reminderDays]} · 9:00 AM` : "Off"} />
-        <DetailRow label="Usage" value={subscription.usage === "regular" ? "Used regularly" : subscription.usage === "rarely" ? "Rarely used" : "Unused"} />
-        {subscription.notes && <DetailRow label="Notes" value={subscription.notes} />}
+        <DetailRow label={t.subscriptions.categoryFieldLabel} value={category ? categoryDisplayName(t, category) : t.subscriptions.emptyDash} />
+        <DetailRow label={t.subscriptions.nextPaymentLabel} value={longDate(subscription.nextPaymentDate)} />
+        <DetailRow
+          label={t.subscriptions.paymentMethodFieldLabel}
+          value={subscription.paymentMethod ? t.subscriptions.paymentMethodLabel(subscription.paymentMethod) : t.subscriptions.emptyDash}
+        />
+        <DetailRow label={t.subscriptions.reminderFieldLabel} value={t.subscriptions.reminderDetailValue(subscription.reminderDays)} />
+        <DetailRow label={t.subscriptions.usageFieldLabel} value={t.subscriptions.usageLabel(subscription.usage)} />
+        {subscription.notes && <DetailRow label={t.subscriptions.notesFieldLabel} value={subscription.notes} />}
       </div>
 
       <section className="section">
-        <h2 className="section-title">Payment history</h2>
+        <h2 className="section-title">{t.subscriptions.paymentHistoryTitle}</h2>
         {subscription.payments.length === 0 ? (
           <Card className="card-soft">
-            <p className="card-soft-text">No payments recorded yet. Tap “Record payment” when one happens.</p>
+            <p className="card-soft-text">{t.subscriptions.paymentHistoryEmpty}</p>
           </Card>
         ) : (
           <Card className="list-card">
@@ -168,8 +161,8 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
               <div className="row" key={i}>
                 <IconBadge icon={CheckCircle2} size="sm" muted />
                 <div className="row-main">
-                  <span className="row-title">{shortDate(p.date, { includeYear: true })}</span>
-                  <span className="row-sub">Payment recorded</span>
+                  <span className="row-title">{shortDate(p.date, { includeYear: true, format: settings.dateFormat })}</span>
+                  <span className="row-sub">{t.subscriptions.paymentRecorded}</span>
                 </div>
                 <span className="row-amount">{formatMoney(p.amountCents, currency)}</span>
               </div>
@@ -180,40 +173,45 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
 
       <div className="detail-actions detail-actions-column">
         {status !== "cancelled" && (
-          <button className="btn btn-secondary" onClick={togglePause}>
+          <button className="btn btn-ghost" onClick={togglePause}>
             {status === "paused" ? (
               <>
-                <Play size={16} strokeWidth={2} /> Resume
+                <Play size={16} strokeWidth={2} /> {t.subscriptions.resumeButton}
               </>
             ) : (
               <>
-                <Pause size={16} strokeWidth={2} /> Pause
+                <Pause size={16} strokeWidth={2} /> {t.subscriptions.pauseButton}
               </>
             )}
           </button>
         )}
-        {status !== "cancelled" && (
-          <button className="btn btn-secondary" onClick={() => void doCancel()}>
-            <XCircle size={16} strokeWidth={2} /> Cancel subscription record
+        {/* Pause is an instant, one-tap-reversible toggle -- everything below
+            this divider changes the subscription's recorded status and needs
+            its own visual tier so it doesn't read as equally casual. */}
+        <div className="detail-actions-danger">
+          {status !== "cancelled" && (
+            <button className="btn btn-secondary" onClick={() => void doCancel()}>
+              <XCircle size={16} strokeWidth={2} /> {t.subscriptions.cancelRecordButton}
+            </button>
+          )}
+          {status === "cancelled" && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                updateSubscription(subscription.id, { status: "active" });
+                toast(t.subscriptions.reactivatedToast);
+              }}
+            >
+              <RefreshCcw size={16} strokeWidth={2} /> {t.subscriptions.reactivateButton}
+            </button>
+          )}
+          <button className="btn btn-danger-outline" onClick={() => void doDelete()}>
+            <Trash2 size={16} strokeWidth={2} /> {t.common.delete}
           </button>
-        )}
-        {status === "cancelled" && (
-          <button
-            className="btn btn-secondary"
-            onClick={() => {
-              updateSubscription(subscription.id, { status: "active" });
-              toast("Subscription reactivated");
-            }}
-          >
-            <RefreshCcw size={16} strokeWidth={2} /> Reactivate
-          </button>
-        )}
-        <button className="btn btn-danger-outline" onClick={() => void doDelete()}>
-          <Trash2 size={16} strokeWidth={2} /> Delete
-        </button>
+        </div>
       </div>
 
-      <p className="sub-disclaimer">Flow only tracks this subscription. It never cancels your real-world subscription.</p>
+      <p className="sub-disclaimer">{t.subscriptions.disclaimer}</p>
 
       {editing && <AddSubscriptionSheet initial={subscription} onClose={() => setEditing(false)} />}
     </div>

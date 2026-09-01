@@ -1,40 +1,95 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Download, FolderCog, LifeBuoy, Lock, Scale, Shield, Trash2, Upload } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
-import { CURRENCIES, symbolFor } from "../lib/currency";
+import { authenticateWithBiometrics, checkBiometryAvailable } from "../lib/appLock";
+import { computeNetWorth } from "../lib/calc";
+import { CURRENCIES, formatMoney, symbolFor } from "../lib/currency";
 import { buildCSV, downloadCSV, fileToText, parseImportCSV } from "../lib/csv";
+import { decryptBackup, downloadBackupFile, encryptBackup, type BackupPayload } from "../lib/backup";
+import { LANGUAGE_NAMES, useT } from "../lib/i18n";
 import { notificationsSupported, permissionState, requestPermission, triggersSupported } from "../lib/notifications";
+import { isNative } from "../lib/platform";
 import { resyncAllReminders } from "../lib/reminders";
 import { todayISO } from "../lib/dates";
-import { Card, ChipGroup, ScreenHeader, Sheet, Toggle } from "../components/ui";
+import type { Language } from "../types";
+import { Button, Card, ChipGroup, Field, FormError, ScreenHeader, Sheet, TextInput, Toggle } from "../components/ui";
 
 export function Settings() {
   const {
     settings,
     categories,
     budgets,
+    goals,
+    debts,
     transactions,
     subscriptions,
+    netWorthItems,
     updateSettings,
     importTransactions,
     deleteAllData,
+    restoreBackup,
     confirm,
     toast,
     haptic,
   } = useApp();
   const { back, push } = useNavigation();
+  const t = useT();
   const [showCurrency, setShowCurrency] = useState(false);
+  const [biometryAvailable, setBiometryAvailable] = useState<boolean | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const backupFileRef = useRef<HTMLInputElement>(null);
+  const [showExportBackup, setShowExportBackup] = useState(false);
+  const [exportPassword, setExportPassword] = useState("");
+  const [exportPasswordConfirm, setExportPasswordConfirm] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restorePassword, setRestorePassword] = useState("");
+  const [restoring, setRestoring] = useState(false);
+
+  useEffect(() => {
+    if (!isNative()) return;
+    let cancelled = false;
+    void checkBiometryAvailable().then((available) => {
+      if (!cancelled) setBiometryAvailable(available);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!settings) return null;
   const { currency } = settings;
 
+  const onToggleAppLock = async (next: boolean) => {
+    if (!next) {
+      updateSettings({ appLockEnabled: false });
+      return;
+    }
+    const ok = await authenticateWithBiometrics(t.settings.confirmFaceIdReason);
+    if (!ok) {
+      toast(t.settings.faceIdNotVerified);
+      return;
+    }
+    updateSettings({ appLockEnabled: true });
+    toast(t.settings.appLockEnabledToast);
+  };
+
   const onDeleteAll = async () => {
+    const itemCount = transactions.length + subscriptions.length + budgets.length + goals.length + debts.length;
     const ok = await confirm({
-      title: "Delete all data?",
-      message: "This removes every transaction, subscription, budget and setting from this device. It cannot be undone.",
-      confirmLabel: "Delete everything",
+      title: t.settings.deleteAllTitle,
+      message:
+        itemCount > 0
+          ? t.settings.deleteAllMessage({
+              transactions: transactions.length,
+              subscriptions: subscriptions.length,
+              budgets: budgets.length,
+              goals: goals.length,
+              debts: debts.length,
+            })
+          : t.settings.deleteAllMessageEmpty,
+      confirmLabel: t.settings.deleteEverything,
       danger: true,
     });
     if (!ok) return;
@@ -45,12 +100,13 @@ export function Settings() {
   const onExport = async () => {
     try {
       await downloadCSV(
-        buildCSV({ transactions, subscriptions, categories }),
-        `flow-data-${todayISO()}.csv`
+        buildCSV({ transactions, subscriptions, categories, currency }),
+        `flow-data-${todayISO()}.csv`,
+        t.settings.exportShareDialogTitle
       );
-      toast("Export ready");
+      toast(t.settings.exportReady);
     } catch {
-      toast("We couldn't export your data. Please try again.");
+      toast(t.settings.exportFailed);
     }
   };
 
@@ -60,14 +116,84 @@ export function Settings() {
       const parsed = parseImportCSV(text, categories);
       if (parsed.rows.length > 0) {
         const n = importTransactions(parsed.rows);
-        toast(`Imported ${n} ${n === 1 ? "transaction" : "transactions"}`);
+        toast(t.settings.importedCount(n));
       } else {
-        toast(parsed.errors.length > 0 ? "Nothing imported — check the file format." : "No transactions found in the file.");
+        toast(parsed.errors.length > 0 ? t.settings.importNothingFormat : t.settings.importNoneFound);
       }
     } catch {
-      toast("We couldn't import that file. Please try again.");
+      toast(t.settings.importFailed);
     } finally {
       if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const closeExportBackup = () => {
+    setShowExportBackup(false);
+    setExportPassword("");
+    setExportPasswordConfirm("");
+  };
+
+  const onExportBackup = async () => {
+    if (!settings || exportPassword.length === 0 || exportPassword !== exportPasswordConfirm) return;
+    setExporting(true);
+    try {
+      const payload: BackupPayload = {
+        version: 1,
+        settings,
+        categories,
+        transactions,
+        subscriptions,
+        budgets,
+        goals,
+        netWorthItems,
+        debts,
+      };
+      const encrypted = await encryptBackup(payload, exportPassword);
+      await downloadBackupFile(encrypted, `flow-backup-${todayISO()}.flowbackup`, t.settings.backupShareDialogTitle);
+      toast(t.settings.backupExported);
+      closeExportBackup();
+    } catch {
+      toast(t.settings.backupExportFailed);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const closeRestoreBackup = () => {
+    setRestoreFile(null);
+    setRestorePassword("");
+    if (backupFileRef.current) backupFileRef.current.value = "";
+  };
+
+  const onRestoreBackup = async () => {
+    if (!restoreFile || restorePassword.length === 0) return;
+    setRestoring(true);
+    let payload: BackupPayload;
+    try {
+      const text = await fileToText(restoreFile);
+      payload = await decryptBackup(text, restorePassword);
+    } catch (err) {
+      // decryptBackup's message ("Wrong password or corrupted file") tells
+      // the user exactly what to try again -- worth surfacing verbatim.
+      toast(err instanceof Error ? err.message : t.settings.restoreFailed);
+      setRestoring(false);
+      return;
+    }
+    try {
+      const ok = await confirm({
+        title: t.settings.restoreTitle,
+        message: t.settings.restoreMessage,
+        confirmLabel: t.settings.restoreConfirmLabel,
+        danger: true,
+      });
+      if (!ok) return;
+      await restoreBackup(payload);
+      toast(t.settings.backupRestored);
+      closeRestoreBackup();
+    } catch {
+      toast(t.settings.restoreFailed);
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -77,149 +203,208 @@ export function Settings() {
       void (async () => {
         const granted = await requestPermission();
         if (!granted) {
-          toast("Notifications are blocked by your browser.");
+          toast(t.settings.notificationsBlockedByBrowser);
         } else {
-          void resyncAllReminders(subscriptions, { ...settings, notifications: { ...settings.notifications, enabled: true } });
-          toast("Notifications on");
+          void resyncAllReminders(subscriptions, { ...settings, notifications: { ...settings.notifications, enabled: true } }, t);
+          toast(t.settings.notificationsOnToast);
         }
       })();
     }
   };
 
   const permission = permissionState();
+  const netWorth = computeNetWorth(netWorthItems);
 
   return (
     <div className="screen">
-      <ScreenHeader title="Settings" onBack={back} />
+      <ScreenHeader title={t.settings.title} onBack={back} />
 
-      <SettingsSection title="Preferences">
+      <SettingsSection title={t.settings.sectionPreferences}>
         <Card className="list-card">
           <SettingsRow
-            label="Currency"
+            label={t.settings.currency}
             value={currency}
             onPress={() => setShowCurrency(true)}
             last
           />
-          <SettingsRow label="Start of week" valueAsControl={
+          <SettingsRow label={t.settings.startOfWeek} valueAsControl={
             <ChipGroup
               options={[
-                { value: "monday", label: "Mon" },
-                { value: "sunday", label: "Sun" },
+                { value: "monday", label: t.settings.weekMon },
+                { value: "sunday", label: t.settings.weekSun },
               ]}
               value={settings.startWeekOn}
               onChange={(v) => updateSettings({ startWeekOn: v })}
-              ariaLabel="Start of week"
+              ariaLabel={t.settings.startOfWeek}
             />
           } />
-          <SettingsRow label="Date format" valueAsControl={
+          <SettingsRow label={t.settings.dateFormat} valueAsControl={
             <ChipGroup
               options={[
-                { value: "auto", label: "Auto" },
-                { value: "dmy", label: "DD/MM" },
-                { value: "mdy", label: "MM/DD" },
-                { value: "iso", label: "ISO" },
+                { value: "auto", label: t.settings.dateFormatAuto },
+                { value: "dmy", label: t.settings.dateFormatDMY },
+                { value: "mdy", label: t.settings.dateFormatMDY },
+                { value: "iso", label: t.settings.dateFormatISO },
               ]}
               value={settings.dateFormat}
               onChange={(v) => updateSettings({ dateFormat: v })}
-              ariaLabel="Date format"
+              ariaLabel={t.settings.dateFormat}
             />
           } />
-          <SettingsRow label="Theme" valueAsControl={
+          <SettingsRow label={t.settings.theme} valueAsControl={
             <ChipGroup
               options={[
-                { value: "system", label: "System" },
-                { value: "light", label: "Light" },
-                { value: "dark", label: "Dark" },
+                { value: "system", label: t.settings.themeSystem },
+                { value: "light", label: t.settings.themeLight },
+                { value: "dark", label: t.settings.themeDark },
               ]}
               value={settings.theme}
               onChange={(v) => updateSettings({ theme: v })}
-              ariaLabel="Theme"
+              ariaLabel={t.settings.theme}
             />
           } />
+          <SettingsRow label={t.settings.accentColor} valueAsControl={
+            <ChipGroup
+              options={[
+                { value: "green", label: t.settings.accentGreen },
+                { value: "blue", label: t.settings.accentBlue },
+                { value: "purple", label: t.settings.accentPurple },
+                { value: "orange", label: t.settings.accentOrange },
+                { value: "pink", label: t.settings.accentPink },
+              ]}
+              value={settings.accentColor ?? "green"}
+              onChange={(v) => updateSettings({ accentColor: v })}
+              ariaLabel={t.settings.accentColor}
+            />
+          } />
+          <SettingsRow label="Language" valueAsControl={
+            <ChipGroup
+              options={Object.entries(LANGUAGE_NAMES).map(([value, label]) => ({ value: value as Language, label }))}
+              value={settings.language ?? "en"}
+              onChange={(v) => updateSettings({ language: v })}
+              ariaLabel="Language"
+            />
+          } last />
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Budgets">
+      <SettingsSection title={t.settings.sectionBudgets}>
         <Card className="list-card">
           <SettingsRow
-            label="Monthly budgets"
-            value={`${budgets.length} ${budgets.length === 1 ? "budget" : "budgets"}`}
+            label={t.settings.monthlyBudgets}
+            value={t.settings.budgetsCount(budgets.length)}
             onPress={() => push({ tab: "settings", name: "budgets" })}
+          />
+          <SettingsRow
+            label={t.settings.savingsGoals}
+            value={t.settings.goalsCount(goals.length)}
+            onPress={() => push({ tab: "settings", name: "goals" })}
             last
           />
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Notifications">
+      <SettingsSection title={t.settings.sectionNetWorth}>
+        <Card className="list-card">
+          <SettingsRow
+            label={t.settings.netWorthRow}
+            value={formatMoney(netWorth.netCents, currency)}
+            onPress={() => push({ tab: "settings", name: "networth" })}
+            last
+          />
+        </Card>
+      </SettingsSection>
+
+      <SettingsSection title={t.settings.sectionDebts}>
+        <Card className="list-card">
+          <SettingsRow
+            label={t.settings.debtPayoffPlanner}
+            value={t.settings.debtsCount(debts.length)}
+            onPress={() => push({ tab: "settings", name: "debts" })}
+            last
+          />
+        </Card>
+      </SettingsSection>
+
+      <SettingsSection title={t.settings.sectionYearInReview}>
+        <Card className="list-card">
+          <SettingsRow
+            label={t.settings.yearInReviewRow}
+            sub={t.settings.yearInReviewSub}
+            onPress={() => push({ tab: "settings", name: "yearinreview" })}
+            last
+          />
+        </Card>
+      </SettingsSection>
+
+      <SettingsSection title={t.settings.sectionNotifications}>
         <Card className="list-card">
           <div className="settings-toggle-row">
             <div>
-              <span className="row-title">Notifications</span>
+              <span className="row-title">{t.settings.notificationsTitle}</span>
               <span className="row-sub">
                 {!notificationsSupported()
-                  ? "Not supported by this browser"
+                  ? t.settings.notificationsNotSupported
                   : permission === "granted"
-                    ? "On — reminders at 9:00 AM"
+                    ? t.settings.notificationsOnSub
                     : permission === "denied"
-                      ? "Blocked by your browser"
-                      : "Payment reminders and budget alerts"}
+                      ? t.settings.notificationsBlockedSub
+                      : t.settings.notificationsDefaultSub}
               </span>
             </div>
             <Toggle
               checked={settings.notifications.enabled}
               onChange={(v) => setNotifications({ enabled: v })}
-              label="Enable notifications"
+              label={t.settings.enableNotifications}
               disabled={!notificationsSupported()}
             />
           </div>
           <div className="settings-toggle-row">
             <div>
-              <span className="row-title">Subscription reminders</span>
-              <span className="row-sub">Before each payment is due</span>
+              <span className="row-title">{t.settings.subscriptionReminders}</span>
+              <span className="row-sub">{t.settings.subscriptionRemindersSub}</span>
             </div>
             <Toggle
               checked={settings.notifications.subscriptionReminders}
               onChange={(v) => setNotifications({ subscriptionReminders: v })}
-              label="Subscription reminders"
+              label={t.settings.subscriptionReminders}
               disabled={!settings.notifications.enabled}
             />
           </div>
           <div className="settings-toggle-row">
             <div>
-              <span className="row-title">Budget alerts</span>
-              <span className="row-sub">When you approach or pass a budget</span>
+              <span className="row-title">{t.settings.budgetAlerts}</span>
+              <span className="row-sub">{t.settings.budgetAlertsSub}</span>
             </div>
             <Toggle
               checked={settings.notifications.budgetAlerts}
               onChange={(v) => setNotifications({ budgetAlerts: v })}
-              label="Budget alerts"
+              label={t.settings.budgetAlerts}
               disabled={!settings.notifications.enabled}
             />
           </div>
           <div className="settings-toggle-row">
             <div>
-              <span className="row-title">Monthly summary</span>
-              <span className="row-sub">A short recap at the start of each month</span>
+              <span className="row-title">{t.settings.monthlySummary}</span>
+              <span className="row-sub">{t.settings.monthlySummarySub}</span>
             </div>
             <Toggle
               checked={settings.notifications.monthlySummary}
               onChange={(v) => setNotifications({ monthlySummary: v })}
-              label="Monthly summary"
+              label={t.settings.monthlySummary}
               disabled={!settings.notifications.enabled}
             />
           </div>
           {settings.notifications.enabled && !triggersSupported() && (
-            <p className="settings-note">
-              Scheduled reminders need Chrome or Edge. Other browsers show them when you open Flow.
-            </p>
+            <p className="settings-note">{t.settings.triggersUnsupportedNote}</p>
           )}
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Data">
+      <SettingsSection title={t.settings.sectionData}>
         <Card className="list-card">
-          <SettingsRow label="Export my data" sub="CSV — transactions and subscriptions" icon={Download} onPress={() => void onExport()} />
-          <SettingsRow label="Import data" sub="CSV file from Flow or another tracker" icon={Upload} onPress={() => fileRef.current?.click()} />
+          <SettingsRow label={t.settings.exportMyData} sub={t.settings.exportMyDataSub} icon={Download} onPress={() => void onExport()} />
+          <SettingsRow label={t.settings.importData} sub={t.settings.importDataSub} icon={Upload} onPress={() => fileRef.current?.click()} />
           <input
             ref={fileRef}
             type="file"
@@ -232,8 +417,8 @@ export function Settings() {
             }}
           />
           <SettingsRow
-            label="Delete all data"
-            sub="Erase everything on this device"
+            label={t.settings.deleteAllData}
+            sub={t.settings.deleteAllDataSub}
             icon={Trash2}
             danger
             onPress={() => void onDeleteAll()}
@@ -242,11 +427,41 @@ export function Settings() {
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="Categories">
+      <SettingsSection title={t.settings.sectionBackup}>
         <Card className="list-card">
           <SettingsRow
-            label="Manage categories"
-            sub={`${categories.length} categories`}
+            label={t.settings.exportEncryptedBackup}
+            sub={t.settings.exportEncryptedBackupSub}
+            icon={Lock}
+            onPress={() => setShowExportBackup(true)}
+          />
+          <SettingsRow
+            label={t.settings.restoreFromBackup}
+            sub={t.settings.restoreFromBackupSub}
+            icon={Upload}
+            onPress={() => backupFileRef.current?.click()}
+            last
+          />
+          <input
+            ref={backupFileRef}
+            type="file"
+            accept=".flowbackup,application/json"
+            style={{ display: "none" }}
+            aria-hidden="true"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) setRestoreFile(f);
+            }}
+          />
+        </Card>
+        <p className="settings-note">{t.settings.backupNote}</p>
+      </SettingsSection>
+
+      <SettingsSection title={t.settings.sectionCategories}>
+        <Card className="list-card">
+          <SettingsRow
+            label={t.settings.manageCategories}
+            sub={t.settings.categoriesCount(categories.length)}
             icon={FolderCog}
             onPress={() => push({ tab: "settings", name: "categories" })}
             last
@@ -254,27 +469,41 @@ export function Settings() {
         </Card>
       </SettingsSection>
 
-      <SettingsSection title="About">
+      <SettingsSection title={t.settings.sectionAbout}>
         <Card className="list-card">
-          <SettingsRow label="Privacy Policy" icon={Shield} onPress={() => push({ tab: "settings", name: "privacy" })} />
-          <SettingsRow label="Terms of Use" icon={Scale} onPress={() => push({ tab: "settings", name: "terms" })} />
-          <SettingsRow label="Help & Support" icon={LifeBuoy} onPress={() => push({ tab: "settings", name: "support" })} />
-          <SettingsRow
-            label="App lock with Face ID"
-            sub="Not available on the web — your data stays in your browser"
-            icon={Lock}
-            last
-          />
+          <SettingsRow label={t.settings.privacyPolicy} icon={Shield} onPress={() => push({ tab: "settings", name: "privacy" })} />
+          <SettingsRow label={t.settings.termsOfUse} icon={Scale} onPress={() => push({ tab: "settings", name: "terms" })} />
+          <SettingsRow label={t.settings.helpAndSupport} icon={LifeBuoy} onPress={() => push({ tab: "settings", name: "support" })} />
+          <div className="settings-toggle-row">
+            <div>
+              <span className="row-title">{t.settings.appLockWithFaceId}</span>
+              <span className="row-sub">
+                {!isNative()
+                  ? t.settings.appLockNotAvailable
+                  : biometryAvailable === null
+                    ? t.settings.appLockChecking
+                    : biometryAvailable
+                      ? t.settings.appLockRequireFaceId
+                      : t.settings.appLockSetupFirst}
+              </span>
+            </div>
+            <Toggle
+              checked={settings.appLockEnabled ?? false}
+              onChange={(v) => void onToggleAppLock(v)}
+              label={t.settings.appLockWithFaceId}
+              disabled={!isNative() || !biometryAvailable}
+            />
+          </div>
         </Card>
       </SettingsSection>
 
       <div className="settings-footer">
-        <p className="settings-version">Flow {APP_VERSION}</p>
-        <p className="settings-privacy-note">Your financial data never leaves this device. No accounts, no servers, no ads.</p>
+        <p className="settings-version">{t.settings.version(APP_VERSION)}</p>
+        <p className="settings-privacy-note">{t.settings.privacyFooterNote}</p>
       </div>
 
       {showCurrency && (
-        <Sheet title="Currency" onClose={() => setShowCurrency(false)} ariaLabel="Choose currency">
+        <Sheet title={t.settings.currency} onClose={() => setShowCurrency(false)} ariaLabel={t.settings.chooseCurrency}>
           <div className="sheet-form">
             {CURRENCIES.map((c) => (
               <button
@@ -292,6 +521,86 @@ export function Settings() {
                 <span className="row-amount">{symbolFor(c.code)}</span>
               </button>
             ))}
+          </div>
+        </Sheet>
+      )}
+
+      {showExportBackup && (
+        <Sheet
+          title={t.settings.exportEncryptedBackup}
+          onClose={closeExportBackup}
+          ariaLabel={t.settings.exportEncryptedBackup}
+          footer={
+            <Button
+              size="lg"
+              className="btn-block"
+              disabled={exporting || exportPassword.length === 0 || exportPassword !== exportPasswordConfirm}
+              onClick={() => void onExportBackup()}
+            >
+              {exporting ? t.settings.exporting : t.settings.exportBackupButton}
+            </Button>
+          }
+        >
+          <div className="sheet-form">
+            <p className="settings-note">{t.settings.chooseBackupPasswordNote}</p>
+            <Field label={t.settings.backupPassword}>
+              <TextInput
+                type="password"
+                value={exportPassword}
+                onChange={(e) => setExportPassword(e.target.value)}
+                autoFocus
+                autoComplete="new-password"
+                aria-label={t.settings.backupPassword}
+              />
+            </Field>
+            <Field label={t.settings.confirmBackupPassword}>
+              <TextInput
+                type="password"
+                value={exportPasswordConfirm}
+                onChange={(e) => setExportPasswordConfirm(e.target.value)}
+                autoComplete="new-password"
+                aria-label={t.settings.confirmBackupPassword}
+              />
+            </Field>
+            <FormError
+              message={
+                exportPasswordConfirm.length > 0 && exportPassword !== exportPasswordConfirm
+                  ? t.settings.passwordsDontMatch
+                  : null
+              }
+            />
+          </div>
+        </Sheet>
+      )}
+
+      {restoreFile && (
+        <Sheet
+          title={t.settings.restoreFromBackup}
+          onClose={closeRestoreBackup}
+          ariaLabel={t.settings.restoreFromBackup}
+          footer={
+            <Button
+              size="lg"
+              className="btn-block"
+              disabled={restoring || restorePassword.length === 0}
+              onClick={() => void onRestoreBackup()}
+            >
+              {restoring ? t.settings.restoring : t.settings.restoreConfirmLabel}
+            </Button>
+          }
+        >
+          <div className="sheet-form">
+            <p className="settings-note">{t.settings.enterBackupPasswordNote}</p>
+            <Field label={t.settings.backupPassword}>
+              <TextInput
+                type="password"
+                value={restorePassword}
+                onChange={(e) => setRestorePassword(e.target.value)}
+                autoFocus
+                autoComplete="current-password"
+                aria-label={t.settings.backupPassword}
+              />
+            </Field>
           </div>
         </Sheet>
       )}

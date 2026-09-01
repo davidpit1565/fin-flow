@@ -9,6 +9,7 @@ import {
   upcomingPayments,
 } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
+import { useT } from "../lib/i18n";
 import { Button, Card, EmptyState, Money, ScreenHeader } from "../components/ui";
 import { SubscriptionRow } from "../components/rows";
 import { AddSubscriptionSheet } from "../components/AddSubscriptionSheet";
@@ -16,6 +17,7 @@ import { AddSubscriptionSheet } from "../components/AddSubscriptionSheet";
 export function Subscriptions() {
   const { settings, subscriptions, categories, deleteSubscription, confirm, toast, haptic } = useApp();
   const { push } = useNavigation();
+  const t = useT();
   const [adding, setAdding] = useState(false);
 
   if (!settings) return null;
@@ -24,7 +26,7 @@ export function Subscriptions() {
   const monthly = subscriptionMonthlyTotal(subscriptions);
   const yearly = subscriptionYearlyTotal(subscriptions);
   const activeCount = activeSubscriptions(subscriptions).length;
-  const upcomingCount = upcomingPayments(subscriptions).length;
+  const upcomingCount = upcomingPayments(subscriptions, t, settings.dateFormat).length;
 
   const sorted = useMemo(
     () => [...subscriptions].sort((a, b) => (a.nextPaymentDate < b.nextPaymentDate ? -1 : 1)),
@@ -33,23 +35,23 @@ export function Subscriptions() {
 
   const doDelete = async (id: string, name: string) => {
     const ok = await confirm({
-      title: "Delete subscription?",
-      message: `${name} will be removed. This cannot be undone.`,
-      confirmLabel: "Delete",
+      title: t.subscriptions.deleteConfirmTitle,
+      message: t.subscriptions.deleteConfirmMessage(name),
+      confirmLabel: t.common.delete,
       danger: true,
     });
     if (!ok) return;
     deleteSubscription(id);
     haptic("warning");
-    toast("Deleted");
+    toast(t.common.deleted);
   };
 
   return (
     <div className="screen">
       <ScreenHeader
-        title="Subscriptions"
+        title={t.subscriptions.title}
         right={
-          <button className="icon-btn" aria-label="Settings" onClick={() => push({ tab: "settings", name: "settings" })}>
+          <button className="icon-btn" aria-label={t.subscriptions.settingsAriaLabel} onClick={() => push({ tab: "settings", name: "settings" })}>
             <SettingsIcon size={20} strokeWidth={2} />
           </button>
         }
@@ -58,32 +60,30 @@ export function Subscriptions() {
       <Card className="sub-summary">
         <div className="sub-summary-main">
           <div>
-            <p className="spend-label">Recurring cost</p>
+            <p className="spend-label">{t.subscriptions.recurringCost}</p>
             <Money cents={monthly} currency={currency} amount="large" />
-            <p className="sub-summary-note">{formatMoney(yearly, currency)} / year</p>
+            <p className="sub-summary-note">{t.subscriptions.yearlyEquivalentNote(formatMoney(yearly, currency))}</p>
           </div>
           <div className="sub-summary-stats">
             <div className="sub-summary-stat">
               <span className="stat-value">{activeCount}</span>
-              <span className="stat-label">Active</span>
+              <span className="stat-label">{t.subscriptions.activeStatLabel}</span>
             </div>
             <div className="sub-summary-stat">
               <span className="stat-value">{upcomingCount}</span>
-              <span className="stat-label">Upcoming</span>
+              <span className="stat-label">{t.subscriptions.upcomingStatLabel}</span>
             </div>
           </div>
         </div>
-        <p className="sub-summary-foot">
-          Monthly cost is calculated from your billing frequencies — it never guesses.
-        </p>
+        <p className="sub-summary-foot">{t.subscriptions.costFootnote}</p>
       </Card>
 
       <div className="sub-toolbar">
         <Button variant="secondary" onClick={() => setAdding(true)}>
-          <Plus size={17} strokeWidth={2} /> Add subscription
+          <Plus size={17} strokeWidth={2} /> {t.subscriptions.addSubscription}
         </Button>
         {activeCount === 0 && subscriptions.length > 0 && (
-          <p className="sub-toolbar-note">All subscriptions are paused or cancelled.</p>
+          <p className="sub-toolbar-note">{t.subscriptions.allPausedOrCancelled}</p>
         )}
       </div>
 
@@ -91,11 +91,11 @@ export function Subscriptions() {
         <div className="screen-empty">
           <EmptyState
             icon={RefreshCcw}
-            title="No subscriptions yet"
-            message="Add your recurring payments and we'll keep them organized."
+            title={t.subscriptions.emptyTitle}
+            message={t.subscriptions.emptyMessage}
             action={
               <Button onClick={() => setAdding(true)}>
-                <Plus size={18} strokeWidth={2} /> Add subscription
+                <Plus size={18} strokeWidth={2} /> {t.subscriptions.addSubscription}
               </Button>
             }
           />
@@ -108,6 +108,7 @@ export function Subscriptions() {
               subscription={s}
               category={categories.find((c) => c.id === s.categoryId)}
               currency={currency}
+              dateFormat={settings.dateFormat}
               onTap={() => push({ tab: "subscriptions", name: "detail", subscriptionId: s.id })}
               onDelete={() => void doDelete(s.id, s.name)}
             />

@@ -212,12 +212,57 @@ for (const [size, name] of targets) {
   console.log(`wrote public/icons/${name} (${size}x${size})`);
 }
 
-// iOS AppIcon: modern single-size (1024x1024) asset catalog entry, no alpha
-// channel (App Store Connect rejects icons that carry one).
+// iOS AppIcon: the full explicit per-idiom size set (rather than the
+// single-1024 "universal" format some Xcode/deployment-target combinations
+// fail to pick up, leaving the generic placeholder icon on the home screen),
+// no alpha channel (App Store Connect rejects icons that carry one). Both
+// idioms are needed now that the app targets iPhone + iPad (Universal).
 try {
   mkdirSync(IOS_APPICON, { recursive: true });
-  writeFileSync(join(IOS_APPICON, "AppIcon-512@2x.png"), encodePNGOpaque(1024, 1024, render(1024)));
-  console.log("wrote ios AppIcon-512@2x.png (1024x1024, no alpha)");
+  const iconSizes = [
+    { idiom: "iphone", pt: 20, scale: 2, filename: "Icon-iphone-20@2x.png" },
+    { idiom: "iphone", pt: 20, scale: 3, filename: "Icon-iphone-20@3x.png" },
+    { idiom: "iphone", pt: 29, scale: 2, filename: "Icon-iphone-29@2x.png" },
+    { idiom: "iphone", pt: 29, scale: 3, filename: "Icon-iphone-29@3x.png" },
+    { idiom: "iphone", pt: 40, scale: 2, filename: "Icon-iphone-40@2x.png" },
+    { idiom: "iphone", pt: 40, scale: 3, filename: "Icon-iphone-40@3x.png" },
+    { idiom: "iphone", pt: 60, scale: 2, filename: "Icon-iphone-60@2x.png" },
+    { idiom: "iphone", pt: 60, scale: 3, filename: "Icon-iphone-60@3x.png" },
+    { idiom: "ipad", pt: 20, scale: 1, filename: "Icon-ipad-20@1x.png" },
+    { idiom: "ipad", pt: 20, scale: 2, filename: "Icon-ipad-20@2x.png" },
+    { idiom: "ipad", pt: 29, scale: 1, filename: "Icon-ipad-29@1x.png" },
+    { idiom: "ipad", pt: 29, scale: 2, filename: "Icon-ipad-29@2x.png" },
+    { idiom: "ipad", pt: 40, scale: 1, filename: "Icon-ipad-40@1x.png" },
+    { idiom: "ipad", pt: 40, scale: 2, filename: "Icon-ipad-40@2x.png" },
+    { idiom: "ipad", pt: 76, scale: 1, filename: "Icon-ipad-76@1x.png" },
+    { idiom: "ipad", pt: 76, scale: 2, filename: "Icon-ipad-76@2x.png" },
+    { idiom: "ipad", pt: 83.5, scale: 2, filename: "Icon-ipad-83.5@2x.png" },
+  ];
+  for (const { pt, scale, filename } of iconSizes) {
+    const px = Math.round(pt * scale);
+    writeFileSync(join(IOS_APPICON, filename), encodePNGOpaque(px, px, render(px)));
+  }
+  writeFileSync(join(IOS_APPICON, "Icon-1024.png"), encodePNGOpaque(1024, 1024, render(1024)));
+  writeFileSync(
+    join(IOS_APPICON, "Contents.json"),
+    JSON.stringify(
+      {
+        images: [
+          ...iconSizes.map(({ idiom, pt, scale, filename }) => ({
+            size: `${pt}x${pt}`,
+            idiom,
+            filename,
+            scale: `${scale}x`,
+          })),
+          { size: "1024x1024", idiom: "ios-marketing", filename: "Icon-1024.png", scale: "1x" },
+        ],
+        info: { version: 1, author: "xcode" },
+      },
+      null,
+      2
+    ) + "\n"
+  );
+  console.log(`wrote ios AppIcon.appiconset (${iconSizes.length} iPhone sizes + 1024 marketing, no alpha)`);
 } catch {
   console.log("skipped iOS AppIcon (ios/ project not present -- run `npx cap add ios` first)");
 }

@@ -2,12 +2,17 @@ import type {
   Budget,
   Category,
   CategoryTotal,
+  DateFormatPreference,
+  Goal,
   MonthlySummary,
+  NetWorthItem,
   Subscription,
   Transaction,
   UpcomingPayment,
+  WeekStart,
 } from "../types";
-import { addDays, addMonths, diffDays, lastMonths, monthLabel, parseISO, relativeDay, shortDate, todayISO } from "./dates";
+import { addDays, addMonths, diffDays, lastMonths, monthLabel, parseISO, shortDate, startOfMonth, startOfWeek, todayISO, toISO } from "./dates";
+import { relativeDayLabel, type Dictionary } from "./i18n";
 
 /* ---------- periods ---------- */
 
@@ -154,26 +159,37 @@ export function subscriptionYearlyTotal(subscriptions: Subscription[]): number {
   return activeSubscriptions(subscriptions).reduce((sum, s) => sum + yearlyEquivalent(s), 0);
 }
 
-/** Upcoming payments: active subs due within the next 90 days (or overdue), sorted by date. */
-export function upcomingPayments(subscriptions: Subscription[], now = todayISO()): UpcomingPayment[] {
+/** Active subs due within the next 90 days (or overdue), sorted by date --
+ *  the raw data behind `upcomingPayments`, with no display label attached
+ *  yet, so totals can be computed without a translation dictionary. */
+function upcomingDue(subscriptions: Subscription[], now: string): { subscription: Subscription; date: string; amountCents: number; overdue: boolean }[] {
   const horizon = addDays(now, 90);
   return activeSubscriptions(subscriptions)
     .filter((s) => s.nextPaymentDate <= horizon)
-    .map((s) => {
-      const overdue = s.nextPaymentDate < now;
-      const label = relativeDay(s.nextPaymentDate, now) ?? shortDate(s.nextPaymentDate, { includeYear: true });
-      return {
-        subscription: s,
-        date: s.nextPaymentDate,
-        amountCents: s.amountCents,
-        label: overdue ? `Overdue · ${label}` : label,
-      };
-    })
+    .map((s) => ({
+      subscription: s,
+      date: s.nextPaymentDate,
+      amountCents: s.amountCents,
+      overdue: s.nextPaymentDate < now,
+    }))
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
+/** Upcoming payments with a translated, human-readable date label. */
+export function upcomingPayments(
+  subscriptions: Subscription[],
+  t: Pick<Dictionary, "common">,
+  dateFormat: DateFormatPreference = "auto",
+  now = todayISO()
+): UpcomingPayment[] {
+  return upcomingDue(subscriptions, now).map((u) => {
+    const label = relativeDayLabel(t, u.date, now) ?? shortDate(u.date, { includeYear: true, format: dateFormat });
+    return { subscription: u.subscription, date: u.date, amountCents: u.amountCents, label: u.overdue ? t.common.overdue(label) : label };
+  });
+}
+
 export function upcomingTotalCents(subscriptions: Subscription[], now = todayISO()): number {
-  return upcomingPayments(subscriptions, now).reduce((sum, u) => sum + u.amountCents, 0);
+  return upcomingDue(subscriptions, now).reduce((sum, u) => sum + u.amountCents, 0);
 }
 
 /* ---------- categories ---------- */
@@ -211,8 +227,28 @@ export interface BudgetStatus {
   level: "ok" | "close" | "high" | "reached" | "over";
 }
 
-export function budgetStatus(budget: Budget, transactions: Transaction[], month = todayISO()): BudgetStatus {
-  const range: DateRange = { from: `${month.slice(0, 7)}-01`, to: month, label: month };
+/** Start of the current period-to-date range for a budget's period
+ *  ("monthly" when unset, for budgets created before periods existed). */
+export function budgetPeriodStart(period: Budget["period"], now: string, startWeekOn: WeekStart): string {
+  switch (period) {
+    case "daily":
+      return now;
+    case "weekly":
+      return startOfWeek(now, startWeekOn);
+    case "monthly":
+    default:
+      return startOfMonth(now);
+  }
+}
+
+export function budgetStatus(
+  budget: Budget,
+  transactions: Transaction[],
+  now = todayISO(),
+  startWeekOn: WeekStart = "monday"
+): BudgetStatus {
+  const from = budgetPeriodStart(budget.period, now, startWeekOn);
+  const range: DateRange = { from, to: now, label: now };
   const spentCents = budget.categoryId
     ? expensesInRange(
         transactions.filter((t) => t.categoryId === budget.categoryId),
@@ -226,6 +262,24 @@ export function budgetStatus(budget: Budget, transactions: Transaction[], month 
   else if (percent >= 90) level = "high";
   else if (percent >= 80) level = "close";
   return { budget, spentCents, remainingCents: budget.amountCents - spentCents, percent, level };
+}
+
+/* ---------- net worth ---------- */
+
+export interface NetWorthTotals {
+  assetsCents: number;
+  liabilitiesCents: number;
+  netCents: number;
+}
+
+export function computeNetWorth(items: NetWorthItem[]): NetWorthTotals {
+  let assetsCents = 0;
+  let liabilitiesCents = 0;
+  for (const item of items) {
+    if (item.kind === "asset") assetsCents += item.valueCents;
+    else liabilitiesCents += item.valueCents;
+  }
+  return { assetsCents, liabilitiesCents, netCents: assetsCents - liabilitiesCents };
 }
 
 /* ---------- insights ---------- */
@@ -340,9 +394,9 @@ export function recurringDue(transaction: Transaction, now = todayISO()): boolea
   );
 }
 
-export function nextOccurrenceAfter(transaction: Transaction): string | null {
+export function nextOccurrenceAfter(transaction: Transaction, now = todayISO()): string | null {
   if (!transaction.frequency || !transaction.nextOccurrence) return null;
-  const base = transaction.nextOccurrence < todayISO() ? todayISO() : transaction.nextOccurrence;
+  const base = transaction.nextOccurrence < now ? now : transaction.nextOccurrence;
   switch (transaction.frequency) {
     case "daily":
       return addDays(base, 1);
@@ -366,4 +420,58 @@ export function advanceSubscriptionDate(sub: Subscription): string {
     case "yearly":
       return addMonths(sub.nextPaymentDate, 12);
   }
+}
+
+/* ---------- savings goals ---------- */
+
+export function goalProgressPercent(goal: Goal): number {
+  if (goal.targetCents <= 0) return 0;
+  return Math.min(100, (goal.currentCents / goal.targetCents) * 100);
+}
+
+/** Linear projection of when a goal will hit its target, based on the
+ *  average saving rate since it was created (currentCents / days elapsed).
+ *  Returns null -- rather than NaN/Infinity/a nonsensical date -- when
+ *  there's nothing sensible to project from: the goal is already met, no
+ *  progress has been made yet, or essentially no time has elapsed since it
+ *  was created. */
+export function projectedGoalCompletion(goal: Goal, now = todayISO()): string | null {
+  if (goal.targetCents <= 0) return null;
+  if (goal.currentCents <= 0) return null;
+  if (goal.currentCents >= goal.targetCents) return null;
+  const createdISO = toISO(new Date(goal.createdAt));
+  const daysElapsed = diffDays(createdISO, now);
+  if (daysElapsed <= 0) return null;
+  const rate = goal.currentCents / daysElapsed; // cents saved per day
+  if (!(rate > 0) || !Number.isFinite(rate)) return null;
+  const remainingCents = goal.targetCents - goal.currentCents;
+  const daysNeeded = Math.ceil(remainingCents / rate);
+  if (!Number.isFinite(daysNeeded) || daysNeeded < 0) return null;
+  return addDays(now, daysNeeded);
+}
+
+/** Suggests a category for a new transaction from the user's own history --
+ *  entirely on-device, no network call and no data ever leaving the
+ *  device, matching how the rest of the app works. Looks at past
+ *  transactions with the exact same (case/whitespace-insensitive) merchant
+ *  name and returns whichever category was used most often for it, so one
+ *  stray miscategorization doesn't override an established pattern. Returns
+ *  null when the merchant is new or there's nothing to learn from yet. */
+export function suggestCategoryForMerchant(merchant: string, transactions: Transaction[]): string | null {
+  const key = merchant.trim().toLowerCase();
+  if (!key) return null;
+  const counts = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.merchant.trim().toLowerCase() !== key) continue;
+    counts.set(t.categoryId, (counts.get(t.categoryId) ?? 0) + 1);
+  }
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [categoryId, count] of counts) {
+    if (count > bestCount) {
+      best = categoryId;
+      bestCount = count;
+    }
+  }
+  return best;
 }

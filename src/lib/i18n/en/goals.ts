@@ -1,0 +1,45 @@
+/** Savings Goals screen: the goal list with progress bars, the add/edit
+ *  sheet, and the add-funds/withdraw contribution flow. */
+export const goals = {
+  title: "Savings Goals",
+  subtitle: "Set a target and track how close you are to reaching it",
+  emptyTitle: "No goals yet",
+  emptyMessage: "Create a savings goal and Flow will track your progress toward it.",
+  sectionTitle: "Your goals",
+  addGoal: "Add goal",
+  editAria: (name: string) => `Edit ${name}`,
+  deleteAria: (name: string) => `Delete ${name}`,
+  /** The "/ $500.00 saved" fragment after the current amount -- `target` is
+   *  an already-formatted money string. */
+  savedOfTarget: (target: string) => `/ ${target} saved`,
+  onTrackBy: (date: string) => `On track to reach this by ${date}`,
+  addFunds: "Add funds",
+  /** Segmented option label -- distinct from `addFunds` above, which is the
+   *  longer button text; this is the single word used on the tab itself. */
+  segmentedAddLabel: "Add",
+  withdraw: "Withdraw",
+  updateGoalFallbackTitle: "Update goal",
+  contributionSheetAria: "Add or withdraw funds",
+  typeFieldLabel: "Type",
+  addOrWithdrawAria: "Add or withdraw",
+  amountFieldLabel: "Amount",
+  contributionAmountAria: "Contribution amount",
+  enterValidAmount: "Enter a valid amount.",
+  fundsAdded: "Funds added",
+  withdrawalRecorded: "Withdrawal recorded",
+  editGoalSheetTitle: "Edit goal",
+  editGoalSheetAria: "Edit goal",
+  nameFieldLabel: "Name",
+  namePlaceholder: "e.g. New laptop",
+  iconFieldLabel: "Icon",
+  goalIconAria: "Goal icon",
+  targetAmountFieldLabel: "Target amount",
+  targetDateFieldLabel: "Target date (optional)",
+  saveChanges: "Save changes",
+  enterGoalName: "Enter a goal name.",
+  enterValidTargetAmount: "Enter a valid target amount.",
+  goalUpdated: "Goal updated",
+  goalAdded: "Goal added",
+  deleteGoalConfirmTitle: (name: string) => `Delete ${name}?`,
+  deleteGoalConfirmMessage: "This only removes the goal — no other data is affected.",
+};

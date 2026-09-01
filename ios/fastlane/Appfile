@@ -1,6 +1,10 @@
-# Team IDs get filled in once the Apple Developer account exists (see APP_STORE_SUBMISSION.md) --
-# they're visible in the Developer portal / App Store Connect once you're enrolled.
+# Team ID from developer.apple.com/account -> Membership Details. Individual
+# accounts (as opposed to Organization) use the same ID for both the
+# Developer Portal team and the App Store Connect team -- if fastlane ever
+# complains it can't find the App Store Connect team, look it up separately
+# under Users and Access in App Store Connect and split these back into two
+# different values.
 app_identifier("com.davidpit.flow")
 apple_id("davidpit2008@gmail.com")
-itc_team_id("YOUR_APP_STORE_CONNECT_TEAM_ID")
-team_id("YOUR_DEVELOPER_TEAM_ID")
+itc_team_id("43DB56398H")
+team_id("43DB56398H")

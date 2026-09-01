@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   activeSubscriptions,
   advanceSubscriptionDate,
+  budgetPeriodStart,
   budgetStatus,
   buildMonthlySummary,
   categoryTotals,
@@ -10,12 +11,14 @@ import {
   recurringDue,
   spendingSeries,
   spendingWithComparison,
+  suggestCategoryForMerchant,
   subscriptionMonthlyTotal,
   subscriptionYearlyTotal,
   upcomingPayments,
   upcomingTotalCents,
   yearlyEquivalent,
 } from "../src/lib/calc";
+import { en } from "../src/lib/i18n/en/index";
 import { cat, installGlobals, sub, txn } from "./helpers";
 
 installGlobals("en-US");
@@ -65,7 +68,7 @@ describe("upcoming payments", () => {
       sub({ id: "far", nextPaymentDate: "2027-01-01" }),
       sub({ id: "paused", nextPaymentDate: "2026-09-01", status: "paused" }),
     ];
-    const upcoming = upcomingPayments(subs, now);
+    const upcoming = upcomingPayments(subs, en, "auto", now);
     expect(upcoming.map((u) => u.subscription.id)).toEqual(["overdue", "soon"]);
     expect(upcoming[0].label.startsWith("Overdue")).toBe(true);
   });
@@ -109,6 +112,36 @@ describe("budget warnings", () => {
     const status = budgetStatus(catBudget, txns, month);
     expect(status.level).toBe("close");
     expect(status.spentCents).toBe(8500);
+  });
+
+  test("budgetPeriodStart resolves the range for each period", () => {
+    expect(budgetPeriodStart("daily", month, "monday")).toBe("2026-08-13");
+    expect(budgetPeriodStart("weekly", month, "monday")).toBe("2026-08-10"); // Thursday -> Monday
+    expect(budgetPeriodStart("weekly", month, "sunday")).toBe("2026-08-09"); // Thursday -> Sunday
+    expect(budgetPeriodStart("monthly", month, "monday")).toBe("2026-08-01");
+    expect(budgetPeriodStart(undefined, month, "monday")).toBe("2026-08-01"); // absent = monthly
+  });
+
+  test("daily budgets only count today's spending", () => {
+    const dailyBudget = { id: "d", categoryId: null, amountCents: 5000, period: "daily" as const, createdAt: 1, updatedAt: 1 };
+    const txns = [
+      txn({ amountCents: 2000, date: "2026-08-13" }),
+      txn({ amountCents: 9999, date: "2026-08-12" }), // yesterday: excluded
+    ];
+    const status = budgetStatus(dailyBudget, txns, month, "monday");
+    expect(status.spentCents).toBe(2000);
+    expect(status.level).toBe("ok");
+  });
+
+  test("weekly budgets count spending since the start of the week", () => {
+    const weeklyBudget = { id: "w", categoryId: null, amountCents: 5000, period: "weekly" as const, createdAt: 1, updatedAt: 1 };
+    const txns = [
+      txn({ amountCents: 1000, date: "2026-08-10" }), // Monday, in-week
+      txn({ amountCents: 1500, date: "2026-08-13" }), // Thursday (`month`), in-week
+      txn({ amountCents: 9999, date: "2026-08-09" }), // previous Sunday: excluded under Monday start
+    ];
+    const status = budgetStatus(weeklyBudget, txns, month, "monday");
+    expect(status.spentCents).toBe(2500);
   });
 });
 
@@ -252,9 +285,36 @@ describe("recurring transactions", () => {
   });
 
   test("nextOccurrenceAfter advances by frequency", () => {
-    expect(nextOccurrenceAfter(txn({ frequency: "daily", nextOccurrence: "2026-08-13" }))).toBe("2026-08-14");
-    expect(nextOccurrenceAfter(txn({ frequency: "weekly", nextOccurrence: "2026-08-13" }))).toBe("2026-08-20");
-    expect(nextOccurrenceAfter(txn({ frequency: "monthly", nextOccurrence: "2026-08-13" }))).toBe("2026-09-13");
+    expect(nextOccurrenceAfter(txn({ frequency: "daily", nextOccurrence: "2026-08-13" }), "2026-08-13")).toBe("2026-08-14");
+    expect(nextOccurrenceAfter(txn({ frequency: "weekly", nextOccurrence: "2026-08-13" }), "2026-08-13")).toBe("2026-08-20");
+    expect(nextOccurrenceAfter(txn({ frequency: "monthly", nextOccurrence: "2026-08-13" }), "2026-08-13")).toBe("2026-09-13");
+  });
+
+  test("nextOccurrenceAfter catches up to today when nextOccurrence is in the past", () => {
+    expect(nextOccurrenceAfter(txn({ frequency: "daily", nextOccurrence: "2026-08-01" }), "2026-08-13")).toBe("2026-08-14");
+  });
+});
+
+describe("suggestCategoryForMerchant", () => {
+  test("suggests the category most often used for a matching merchant", () => {
+    const transactions = [
+      txn({ merchant: "Netflix", categoryId: "subs" }),
+      txn({ merchant: "Netflix", categoryId: "subs" }),
+      txn({ merchant: "Netflix", categoryId: "food" }), // one stray miscategorization
+    ];
+    expect(suggestCategoryForMerchant("Netflix", transactions)).toBe("subs");
+  });
+
+  test("matches case- and whitespace-insensitively", () => {
+    const transactions = [txn({ merchant: "  Netflix  ", categoryId: "subs" })];
+    expect(suggestCategoryForMerchant("netflix", transactions)).toBe("subs");
+  });
+
+  test("returns null for a new merchant or empty input", () => {
+    const transactions = [txn({ merchant: "Netflix", categoryId: "subs" })];
+    expect(suggestCategoryForMerchant("Spotify", transactions)).toBeNull();
+    expect(suggestCategoryForMerchant("", transactions)).toBeNull();
+    expect(suggestCategoryForMerchant("   ", transactions)).toBeNull();
   });
 });
 

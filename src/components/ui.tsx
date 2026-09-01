@@ -6,12 +6,14 @@ import {
   useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   type TextareaHTMLAttributes,
 } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "../store/AppContext";
 import { formatMoney } from "../lib/currency";
+import { useT } from "../lib/i18n";
 import { parseAmountToCents } from "../lib/money";
 import type { CurrencyCode } from "../types";
 
@@ -39,21 +41,57 @@ interface SegmentedProps<T extends string> {
 }
 
 export function Segmented<T extends string>({ options, value, onChange, ariaLabel, className }: SegmentedProps<T>) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectedIndex = Math.max(0, options.findIndex((o) => o.value === value));
+
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+    const next = rovingNextIndex(e.key, index, options.length);
+    if (next === null) return;
+    e.preventDefault();
+    onChange(options[next].value);
+    refs.current[next]?.focus();
+  };
+
   return (
     <div className={`segmented ${className ?? ""}`} role="tablist" aria-label={ariaLabel}>
-      {options.map((o) => (
+      {options.map((o, i) => (
         <button
           key={o.value}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
           role="tab"
           aria-selected={value === o.value}
+          tabIndex={i === selectedIndex ? 0 : -1}
           className={`segmented-item ${value === o.value ? "active" : ""}`}
           onClick={() => onChange(o.value)}
+          onKeyDown={(e) => onKeyDown(e, i)}
         >
           {o.label}
         </button>
       ))}
     </div>
   );
+}
+
+/** Roving-tabindex arrow-key navigation shared by Segmented, ChipGroup, and
+ *  any other same-role button group (e.g. CategoryPicker).
+ *
+ *  Horizontal keys are swapped in RTL (matching WAI-ARIA authoring
+ *  practices): with `dir="rtl"`, item 0 renders on the physical right and
+ *  the array walks right-to-left, so pressing the physical Right arrow
+ *  should move focus toward the *previous* item, not the next one, to
+ *  match what the user sees moving under their finger/cursor. Vertical
+ *  keys (Up/Down) are unaffected by text direction and stay as-is. */
+export function rovingNextIndex(key: string, index: number, length: number): number | null {
+  const rtl = document.documentElement.dir === "rtl";
+  const forwardKey = rtl ? "ArrowLeft" : "ArrowRight";
+  const backwardKey = rtl ? "ArrowRight" : "ArrowLeft";
+  if (key === forwardKey || key === "ArrowDown") return (index + 1) % length;
+  if (key === backwardKey || key === "ArrowUp") return (index - 1 + length) % length;
+  if (key === "Home") return 0;
+  if (key === "End") return length - 1;
+  return null;
 }
 
 /* ---------- toggle ---------- */
@@ -165,16 +203,32 @@ export function ChipGroup<T extends string>({
   onChange: (v: T) => void;
   ariaLabel?: string;
 }) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectedIndex = Math.max(0, options.findIndex((o) => o.value === value));
+
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+    const next = rovingNextIndex(e.key, index, options.length);
+    if (next === null) return;
+    e.preventDefault();
+    onChange(options[next].value);
+    refs.current[next]?.focus();
+  };
+
   return (
     <div className="chip-group" role="radiogroup" aria-label={ariaLabel}>
-      {options.map((o) => (
+      {options.map((o, i) => (
         <button
           key={o.value}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
           type="button"
           role="radio"
           aria-checked={value === o.value}
+          tabIndex={i === selectedIndex ? 0 : -1}
           className={`chip ${value === o.value ? "chip-active" : ""}`}
           onClick={() => onChange(o.value)}
+          onKeyDown={(e) => onKeyDown(e, i)}
         >
           {o.label}
         </button>
@@ -257,32 +311,70 @@ export function Money({
 
 /* ---------- screen header ---------- */
 
+/** True once the shared `.app-scroll` container has scrolled past `threshold`
+ *  -- drives the large-title-collapses-into-the-nav-bar pattern used
+ *  throughout iOS (Settings, Mail, Messages): a big title sits in normal
+ *  flow below a slim, initially-transparent bar; once it scrolls up under
+ *  that bar, the bar's own small centered title and blurred background
+ *  fade in to replace it. */
+export function useHeaderScrolled(threshold = 12): boolean {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const scroller = document.querySelector<HTMLElement>(".app-scroll");
+    if (!scroller) return;
+    const onScroll = () => setScrolled(scroller.scrollTop > threshold);
+    onScroll();
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, [threshold]);
+  return scrolled;
+}
+
 export function ScreenHeader({
   title,
   subtitle,
   onBack,
   right,
+  largeTitle = true,
 }: {
   title: string;
   subtitle?: string;
   onBack?: () => void;
   right?: ReactNode;
+  /** Set false for a screen whose title should stay small/inline throughout
+   *  (e.g. a detail screen reached by drilling in), matching how iOS only
+   *  uses the large-title treatment on a hierarchy's top-level screens. */
+  largeTitle?: boolean;
 }) {
+  const t = useT();
+  const scrolled = useHeaderScrolled();
+  const showSmallTitle = !largeTitle || scrolled;
   return (
-    <header className="screen-header">
-      <div className="screen-header-left">
-        {onBack && (
-          <button className="icon-btn" onClick={onBack} aria-label="Back">
-            <ArrowLeft size={20} strokeWidth={2} />
-          </button>
-        )}
-        <div>
-          <h1 className="screen-title">{title}</h1>
+    <>
+      <header className={`screen-header-bar ${showSmallTitle ? "scrolled" : ""}`}>
+        <div className="screen-header-bar-inner">
+          {onBack && (
+            <button className="icon-btn" onClick={onBack} aria-label={t.common.back}>
+              <ArrowLeft size={20} strokeWidth={2} className="icon-directional" />
+            </button>
+          )}
+          {largeTitle ? (
+            <span className="screen-header-bar-title" aria-hidden="true">
+              {title}
+            </span>
+          ) : (
+            <h1 className="screen-header-bar-title">{title}</h1>
+          )}
+          {right && <div className="screen-header-right">{right}</div>}
+        </div>
+      </header>
+      {largeTitle && (
+        <div className="screen-large-title-wrap">
+          <h1 className="screen-large-title">{title}</h1>
           {subtitle && <p className="screen-subtitle">{subtitle}</p>}
         </div>
-      </div>
-      {right && <div className="screen-header-right">{right}</div>}
-    </header>
+      )}
+    </>
   );
 }
 
@@ -306,8 +398,30 @@ export function Sheet({
   onCloseRef.current = onClose;
 
   useLayoutEffect(() => {
+    // `aria-modal="true"` on the sheet promises keyboard focus stays inside
+    // it, but nothing enforced that -- Tab could walk out into the app
+    // underneath the backdrop (reachable on iPad/desktop with a physical
+    // keyboard, now that both are fully supported), letting a keyboard user
+    // land on and activate a control that's visually hidden behind the sheet.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== "Tab" || !ref.current) return;
+      const focusables = Array.from(
+        ref.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      ).filter((el) => !el.hasAttribute("disabled") && el.offsetParent !== null);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
 
@@ -319,6 +433,18 @@ export function Sheet({
     const scroller = document.querySelector<HTMLElement>(".app-scroll");
     const prevFocus = document.activeElement as HTMLElement | null;
     const prevTop = scroller ? scroller.scrollTop : 0;
+
+    // Start focus inside the sheet so the trap above has something to work
+    // with from the very first Tab press, instead of leaving focus wherever
+    // it was on the page underneath. Some sheets already autoFocus a specific
+    // field (e.g. the amount input on Add transaction) -- respect that
+    // instead of yanking focus over to the close button.
+    if (!ref.current?.contains(document.activeElement)) {
+      const firstFocusable = ref.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      (firstFocusable ?? ref.current)?.focus({ preventScroll: true });
+    }
 
     const preventScroll = (e: Event) => {
       const target = e.target as Node | null;
@@ -361,7 +487,7 @@ export function Sheet({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={ariaLabel ?? title} ref={ref}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={ariaLabel ?? title} ref={ref} tabIndex={-1}>
         <div className="sheet-grabber" aria-hidden="true" />
         <div className="sheet-header">
           <h2 className="sheet-title">{title}</h2>

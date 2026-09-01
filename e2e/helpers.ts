@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /** Local-time ISO date (YYYY-MM-DD), matching the app's date handling. */
 export function localISO(date: Date): string {
@@ -13,6 +13,59 @@ export function tomorrowISO(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   return localISO(d);
+}
+
+/** Seeds `count` synthetic expense transactions directly into IndexedDB --
+ *  far faster than adding each one through the UI, for tests that need a
+ *  realistic amount of data (e.g. checking rendering performance/windowing).
+ *  Call after onboarding has completed, since it reads the seeded default
+ *  categories. Does not update the app's in-memory state -- reload the page
+ *  after calling this. */
+export async function seedTransactions(page: Page, count: number) {
+  await page.evaluate((n) => {
+    function req<T>(r: IDBRequest<T>): Promise<T> {
+      return new Promise((resolve, reject) => {
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+    }
+    return new Promise<void>((resolve, reject) => {
+      const openReq = indexedDB.open("flow-db");
+      openReq.onsuccess = async () => {
+        try {
+          const db = openReq.result;
+          const cats = await req<{ id: string }[]>(db.transaction("categories", "readonly").objectStore("categories").getAll());
+          const catPool = cats.map((c) => c.id);
+          const putTx = db.transaction("transactions", "readwrite");
+          const store = putTx.objectStore("transactions");
+          for (let i = 0; i < n; i++) {
+            const date = `2025-${String(1 + (i % 12)).padStart(2, "0")}-${String(1 + (i % 27)).padStart(2, "0")}`;
+            store.put({
+              id: `e2e-seed-${i}`,
+              type: "expense",
+              amountCents: 500 + (i % 5000),
+              categoryId: catPool[i % catPool.length],
+              merchant: `Merchant ${i % 50}`,
+              date,
+              subscriptionId: null,
+              notes: "",
+              recurring: false,
+              frequency: null,
+              nextOccurrence: null,
+              paymentMethod: null,
+              createdAt: Date.now() - i * 1000,
+              updatedAt: Date.now() - i * 1000,
+            });
+          }
+          putTx.oncomplete = () => resolve();
+          putTx.onerror = () => reject(putTx.error);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      openReq.onerror = () => reject(openReq.error);
+    });
+  }, count);
 }
 
 /** Drive the real onboarding flow to its end. */
@@ -88,6 +141,35 @@ export async function addSubscription(
 export async function openSettings(page: Page) {
   await page.getByRole("button", { name: "Settings" }).first().click();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+}
+
+/** Switch the app language via Settings and wait for `<html dir>` to reflect
+ *  it -- the source of truth `SwipeRow`'s RTL handling reads. */
+export async function setLanguage(page: Page, language: "en" | "he") {
+  await openSettings(page);
+  await page.getByRole("radio", { name: language === "he" ? "עברית" : "English" }).click();
+  await expect(page.locator("html")).toHaveAttribute("dir", language === "he" ? "rtl" : "ltr");
+  await page.getByRole("button", { name: language === "he" ? "חזרה" : "Back" }).click();
+}
+
+/** Drags a `SwipeRow`'s `.swipe-track` by `dxPx` physical pixels (positive =
+ *  drag right, negative = drag left) using real mouse/pointer events, then
+ *  waits for the CSS snap transition to settle. `dxPx`'s sign is always a
+ *  physical screen direction, in both LTR and RTL -- see the RTL note on
+ *  `SwipeRow` in src/components/rows.tsx for why. */
+export async function dragSwipeTrack(page: Page, track: Locator, dxPx: number) {
+  const box = await track.boundingBox();
+  if (!box) throw new Error("swipe track not found");
+  const startX = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(startX, y);
+  await page.mouse.down();
+  // Several intermediate steps so the component's own move-distance/angle
+  // gesture-detection (dx vs dy, >10px threshold) actually engages.
+  await page.mouse.move(startX + dxPx / 2, y, { steps: 5 });
+  await page.mouse.move(startX + dxPx, y, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(260); // > the .swipe-track 0.22s snap transition
 }
 
 /** Go to a tab by its label. */
