@@ -20,7 +20,7 @@ export function TransactionDetail({ transactionId }: { transactionId: string }) 
   if (!transaction) {
     return (
       <div className="screen">
-        <ScreenHeader title={t.transactionDetail.title} onBack={back} />
+        <ScreenHeader title={t.transactionDetail.title} onBack={back} largeTitle={false} />
         <p className="screen-empty-text">{t.transactionDetail.notFoundMessage}</p>
       </div>
     );

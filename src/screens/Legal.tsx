@@ -12,7 +12,7 @@ export function PrivacyScreen() {
   const p = t.legal.privacy;
   return (
     <div className="screen">
-      <ScreenHeader title={p.title} onBack={back} />
+      <ScreenHeader title={p.title} onBack={back} largeTitle={false} />
       <div className="legal">
         <p className="legal-lede">{p.lede}</p>
         <LegalSection title={p.whatWeStoreTitle}>
@@ -50,7 +50,7 @@ export function TermsScreen() {
   const s = t.legal.terms;
   return (
     <div className="screen">
-      <ScreenHeader title={s.title} onBack={back} />
+      <ScreenHeader title={s.title} onBack={back} largeTitle={false} />
       <div className="legal">
         <p className="legal-lede">{s.lede}</p>
         <LegalSection title={s.noAdviceTitle}>
@@ -82,7 +82,7 @@ export function SupportScreen() {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <div className="screen">
-      <ScreenHeader title={s.title} onBack={back} />
+      <ScreenHeader title={s.title} onBack={back} largeTitle={false} />
       <div className="legal">
         <p className="legal-lede">{s.lede}</p>
         <div className="faq">

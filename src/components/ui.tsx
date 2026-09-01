@@ -311,33 +311,70 @@ export function Money({
 
 /* ---------- screen header ---------- */
 
+/** True once the shared `.app-scroll` container has scrolled past `threshold`
+ *  -- drives the large-title-collapses-into-the-nav-bar pattern used
+ *  throughout iOS (Settings, Mail, Messages): a big title sits in normal
+ *  flow below a slim, initially-transparent bar; once it scrolls up under
+ *  that bar, the bar's own small centered title and blurred background
+ *  fade in to replace it. */
+export function useHeaderScrolled(threshold = 12): boolean {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const scroller = document.querySelector<HTMLElement>(".app-scroll");
+    if (!scroller) return;
+    const onScroll = () => setScrolled(scroller.scrollTop > threshold);
+    onScroll();
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, [threshold]);
+  return scrolled;
+}
+
 export function ScreenHeader({
   title,
   subtitle,
   onBack,
   right,
+  largeTitle = true,
 }: {
   title: string;
   subtitle?: string;
   onBack?: () => void;
   right?: ReactNode;
+  /** Set false for a screen whose title should stay small/inline throughout
+   *  (e.g. a detail screen reached by drilling in), matching how iOS only
+   *  uses the large-title treatment on a hierarchy's top-level screens. */
+  largeTitle?: boolean;
 }) {
   const t = useT();
+  const scrolled = useHeaderScrolled();
+  const showSmallTitle = !largeTitle || scrolled;
   return (
-    <header className="screen-header">
-      <div className="screen-header-left">
-        {onBack && (
-          <button className="icon-btn" onClick={onBack} aria-label={t.common.back}>
-            <ArrowLeft size={20} strokeWidth={2} className="icon-directional" />
-          </button>
-        )}
-        <div>
-          <h1 className="screen-title">{title}</h1>
+    <>
+      <header className={`screen-header-bar ${showSmallTitle ? "scrolled" : ""}`}>
+        <div className="screen-header-bar-inner">
+          {onBack && (
+            <button className="icon-btn" onClick={onBack} aria-label={t.common.back}>
+              <ArrowLeft size={20} strokeWidth={2} className="icon-directional" />
+            </button>
+          )}
+          {largeTitle ? (
+            <span className="screen-header-bar-title" aria-hidden="true">
+              {title}
+            </span>
+          ) : (
+            <h1 className="screen-header-bar-title">{title}</h1>
+          )}
+          {right && <div className="screen-header-right">{right}</div>}
+        </div>
+      </header>
+      {largeTitle && (
+        <div className="screen-large-title-wrap">
+          <h1 className="screen-large-title">{title}</h1>
           {subtitle && <p className="screen-subtitle">{subtitle}</p>}
         </div>
-      </div>
-      {right && <div className="screen-header-right">{right}</div>}
-    </header>
+      )}
+    </>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeftRight, BarChart3, Home as HomeIcon, Plus, RefreshCcw, Settings as SettingsIcon } from "lucide-react";
 import { App as CapacitorApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { useApp } from "./store/AppContext";
@@ -63,6 +64,7 @@ function AppInner() {
 
   const isDark = useTheme(settings?.theme ?? "system");
   useAccentColor(settings?.accentColor);
+  usePlatform();
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
   const settingsLoaded = ready && (settings?.onboarded ?? false);
@@ -502,6 +504,18 @@ function useAccentColor(accentColor: AccentColor | undefined) {
   useEffect(() => {
     document.documentElement.dataset.accent = accentColor ?? "green";
   }, [accentColor]);
+}
+
+/** Applies the running platform to <html> as `data-platform` ("ios" |
+ *  "android" | "web"), which `:root[data-platform="android"]` blocks in
+ *  index.css key off of to swap in Material styling -- the app is built
+ *  around iOS/Apple HIG by default, but the same codebase ships to the
+ *  Play Store, where it should look and feel native to Android instead.
+ *  Runs once: the platform can't change during a session. */
+function usePlatform(): void {
+  useEffect(() => {
+    document.documentElement.dataset.platform = Capacitor.getPlatform();
+  }, []);
 }
 
 function resolve(preference: "system" | "light" | "dark"): boolean {
