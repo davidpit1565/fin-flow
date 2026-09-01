@@ -24,7 +24,11 @@
   --shadow-sm: 0 1px 2px rgba(20, 20, 24, 0.05);
   --shadow-md: 0 10px 28px rgba(20, 20, 24, 0.09);
   --shadow-lg: 0 20px 48px rgba(20, 20, 24, 0.16);
-  --tabbar-h: 66px;
+  /* Matches real iOS's ~49pt tab bar content height (plus the safe area,
+     added separately below) -- was 66px, which measured out to ~12% of a
+     typical phone's screen height including the home-indicator safe area,
+     noticeably taller than the ~10% real iOS tab bars occupy. */
+  --tabbar-h: 54px;
   color-scheme: light;
 
   /* Apple HIG type scale (San Francisco's default sizes at 100% Dynamic
@@ -1888,7 +1892,7 @@ input[type="date"] {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  height: 52px;
+  height: 44px;
   color: var(--text-tertiary);
   font-size: 10.5px;
   font-weight: 600;
@@ -1922,7 +1926,7 @@ input[type="date"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: -22px;
+  margin-top: -18px;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 45%, transparent);
   transition: transform 0.15s ease, background 0.15s ease;
 }
