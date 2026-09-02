@@ -6,7 +6,15 @@ const config: CapacitorConfig = {
   webDir: "dist",
   backgroundColor: "#0e0f11",
   ios: {
-    contentInset: "always",
+    // "always" makes the native WKWebView reserve its own safe-area inset on
+    // top of the app's own CSS -- this app already handles every safe area
+    // itself via `env(safe-area-inset-*)` (see .tabbar, .sheet, .app-frame in
+    // index.css) plus `viewport-fit=cover` in index.html, so "always" just
+    // doubles up the bottom inset into a large dead gap of plain background
+    // below the tab bar instead of the tab bar sitting flush with the real
+    // screen edge. "never" lets the WebView render truly edge-to-edge and
+    // leaves all inset handling to the CSS, which already does it correctly.
+    contentInset: "never",
     backgroundColor: "#0e0f11",
     scrollEnabled: true,
     limitsNavigationsToAppBoundDomains: true,
