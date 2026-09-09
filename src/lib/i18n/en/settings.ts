@@ -93,18 +93,8 @@ export const settings = {
   termsOfUse: "Terms of Use",
   helpAndSupport: "Help & Support",
 
-  appLockWithFaceId: "App lock with Face ID",
-  appLockNotAvailable: "Not available in the browser",
-  appLockChecking: "Checking…",
-  appLockRequireFaceId: "Require Face ID to open Flow",
-  appLockSetupFirst: "Set up Face ID in iOS Settings first",
-
   version: (v: string) => `Flow ${v}`,
   privacyFooterNote: "Your financial data never leaves this device. No accounts, no servers, no ads.",
-
-  confirmFaceIdReason: "Confirm Face ID to turn on app lock",
-  faceIdNotVerified: "Couldn't verify Face ID — app lock not enabled",
-  appLockEnabledToast: "App lock enabled",
 
   deleteAllTitle: "Delete all data?",
   deleteAllMessage: (counts: {

@@ -378,7 +378,7 @@ ul {
   background: var(--bg);
 }
 
-.lock-screen {
+.fullscreen-message {
   height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -391,14 +391,14 @@ ul {
   animation: fadeIn 0.4s ease both;
 }
 
-.lock-screen-title {
+.fullscreen-message-title {
   font-size: 17px;
   font-weight: 650;
   color: var(--text);
   margin: 4px 0 0;
 }
 
-.lock-screen-hint {
+.fullscreen-message-hint {
   font-size: 14px;
   color: var(--text-tertiary);
   margin: 0;

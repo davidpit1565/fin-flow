@@ -20,7 +20,6 @@ function buildPayload(): BackupPayload {
       budgetAlerts: false,
       monthlySummary: true,
     },
-    appLockEnabled: false,
     createdAt: 1,
     updatedAt: 2,
   };

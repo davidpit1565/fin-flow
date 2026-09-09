@@ -1,15 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronRight, Download, FolderCog, LifeBuoy, Lock, Scale, Shield, Trash2, Upload } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
-import { authenticateWithBiometrics, checkBiometryAvailable } from "../lib/appLock";
 import { computeNetWorth } from "../lib/calc";
 import { CURRENCIES, formatMoney, symbolFor } from "../lib/currency";
 import { buildCSV, downloadCSV, fileToText, parseImportCSV } from "../lib/csv";
 import { decryptBackup, downloadBackupFile, encryptBackup, type BackupPayload } from "../lib/backup";
 import { LANGUAGE_NAMES, useT } from "../lib/i18n";
 import { notificationsSupported, permissionState, requestPermission, triggersSupported } from "../lib/notifications";
-import { isNative } from "../lib/platform";
 import { resyncAllReminders } from "../lib/reminders";
 import { todayISO } from "../lib/dates";
 import type { Language } from "../types";
@@ -36,7 +34,6 @@ export function Settings() {
   const { back, push } = useNavigation();
   const t = useT();
   const [showCurrency, setShowCurrency] = useState(false);
-  const [biometryAvailable, setBiometryAvailable] = useState<boolean | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const backupFileRef = useRef<HTMLInputElement>(null);
   const [showExportBackup, setShowExportBackup] = useState(false);
@@ -47,33 +44,8 @@ export function Settings() {
   const [restorePassword, setRestorePassword] = useState("");
   const [restoring, setRestoring] = useState(false);
 
-  useEffect(() => {
-    if (!isNative()) return;
-    let cancelled = false;
-    void checkBiometryAvailable().then((available) => {
-      if (!cancelled) setBiometryAvailable(available);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   if (!settings) return null;
   const { currency } = settings;
-
-  const onToggleAppLock = async (next: boolean) => {
-    if (!next) {
-      updateSettings({ appLockEnabled: false });
-      return;
-    }
-    const ok = await authenticateWithBiometrics(t.settings.confirmFaceIdReason);
-    if (!ok) {
-      toast(t.settings.faceIdNotVerified);
-      return;
-    }
-    updateSettings({ appLockEnabled: true });
-    toast(t.settings.appLockEnabledToast);
-  };
 
   const onDeleteAll = async () => {
     const itemCount = transactions.length + subscriptions.length + budgets.length + goals.length + debts.length;
@@ -473,27 +445,7 @@ export function Settings() {
         <Card className="list-card">
           <SettingsRow label={t.settings.privacyPolicy} icon={Shield} onPress={() => push({ tab: "settings", name: "privacy" })} />
           <SettingsRow label={t.settings.termsOfUse} icon={Scale} onPress={() => push({ tab: "settings", name: "terms" })} />
-          <SettingsRow label={t.settings.helpAndSupport} icon={LifeBuoy} onPress={() => push({ tab: "settings", name: "support" })} />
-          <div className="settings-toggle-row">
-            <div>
-              <span className="row-title">{t.settings.appLockWithFaceId}</span>
-              <span className="row-sub">
-                {!isNative()
-                  ? t.settings.appLockNotAvailable
-                  : biometryAvailable === null
-                    ? t.settings.appLockChecking
-                    : biometryAvailable
-                      ? t.settings.appLockRequireFaceId
-                      : t.settings.appLockSetupFirst}
-              </span>
-            </div>
-            <Toggle
-              checked={settings.appLockEnabled ?? false}
-              onChange={(v) => void onToggleAppLock(v)}
-              label={t.settings.appLockWithFaceId}
-              disabled={!isNative() || !biometryAvailable}
-            />
-          </div>
+          <SettingsRow label={t.settings.helpAndSupport} icon={LifeBuoy} onPress={() => push({ tab: "settings", name: "support" })} last />
         </Card>
       </SettingsSection>
 
