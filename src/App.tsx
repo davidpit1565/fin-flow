@@ -446,20 +446,29 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   const [authenticating, setAuthenticating] = useState(false);
   const [failed, setFailed] = useState(false);
   const t = useT();
+  // Counts attempts so a stale native call that finally settles after the
+  // user has already tapped "try again" doesn't clobber the newer attempt's
+  // state -- the button below is deliberately never disabled, so this is
+  // the guard that makes an immediate manual retry safe even while an
+  // earlier call is still (or forever) pending.
+  const attemptRef = useRef(0);
 
-  const tryUnlock = useCallback(async () => {
+  const tryUnlock = useCallback(() => {
+    const attempt = ++attemptRef.current;
     setAuthenticating(true);
     setFailed(false);
-    const ok = await authenticateWithBiometrics(t.appShell.unlockPromptReason);
-    setAuthenticating(false);
-    if (ok) onUnlock();
-    else setFailed(true);
+    void authenticateWithBiometrics(t.appShell.unlockPromptReason).then((ok) => {
+      if (attempt !== attemptRef.current) return;
+      setAuthenticating(false);
+      if (ok) onUnlock();
+      else setFailed(true);
+    });
   }, [onUnlock, t]);
 
   // Prompt automatically as soon as the lock screen appears, with a manual
   // fallback button for when the user dismisses it or it fails.
   useEffect(() => {
-    void tryUnlock();
+    tryUnlock();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -468,7 +477,10 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
       <FlowMark />
       <p className="lock-screen-title">{t.appShell.lockedTitle}</p>
       {failed && <p className="lock-screen-hint">{t.appShell.lockedFaceIdFailed}</p>}
-      <button className="btn btn-primary btn-lg" onClick={() => void tryUnlock()} disabled={authenticating}>
+      {/* Never disabled, even mid-"Checking..." -- a hung native call must
+          never be the only way out of the lock screen; tapping again always
+          starts a fresh attempt immediately, it doesn't wait on the old one. */}
+      <button className="btn btn-primary btn-lg" onClick={tryUnlock}>
         {authenticating ? t.appShell.unlockChecking : t.appShell.unlockButton}
       </button>
     </div>

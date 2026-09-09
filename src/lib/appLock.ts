@@ -15,13 +15,14 @@ export async function checkBiometryAvailable(): Promise<boolean> {
   }
 }
 
-// If the native biometric prompt never settles (observed: hangs indefinitely
-// in the iOS Simulator when Face ID is enrolled but no matching/non-matching
-// face is ever fed to it from the Features menu), the caller's "Checking..."
-// state would never clear -- LockScreen disables its manual retry button
-// while authenticating, so a hang leaves the user locked out of the app with
-// no way back in. Racing a timeout guarantees this call always settles.
-const AUTH_TIMEOUT_MS = 20_000;
+// If the native biometric prompt never settles (observed on real devices as
+// multi-second main-thread hangs, and indefinitely in the iOS Simulator when
+// Face ID is enrolled but no matching/non-matching face is ever fed to it
+// from the Features menu), the caller's "Checking..." state would never
+// clear on its own. Racing a timeout guarantees this call always settles;
+// LockScreen's retry button is never disabled, so this is a bound on the
+// automatic-retry wait, not the user's only way back in.
+const AUTH_TIMEOUT_MS = 8_000;
 
 function timeout<T>(ms: number): Promise<T> {
   return new Promise((resolve) => setTimeout(resolve, ms) as unknown as void).then(() => {
