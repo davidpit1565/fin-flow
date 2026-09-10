@@ -467,9 +467,19 @@ function useVisualViewportHeight(): void {
       document.documentElement.style.setProperty("--app-vh-offset-bottom", `${keyboardOffset}px`);
     };
     update();
+    // On a cold launch in standalone display mode, `visualViewport`'s very first
+    // reading can be transiently off (iOS hasn't finished settling the viewport
+    // against the safe areas yet), which briefly applies a bogus offset and
+    // shrinks `.app-frame` -- and since nothing else fires a `resize`/`scroll`
+    // event on `vv` until the user actually scrolls, it stayed shrunk (tab bar
+    // rendered too high, needing a manual scroll to "unstick" it) until then.
+    // Re-running the same check a moment after mount, once iOS has settled,
+    // corrects it without waiting on user interaction.
+    const settleTimer = window.setTimeout(update, 300);
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
     return () => {
+      window.clearTimeout(settleTimer);
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
     };
