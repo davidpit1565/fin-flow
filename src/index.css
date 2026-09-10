@@ -551,13 +551,17 @@ ul {
   justify-content: center;
   background: var(--surface-2);
   color: var(--text-secondary);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
   flex-shrink: 0;
 }
 
 .icon-btn:hover {
   background: var(--surface-3);
   color: var(--text);
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
 }
 
 .icon-btn-sm {
@@ -1427,19 +1431,32 @@ input[type="date"] {
   font-weight: 500;
 }
 
+/* Three equal columns leave one of these (the "Subscriptions" tile, whose
+   value carries a "/mo" suffix on top of the currency amount) genuinely
+   tight even on an ordinary-width phone, not just the narrowest ones --
+   truncating it mid-value (e.g. "€82.98/…") hides real financial info
+   instead of just tightening the layout. Wrapping to a second line instead
+   of single-line-ellipsizing keeps the full value readable at any width;
+   `-webkit-line-clamp` caps it at 2 lines as a backstop against a truly
+   oversized value blowing out the tile's height. `overflow-wrap: anywhere`
+   is the part that actually makes the wrap possible -- a value like
+   "€1,882.98/mo" has no space for the browser's default word-wrapping to
+   break at, so without it the unbreakable string just overflows the box
+   horizontally (silently clipped by `overflow: hidden` below, with no
+   ellipsis) instead of wrapping. */
 .stat-value {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 650;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* At the narrowest supported width, three stat tiles leave too little room
-   for the value at the default size — an ordinary "$0.00/mo" would ellipsize
-   just from three-column arithmetic, not because the amount is actually
-   large. Give it a little more room; overflow protection for genuinely
-   large values stays in place via the ellipsis above. */
+/* At the narrowest supported width, tighten the tile's own padding too, so
+   the little extra room goes to the value rather than just its margins. */
 @media (max-width: 340px) {
   .stat-tile {
     padding: 14px 8px;
@@ -1864,8 +1881,12 @@ input[type="date"] {
   color: var(--text-tertiary);
   font-size: 10.5px;
   font-weight: 600;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, transform 0.1s ease;
   min-width: 0;
+}
+
+.tabbar-item:active {
+  transform: scale(0.94);
 }
 
 .tabbar-item span {
@@ -1875,8 +1896,12 @@ input[type="date"] {
   white-space: nowrap;
 }
 
+/* Tint the active tab in the app's own accent color, the way a native iOS
+   UITabBar tints its selected item -- the label's own bold weight already
+   carries the "current" cue, but a plain neutral color left the selected
+   state easy to miss at a glance next to `--text-tertiary`'s siblings. */
 .tabbar-item.active {
-  color: var(--text);
+  color: var(--accent);
 }
 
 .tabbar-add-wrap {
@@ -2892,7 +2917,8 @@ input[type="date"] {
    iOS's scale-down -- most noticeable on buttons and pressable cards. */
 [data-platform="android"] .btn:active,
 [data-platform="android"] .card-pressable:active,
-[data-platform="android"] .icon-btn:active {
+[data-platform="android"] .icon-btn:active,
+[data-platform="android"] .tabbar-item:active {
   transform: none;
   filter: brightness(0.92);
 }
