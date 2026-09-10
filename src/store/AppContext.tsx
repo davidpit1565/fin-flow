@@ -27,9 +27,10 @@ import type {
   UserSettings,
 } from "../types";
 import { DEFAULT_CATEGORIES } from "../lib/icons";
-import { localeCurrency } from "../lib/currency";
+import { formatMoney, localeCurrency } from "../lib/currency";
 import { storage } from "../lib/storage";
 import { advanceSubscriptionDate, monthlyEquivalent } from "../lib/calc";
+import { buildWidgetSnapshot, billsDueToday, endBillDueActivity, pushWidgetSnapshot, startBillDueActivity } from "../lib/widgetBridge";
 import {
   checkBudgetAlerts,
   checkMonthlySummary,
@@ -62,7 +63,6 @@ export function defaultSettings(): UserSettings {
       budgetAlerts: true,
       monthlySummary: true,
     },
-    appLockEnabled: false,
     createdAt: now,
     updatedAt: now,
   };
@@ -262,6 +262,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
+  /* ---------- widgets & Live Activities (native only) ---------- */
+  // Keeps FlowWidgets' Home Screen/Lock Screen widgets and any in-flight
+  // "Bill Due Today" Dynamic Island Live Activity in sync with the app's
+  // real data, which otherwise only ever lives in this WebView's IndexedDB
+  // and neither surface can reach into. Debounced slightly so a burst of
+  // storage writes (e.g. a CSV import) doesn't hammer the native bridge.
+  const billActivityIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!ready || !settings?.onboarded) return undefined;
+    const timer = window.setTimeout(() => {
+      pushWidgetSnapshot(
+        buildWidgetSnapshot(transactions, subscriptions, budgets, goals, settings.currency, settings.startWeekOn, settings.dateFormat, t)
+      );
+
+      const dueToday = billsDueToday(subscriptions);
+      const dueIds = new Set(dueToday.map((s) => s.id));
+      for (const sub of dueToday) {
+        startBillDueActivity({
+          id: sub.id,
+          name: sub.name,
+          amountLabel: formatMoney(sub.amountCents, settings.currency),
+          dueDateLabel: t.common.today,
+        });
+      }
+      for (const id of billActivityIdsRef.current) {
+        if (!dueIds.has(id)) endBillDueActivity(id);
+      }
+      billActivityIdsRef.current = dueIds;
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [ready, settings, transactions, subscriptions, budgets, goals, t]);
+
   /* ---------- toast ---------- */
   const toast = useCallback((message: string) => {
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
@@ -384,6 +416,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
         void storage.put("subscriptions", updated).catch(() => toast(t.common.somethingWentWrong));
         if (settings) void syncSubscriptionReminder(updated, settings, t);
+        endBillDueActivity(sub.id);
         // Create a real transaction so subscription spending is visible.
         const txn: Transaction = {
           id: crypto.randomUUID(),

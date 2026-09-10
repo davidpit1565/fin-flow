@@ -19,18 +19,6 @@ test.describe("navigation", () => {
     await expect(page.getByRole("heading", { name: "Your finances" })).toBeVisible();
   });
 
-  test("App lock with Face ID is correctly disabled on the web (regression)", async ({ page }) => {
-    const errors = collectConsoleErrors(page);
-    await completeOnboarding(page);
-    await openSettings(page);
-
-    const toggle = page.getByRole("switch", { name: "App lock with Face ID" });
-    await expect(toggle).toBeVisible();
-    await expect(toggle).toBeDisabled();
-    await expect(page.getByText("Not available in the browser")).toBeVisible();
-    expect(errors).toEqual([]);
-  });
-
   test("an open sheet traps Tab focus instead of leaking into the app underneath (regression)", async ({ page }) => {
     await completeOnboarding(page);
     await openAddSheet(page);

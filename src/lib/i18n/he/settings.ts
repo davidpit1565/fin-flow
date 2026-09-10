@@ -96,18 +96,8 @@ export const settings: typeof SettingsEn = {
   termsOfUse: "תנאי השימוש",
   helpAndSupport: "עזרה ותמיכה",
 
-  appLockWithFaceId: "נעילת אפליקציה עם Face ID",
-  appLockNotAvailable: "לא זמין בדפדפן",
-  appLockChecking: "בודק…",
-  appLockRequireFaceId: "דרוש Face ID לפתיחת Flow",
-  appLockSetupFirst: "יש להגדיר קודם Face ID בהגדרות ה-iOS",
-
   version: (v: string) => `Flow ${v}`,
   privacyFooterNote: "הנתונים הפיננסיים שלך לעולם לא יוצאים מהמכשיר הזה. בלי חשבונות, בלי שרתים, בלי פרסומות.",
-
-  confirmFaceIdReason: "אשר עם Face ID כדי להפעיל נעילת אפליקציה",
-  faceIdNotVerified: "לא הצלחנו לאמת עם Face ID — נעילת האפליקציה לא הופעלה",
-  appLockEnabledToast: "נעילת האפליקציה הופעלה",
 
   deleteAllTitle: "למחוק את כל הנתונים?",
   deleteAllMessage: (counts: {

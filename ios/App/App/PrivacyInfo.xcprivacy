@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<!-- Matches the "Data Not Collected" App Privacy questionnaire answer --
+	     nothing here leaves the device, ever. -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<!-- WidgetBridgePlugin.swift reads/writes UserDefaults(suiteName:) to
+	     share widget data with the FlowWidgets extension via their shared
+	     App Group -- a "required reason" API since iOS 17's privacy manifest
+	     policy. CA92.1 is the approved reason for exactly this case: reading
+	     from/writing to app group storage shared only between the app and
+	     its own widget/extension, never transmitted off-device. -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

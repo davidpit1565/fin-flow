@@ -162,7 +162,10 @@ export function subscriptionYearlyTotal(subscriptions: Subscription[]): number {
 /** Active subs due within the next 90 days (or overdue), sorted by date --
  *  the raw data behind `upcomingPayments`, with no display label attached
  *  yet, so totals can be computed without a translation dictionary. */
-function upcomingDue(subscriptions: Subscription[], now: string): { subscription: Subscription; date: string; amountCents: number; overdue: boolean }[] {
+export function upcomingDue(
+  subscriptions: Subscription[],
+  now: string
+): { subscription: Subscription; date: string; amountCents: number; overdue: boolean }[] {
   const horizon = addDays(now, 90);
   return activeSubscriptions(subscriptions)
     .filter((s) => s.nextPaymentDate <= horizon)

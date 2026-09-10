@@ -1,1 +1,1 @@
-Track spending. Control subscriptions.
+Expense & subscription tracker

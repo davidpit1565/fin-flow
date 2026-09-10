@@ -6,7 +6,6 @@ import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { useApp } from "./store/AppContext";
 import type { AccentColor, Language } from "./types";
-import { authenticateWithBiometrics } from "./lib/appLock";
 import { isNative } from "./lib/platform";
 import { setLocaleOverride } from "./lib/locale";
 import { I18nProvider, isRTL, useT } from "./lib/i18n";
@@ -30,7 +29,7 @@ import { PrivacyScreen, SupportScreen, TermsScreen } from "./screens/Legal";
 import { AddTransactionSheet } from "./components/AddTransactionSheet";
 
 /** Resolves the app's language/direction and provides the i18n dictionary
- *  to the whole tree, including the early-return Onboarding/Splash/Lock
+ *  to the whole tree, including the early-return Onboarding/Splash
  *  screens below -- every one of them needs `useT()` to work, not just the
  *  main authenticated app. */
 function App() {
@@ -68,8 +67,6 @@ function AppInner() {
   useVisualViewportHeight();
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
-  const settingsLoaded = ready && (settings?.onboarded ?? false);
-  const { locked, unlock } = useAppLock(settings?.appLockEnabled ?? false, settingsLoaded);
   const privacyShielded = usePrivacyShield();
 
   // The native splash screen (Capacitor) stays up until the app's real UI is
@@ -82,7 +79,6 @@ function AppInner() {
   if (loadError) return <LoadErrorScreen onRetry={retryLoad} />;
   if (!ready) return <Splash />;
   if (!settings || !settings.onboarded) return <Onboarding />;
-  if (locked) return <LockScreen onUnlock={unlock} />;
 
   const screen = (() => {
     switch (current.tab) {
@@ -358,10 +354,10 @@ function Splash() {
 function LoadErrorScreen({ onRetry }: { onRetry: () => void }) {
   const t = useT();
   return (
-    <div className="lock-screen">
+    <div className="fullscreen-message">
       <FlowMark />
-      <p className="lock-screen-title">{t.appShell.loadErrorTitle}</p>
-      <p className="lock-screen-hint">{t.appShell.loadErrorHint}</p>
+      <p className="fullscreen-message-title">{t.appShell.loadErrorTitle}</p>
+      <p className="fullscreen-message-hint">{t.appShell.loadErrorHint}</p>
       <button className="btn btn-primary btn-lg" onClick={onRetry}>
         {t.appShell.tryAgain}
       </button>
@@ -385,49 +381,11 @@ function FlowMark() {
   );
 }
 
-/** Locks the app behind Face ID/Touch ID (native only) once per cold start
- *  when app lock is enabled, and again every time the app returns from the
- *  background -- not when the setting is merely toggled on mid-session,
- *  since enabling it just required a successful Face ID check in Settings. */
-function useAppLock(enabled: boolean, settingsLoaded: boolean): { locked: boolean; unlock: () => void } {
-  const [locked, setLocked] = useState(false);
-  const initializedRef = useRef(false);
-  const enabledRef = useRef(enabled);
-  enabledRef.current = enabled;
-
-  useEffect(() => {
-    if (settingsLoaded && !initializedRef.current) {
-      initializedRef.current = true;
-      if (isNative() && enabledRef.current) setLocked(true);
-    }
-  }, [settingsLoaded]);
-
-  useEffect(() => {
-    if (!isNative()) return undefined;
-    let wasBackground = false;
-    const handlePromise = CapacitorApp.addListener("appStateChange", ({ isActive }) => {
-      if (!isActive) {
-        wasBackground = true;
-      } else if (wasBackground) {
-        wasBackground = false;
-        if (enabledRef.current) setLocked(true);
-      }
-    });
-    return () => {
-      void handlePromise.then((handle) => handle.remove());
-    };
-  }, []);
-
-  const unlock = useCallback(() => setLocked(false), []);
-  return { locked: enabled && locked, unlock };
-}
-
-/** Covers the screen the instant the app leaves the foreground (native only),
- *  independent of whether app lock is on. iOS snapshots whatever is on
- *  screen for the app-switcher card the moment the app backgrounds -- without
- *  this, real balances and transactions would sit in that snapshot in plain
- *  view, which would defeat the point of the Face ID lock at the one moment
- *  it matters most (and leaks data even for users who never turn lock on). */
+/** Covers the screen the instant the app leaves the foreground (native only).
+ *  iOS snapshots whatever is on screen for the app-switcher card the moment
+ *  the app backgrounds -- without this, real balances and transactions
+ *  would sit in that snapshot in plain view for anyone who flips through
+ *  the switcher. */
 function usePrivacyShield(): boolean {
   const [hidden, setHidden] = useState(false);
   useEffect(() => {
@@ -440,39 +398,6 @@ function usePrivacyShield(): boolean {
     };
   }, []);
   return hidden;
-}
-
-function LockScreen({ onUnlock }: { onUnlock: () => void }) {
-  const [authenticating, setAuthenticating] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const t = useT();
-
-  const tryUnlock = useCallback(async () => {
-    setAuthenticating(true);
-    setFailed(false);
-    const ok = await authenticateWithBiometrics(t.appShell.unlockPromptReason);
-    setAuthenticating(false);
-    if (ok) onUnlock();
-    else setFailed(true);
-  }, [onUnlock, t]);
-
-  // Prompt automatically as soon as the lock screen appears, with a manual
-  // fallback button for when the user dismisses it or it fails.
-  useEffect(() => {
-    void tryUnlock();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div className="lock-screen">
-      <FlowMark />
-      <p className="lock-screen-title">{t.appShell.lockedTitle}</p>
-      {failed && <p className="lock-screen-hint">{t.appShell.lockedFaceIdFailed}</p>}
-      <button className="btn btn-primary btn-lg" onClick={() => void tryUnlock()} disabled={authenticating}>
-        {authenticating ? t.appShell.unlockChecking : t.appShell.unlockButton}
-      </button>
-    </div>
-  );
 }
 
 /** Applies the resolved theme to <html> and returns whether dark. */
