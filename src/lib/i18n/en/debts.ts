@@ -24,9 +24,6 @@ export const debts = {
   extraPaymentAria: "Extra monthly payment",
   neverPaysOff: "At this payment level these debts won't ever be paid off — try adding an extra monthly payment.",
   debtFreeInLabel: "Debt-free in",
-  /** Mirrors the English source's `months === 1 ? "month" : "months"`
-   *  branch -- the Hebrew implementation adds its own dual form for
-   *  exactly two months (see he/debts.ts). */
   monthsCount: (months: number) => `${months} ${months === 1 ? "month" : "months"}`,
   totalInterestLabel: "Total interest",
   payoffMonth: (month: number) => `Month ${month}`,

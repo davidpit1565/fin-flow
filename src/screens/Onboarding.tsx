@@ -62,7 +62,7 @@ export function Onboarding() {
               {t.onboarding.skip}
             </button>
             <Button size="lg" onClick={() => setStep(step + 1)}>
-              {t.onboarding.continueButton} <ArrowRight size={18} strokeWidth={2} className="icon-directional" />
+              {t.onboarding.continueButton} <ArrowRight size={18} strokeWidth={2} />
             </Button>
           </div>
         </div>

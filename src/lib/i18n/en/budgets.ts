@@ -66,9 +66,6 @@ export const budgets = {
   deleteBudgetAria: (label: string) => `Delete ${label} budget`,
 
   periodLabel,
-  /** Whole-phrase period + "budget", e.g. "Monthly budget" -- built as one
-   *  unit (not glued from periodLabel + " budget") since Hebrew needs the
-   *  adjective after the noun and gender-agreed, not just a suffix. */
   periodBudgetLabel: (period: BudgetPeriod) => `${periodLabel(period)} budget`,
 
   statusMessage: (level: BudgetLevel, amount: string, period: BudgetPeriod, categoryName?: string) => {
