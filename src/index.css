@@ -1438,32 +1438,34 @@ input[type="date"] {
    instead of just tightening the layout. Wrapping to a second line instead
    of single-line-ellipsizing keeps the full value readable at any width;
    `-webkit-line-clamp` caps it at 2 lines as a backstop against a truly
-   oversized value blowing out the tile's height. `overflow-wrap: anywhere`
-   is the part that actually makes the wrap possible -- a value like
-   "€1,882.98/mo" has no space for the browser's default word-wrapping to
-   break at, so without it the unbreakable string just overflows the box
-   horizontally (silently clipped by `overflow: hidden` below, with no
-   ellipsis) instead of wrapping. */
+   oversized value blowing out the tile's height.
+   A first attempt used `overflow-wrap: anywhere` to force a break, but on
+   a real device (San Francisco's actual glyph metrics run wider than any
+   fallback font available for local testing) that broke mid-word wherever
+   the line happened to run out of room -- e.g. "€82.98/m" / "o" -- which
+   looked worse than the truncation it replaced. The JSX now renders the
+   amount and the "/mo" suffix with a `<wbr>` between them, a single
+   deliberate break point, so a wrap (still governed by the line-clamp
+   above) always lands as a clean "€82.98" / "/mo" split instead of an
+   arbitrary character split -- normal word-wrapping only breaks at
+   whitespace or an explicit `<wbr>`, never mid-word, so no `overflow-wrap`
+   override is needed here. */
 .stat-value {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 650;
   line-height: 1.2;
-  overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
 }
 
-/* At the narrowest supported width, tighten the tile's own padding too, so
-   the little extra room goes to the value rather than just its margins. */
+/* At the narrowest supported width, give the value's little extra room to
+   the tile's own padding instead of just its margins (the value's own font
+   size is already at its floor above). */
 @media (max-width: 340px) {
   .stat-tile {
     padding: 14px 8px;
-  }
-
-  .stat-value {
-    font-size: 15px;
   }
 }
 

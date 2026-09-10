@@ -202,7 +202,11 @@ export function Home({ onAdd }: { onAdd: () => void }) {
             </Card>
             <Card className="stat-tile">
               <span className="stat-label">{t.home.subscriptions}</span>
-              <span className="stat-value">{t.home.perMonth(formatMoney(subMonthly, currency))}</span>
+              <span className="stat-value">
+                {formatMoney(subMonthly, currency)}
+                <wbr />
+                {t.home.perMonthSuffix}
+              </span>
             </Card>
             <Card className="stat-tile">
               <span className="stat-label">{t.home.upcoming}</span>
