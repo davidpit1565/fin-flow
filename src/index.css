@@ -555,14 +555,6 @@ ul {
   flex-shrink: 0;
 }
 
-/** For icons that visually encode a direction (back arrows, chevrons) rather
- *  than a fixed symbol (trash can, checkmark) -- see the RTL correctness
- *  notes in CLAUDE.md. Apply only to those, never blanket-flip a whole
- *  icon-carrying container. */
-[dir="rtl"] .icon-directional {
-  transform: scaleX(-1);
-}
-
 .icon-btn:hover {
   background: var(--surface-3);
   color: var(--text);
@@ -775,13 +767,6 @@ ul {
   transform: translateX(20px);
 }
 
-/* `translateX` is a physical transform -- it doesn't flip with `dir` the way
-   `inset-inline-start` does, so the "on" slide direction needs its own RTL
-   override to still move the knob toward the same logical end. */
-[dir="rtl"] .toggle.on .toggle-knob {
-  transform: translateX(-20px);
-}
-
 /* ---------- fields ---------- */
 
 .field {
@@ -832,19 +817,6 @@ ul {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   border-radius: 14px;
-  /* Amounts are always typed and read left-to-right, even in the Hebrew UI.
-     Without this, the field inherits `direction: rtl` from <html> and
-     digits can appear to insert/edit in reverse order as the user types. */
-  direction: ltr;
-}
-
-/* Native number/date inputs: keep digits and date segments left-to-right
-   regardless of page direction, for the same reason as .input-amount above.
-   Scoped to these two input types only -- free-text fields (name, notes,
-   search) must keep inheriting RTL so Hebrew text still types correctly. */
-.input[type="number"],
-.input[type="date"] {
-  direction: ltr;
 }
 
 .textarea {
@@ -1236,12 +1208,6 @@ input[type="date"] {
 .row-chevron {
   color: var(--text-tertiary);
   flex-shrink: 0;
-}
-
-/* A row's chevron always points toward "deeper into the app" -- the
-   direction that flips with reading direction, unlike a fixed-symbol icon. */
-[dir="rtl"] .row-chevron {
-  transform: scaleX(-1);
 }
 
 .row-muted {
@@ -2965,9 +2931,6 @@ input[type="date"] {
   height: 24px;
   transform: translateX(20px);
   background: #fff;
-}
-[dir="rtl"][data-platform="android"] .toggle.on .toggle-knob {
-  transform: translateX(-20px);
 }
 
 /* Material bottom sheets use a smaller top-corner radius than iOS's. */

@@ -1,22 +1,17 @@
 import { createContext, useContext, type ReactNode } from "react";
-import type { Language } from "../../types";
 import { relativeDayKey } from "../dates";
 import { en } from "./en/index";
-import { he } from "./he/index";
 
-/** Adding a language: add its code to the `Language` union in src/types.ts,
- *  create en-style/he-style dictionary directories under src/lib/i18n/, and
- *  register the result here. `Dictionary` is inferred from `en`, so every
- *  other language's dictionary is typechecked to have exactly the same
- *  shape -- a missing translation is a compile error, not a silent gap. */
+/** The app is English-only. Strings still live in `src/lib/i18n/en/<name>.ts`
+ *  and are read via `useT()` rather than hardcoded in components -- this
+ *  keeps every user-facing string centralized in one place instead of
+ *  scattered through JSX, which is worth doing even for a single language. */
 export type Dictionary = typeof en;
-
-const dictionaries: Record<Language, Dictionary> = { en, he };
 
 const I18nContext = createContext<Dictionary>(en);
 
-export function I18nProvider({ language, children }: { language: Language; children: ReactNode }) {
-  return <I18nContext.Provider value={dictionaries[language]}>{children}</I18nContext.Provider>;
+export function I18nProvider({ children }: { children: ReactNode }) {
+  return <I18nContext.Provider value={en}>{children}</I18nContext.Provider>;
 }
 
 /** `const t = useT()` then `t.home.title` -- direct property access instead
@@ -25,15 +20,6 @@ export function I18nProvider({ language, children }: { language: Language; child
  *  runtime. */
 export function useT(): Dictionary {
   return useContext(I18nContext);
-}
-
-export const LANGUAGE_NAMES: Record<Language, string> = {
-  en: "English",
-  he: "עברית",
-};
-
-export function isRTL(language: Language): boolean {
-  return language === "he";
 }
 
 /** Translates `relativeDayKey`'s result via `t.common` -- shared by React

@@ -218,7 +218,7 @@ export function Home({ onAdd }: { onAdd: () => void }) {
                 className="section-action"
                 onClick={() => push({ tab: "subscriptions", name: "root" })}
               >
-                {t.home.viewAll} <ChevronRight size={14} strokeWidth={2.2} className="icon-directional" />
+                {t.home.viewAll} <ChevronRight size={14} strokeWidth={2.2} />
               </button>
             </div>
             {upcoming.length === 0 ? (
@@ -287,7 +287,7 @@ export function Home({ onAdd }: { onAdd: () => void }) {
               <div className="section-head">
                 <h2 className="section-title">{t.home.budgetSectionTitle(overallPeriod)}</h2>
                 <button className="section-action" onClick={() => push({ tab: "settings", name: "budgets" })}>
-                  {t.home.manage} <ChevronRight size={14} strokeWidth={2.2} className="icon-directional" />
+                  {t.home.manage} <ChevronRight size={14} strokeWidth={2.2} />
                 </button>
               </div>
               <Card className="budget-card">

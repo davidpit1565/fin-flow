@@ -5,10 +5,9 @@ import { Capacitor } from "@capacitor/core";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { useApp } from "./store/AppContext";
-import type { AccentColor, Language } from "./types";
+import type { AccentColor } from "./types";
 import { isNative } from "./lib/platform";
-import { setLocaleOverride } from "./lib/locale";
-import { I18nProvider, isRTL, useT } from "./lib/i18n";
+import { I18nProvider, useT } from "./lib/i18n";
 import { NavigationProvider, useNavigation, type AnyTab, type Route, type TabId } from "./store/Navigation";
 import { Onboarding } from "./screens/Onboarding";
 import { Home } from "./screens/Home";
@@ -28,32 +27,15 @@ import { CategoriesScreen } from "./screens/CategoriesScreen";
 import { PrivacyScreen, SupportScreen, TermsScreen } from "./screens/Legal";
 import { AddTransactionSheet } from "./components/AddTransactionSheet";
 
-/** Resolves the app's language/direction and provides the i18n dictionary
- *  to the whole tree, including the early-return Onboarding/Splash
- *  screens below -- every one of them needs `useT()` to work, not just the
- *  main authenticated app. */
+/** Provides the i18n dictionary to the whole tree, including the
+ *  early-return Onboarding/Splash screens below -- every one of them needs
+ *  `useT()` to work, not just the main authenticated app. */
 function App() {
-  const { settings } = useApp();
-  const language: Language = settings?.language ?? "en";
-  // Passed separately from `language` (which always defaults to "en" for the
-  // dictionary/RTL direction): number/date/currency formatting should only
-  // override the device's own locale once the user has *explicitly* chosen
-  // a language, not for every existing user whose setting is simply unset
-  // yet -- see src/lib/locale.ts.
-  useLanguageEffects(language, settings?.language);
   return (
-    <I18nProvider language={language}>
+    <I18nProvider>
       <AppInner />
     </I18nProvider>
   );
-}
-
-function useLanguageEffects(language: Language, explicitLanguage: Language | undefined): void {
-  useEffect(() => {
-    document.documentElement.dir = isRTL(language) ? "rtl" : "ltr";
-    document.documentElement.lang = language;
-    setLocaleOverride(explicitLanguage === "he" ? "he-IL" : explicitLanguage === "en" ? "en-US" : null);
-  }, [language, explicitLanguage]);
 }
 
 function AppInner() {

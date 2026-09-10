@@ -6,11 +6,10 @@ import { computeNetWorth } from "../lib/calc";
 import { CURRENCIES, formatMoney, symbolFor } from "../lib/currency";
 import { buildCSV, downloadCSV, fileToText, parseImportCSV } from "../lib/csv";
 import { decryptBackup, downloadBackupFile, encryptBackup, type BackupPayload } from "../lib/backup";
-import { LANGUAGE_NAMES, useT } from "../lib/i18n";
+import { useT } from "../lib/i18n";
 import { notificationsSupported, permissionState, requestPermission, triggersSupported } from "../lib/notifications";
 import { resyncAllReminders } from "../lib/reminders";
 import { todayISO } from "../lib/dates";
-import type { Language } from "../types";
 import { Button, Card, ChipGroup, Field, FormError, ScreenHeader, Sheet, TextInput, Toggle } from "../components/ui";
 
 export function Settings() {
@@ -247,14 +246,6 @@ export function Settings() {
               value={settings.accentColor ?? "green"}
               onChange={(v) => updateSettings({ accentColor: v })}
               ariaLabel={t.settings.accentColor}
-            />
-          } />
-          <SettingsRow label="Language" valueAsControl={
-            <ChipGroup
-              options={Object.entries(LANGUAGE_NAMES).map(([value, label]) => ({ value: value as Language, label }))}
-              value={settings.language ?? "en"}
-              onChange={(v) => updateSettings({ language: v })}
-              ariaLabel="Language"
             />
           } last />
         </Card>
