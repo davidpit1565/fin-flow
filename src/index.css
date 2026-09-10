@@ -551,13 +551,17 @@ ul {
   justify-content: center;
   background: var(--surface-2);
   color: var(--text-secondary);
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
   flex-shrink: 0;
 }
 
 .icon-btn:hover {
   background: var(--surface-3);
   color: var(--text);
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
 }
 
 .icon-btn-sm {
@@ -1864,8 +1868,12 @@ input[type="date"] {
   color: var(--text-tertiary);
   font-size: 10.5px;
   font-weight: 600;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, transform 0.1s ease;
   min-width: 0;
+}
+
+.tabbar-item:active {
+  transform: scale(0.94);
 }
 
 .tabbar-item span {
@@ -1875,8 +1883,12 @@ input[type="date"] {
   white-space: nowrap;
 }
 
+/* Tint the active tab in the app's own accent color, the way a native iOS
+   UITabBar tints its selected item -- the label's own bold weight already
+   carries the "current" cue, but a plain neutral color left the selected
+   state easy to miss at a glance next to `--text-tertiary`'s siblings. */
 .tabbar-item.active {
-  color: var(--text);
+  color: var(--accent);
 }
 
 .tabbar-add-wrap {
@@ -2892,7 +2904,8 @@ input[type="date"] {
    iOS's scale-down -- most noticeable on buttons and pressable cards. */
 [data-platform="android"] .btn:active,
 [data-platform="android"] .card-pressable:active,
-[data-platform="android"] .icon-btn:active {
+[data-platform="android"] .icon-btn:active,
+[data-platform="android"] .tabbar-item:active {
   transform: none;
   filter: brightness(0.92);
 }
