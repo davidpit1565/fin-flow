@@ -451,9 +451,20 @@ function useVisualViewportHeight(): void {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
+    // In standalone (home-screen-installed) display mode on iOS, `visualViewport.height`
+    // can under-report the true visible height by roughly the bottom safe-area inset
+    // (the home-indicator strip) even with no keyboard open -- there's no browser chrome
+    // to explain a mismatch there, unlike in a regular Safari tab. Treating that small,
+    // permanent mismatch as a keyboard-sized offset shrinks `.app-frame` by the same
+    // amount forever, which pushes the tab bar up and leaves a dead strip of plain
+    // background below it -- exactly the gap this is guarding against. A real on-screen
+    // keyboard is always much taller than any safe-area inset (the shortest iPhone
+    // keyboard is still >200px), so only offsets past this floor are treated as one.
+    const KEYBOARD_OFFSET_FLOOR = 100;
     const update = () => {
       const offsetBottom = window.innerHeight - vv.height - vv.offsetTop;
-      document.documentElement.style.setProperty("--app-vh-offset-bottom", `${Math.max(0, offsetBottom)}px`);
+      const keyboardOffset = offsetBottom > KEYBOARD_OFFSET_FLOOR ? offsetBottom : 0;
+      document.documentElement.style.setProperty("--app-vh-offset-bottom", `${keyboardOffset}px`);
     };
     update();
     vv.addEventListener("resize", update);
