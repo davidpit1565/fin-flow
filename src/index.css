@@ -1431,19 +1431,32 @@ input[type="date"] {
   font-weight: 500;
 }
 
+/* Three equal columns leave one of these (the "Subscriptions" tile, whose
+   value carries a "/mo" suffix on top of the currency amount) genuinely
+   tight even on an ordinary-width phone, not just the narrowest ones --
+   truncating it mid-value (e.g. "€82.98/…") hides real financial info
+   instead of just tightening the layout. Wrapping to a second line instead
+   of single-line-ellipsizing keeps the full value readable at any width;
+   `-webkit-line-clamp` caps it at 2 lines as a backstop against a truly
+   oversized value blowing out the tile's height. `overflow-wrap: anywhere`
+   is the part that actually makes the wrap possible -- a value like
+   "€1,882.98/mo" has no space for the browser's default word-wrapping to
+   break at, so without it the unbreakable string just overflows the box
+   horizontally (silently clipped by `overflow: hidden` below, with no
+   ellipsis) instead of wrapping. */
 .stat-value {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 650;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* At the narrowest supported width, three stat tiles leave too little room
-   for the value at the default size — an ordinary "$0.00/mo" would ellipsize
-   just from three-column arithmetic, not because the amount is actually
-   large. Give it a little more room; overflow protection for genuinely
-   large values stays in place via the ellipsis above. */
+/* At the narrowest supported width, tighten the tile's own padding too, so
+   the little extra room goes to the value rather than just its margins. */
 @media (max-width: 340px) {
   .stat-tile {
     padding: 14px 8px;
