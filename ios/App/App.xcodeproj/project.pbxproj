@@ -19,6 +19,7 @@
 		846A32C3BB81E3C29B621792 /* WidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73C8EB5BB682575EC87A171A /* WidgetBridgePlugin.swift */; };
 		30877432D1026706D7E805DA /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D2CCE8038A39D5E0853964B /* MainViewController.swift */; };
 		D58E72E310275DFF6C15C0C8 /* WidgetSharedModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50AF03B971722F244F58D669 /* WidgetSharedModels.swift */; };
+		51FE0FB882415A26E814DB1D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 941EBC26B8664FCD857AC6D5 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +38,7 @@
 		5D2CCE8038A39D5E0853964B /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		50AF03B971722F244F58D669 /* WidgetSharedModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSharedModels.swift; sourceTree = "<group>"; };
 		E9DF469611A11F5125227C37 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		941EBC26B8664FCD857AC6D5 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +80,7 @@
 				73C8EB5BB682575EC87A171A /* WidgetBridgePlugin.swift */,
 				C826A6FCE48478DCB74F2134 /* Shared */,
 				E9DF469611A11F5125227C37 /* App.entitlements */,
+				941EBC26B8664FCD857AC6D5 /* PrivacyInfo.xcprivacy */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -167,6 +170,7 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+				51FE0FB882415A26E814DB1D /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

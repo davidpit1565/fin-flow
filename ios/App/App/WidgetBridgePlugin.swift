@@ -15,9 +15,12 @@ import WidgetKit
 /// the same id updates it instead of creating a duplicate.
 @objc(WidgetBridgePlugin)
 public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
-    public let identifier = "WidgetBridgePlugin"
-    public let jsName = "WidgetBridge"
-    public let pluginMethods: [CAPPluginMethod] = [
+    // CAPBridgedPlugin requires these as `static` -- the bridge reads them
+    // via `type(of: instance)` before/without needing an instance, so an
+    // instance-level `let` here would silently fail to satisfy the protocol.
+    public static let identifier = "WidgetBridgePlugin"
+    public static let jsName = "WidgetBridge"
+    public static let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "updateSnapshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "startBillDueActivity", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "endBillDueActivity", returnType: CAPPluginReturnPromise),
