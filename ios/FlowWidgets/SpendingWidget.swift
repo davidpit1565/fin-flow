@@ -5,16 +5,19 @@ struct SpendingWidgetView: View {
     let snapshot: WidgetSnapshot
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("This Month")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                WidgetIconBadge(systemName: "banknote.fill")
+                Text("This Month")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
             Spacer(minLength: 0)
             Text(snapshot.spentThisMonthLabel)
                 .font(.system(.title2, design: .rounded, weight: .bold))
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
-            Text("spent")
+            Text("spent so far")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }

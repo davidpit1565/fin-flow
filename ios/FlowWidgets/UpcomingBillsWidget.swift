@@ -6,9 +6,12 @@ struct UpcomingBillsWidgetView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Upcoming Bills")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                WidgetIconBadge(systemName: "calendar")
+                Text("Upcoming Bills")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
             if snapshot.bills.isEmpty {
                 Spacer(minLength: 0)
                 Text("Nothing due soon")
@@ -16,8 +19,16 @@ struct UpcomingBillsWidgetView: View {
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
             } else {
+                Spacer(minLength: 4)
                 ForEach(Array(snapshot.bills.prefix(3).enumerated()), id: \.offset) { _, bill in
-                    HStack {
+                    HStack(spacing: 10) {
+                        ZStack {
+                            Circle().fill((bill.overdue ? Color.red : FlowWidgetTheme.accent).opacity(0.16))
+                            Text(bill.name.prefix(1).uppercased())
+                                .font(.system(.footnote, design: .rounded, weight: .bold))
+                                .foregroundStyle(bill.overdue ? .red : FlowWidgetTheme.accent)
+                        }
+                        .frame(width: 28, height: 28)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(bill.name)
                                 .font(.subheadline.weight(.semibold))

@@ -273,7 +273,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!ready || !settings?.onboarded) return undefined;
     const timer = window.setTimeout(() => {
       pushWidgetSnapshot(
-        buildWidgetSnapshot(transactions, subscriptions, budgets, settings.currency, settings.startWeekOn, settings.dateFormat, t)
+        buildWidgetSnapshot(transactions, subscriptions, budgets, goals, settings.currency, settings.startWeekOn, settings.dateFormat, t)
       );
 
       const dueToday = billsDueToday(subscriptions);
@@ -292,7 +292,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       billActivityIdsRef.current = dueIds;
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [ready, settings, transactions, subscriptions, budgets, t]);
+  }, [ready, settings, transactions, subscriptions, budgets, goals, t]);
 
   /* ---------- toast ---------- */
   const toast = useCallback((message: string) => {

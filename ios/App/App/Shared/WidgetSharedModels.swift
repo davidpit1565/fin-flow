@@ -30,6 +30,23 @@ struct WidgetSnapshot: Codable {
     let budgetRemainingLabel: String?
     /// Next few bills, soonest first, already localized and pre-sorted.
     let bills: [Bill]
+
+    /// 0...100. Nil only when there's no basis to compute it at all (a
+    /// brand new, empty install) -- see computeFinancialHealthScore in
+    /// insights.ts, which this mirrors exactly rather than re-deriving.
+    let healthScore: Double?
+    let healthTier: String? // "needs attention" | "fair" | "good" | "excellent"
+
+    let incomeThisMonthLabel: String
+    let expensesThisMonthLabel: String
+    let remainingThisMonthLabel: String
+
+    /// The single most relevant in-progress savings goal, if any exist.
+    let goalName: String?
+    let goalProgressPercent: Double?
+    let goalSavedLabel: String?
+    let goalTargetLabel: String?
+
     let updatedAt: Double
 
     static func load() -> WidgetSnapshot? {
@@ -47,6 +64,15 @@ struct WidgetSnapshot: Codable {
             budgetLevel: nil,
             budgetRemainingLabel: nil,
             bills: [],
+            healthScore: nil,
+            healthTier: nil,
+            incomeThisMonthLabel: "$0.00",
+            expensesThisMonthLabel: "$0.00",
+            remainingThisMonthLabel: "$0.00",
+            goalName: nil,
+            goalProgressPercent: nil,
+            goalSavedLabel: nil,
+            goalTargetLabel: nil,
             updatedAt: Date().timeIntervalSince1970
         )
     }

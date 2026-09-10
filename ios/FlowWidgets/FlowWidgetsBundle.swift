@@ -12,6 +12,9 @@ struct FlowWidgetsBundle: WidgetBundle {
         SpendingWidget()
         BudgetRingWidget()
         UpcomingBillsWidget()
+        HealthScoreWidget()
+        SnapshotWidget()
+        GoalProgressWidget()
         BillDueLiveActivity()
     }
 }

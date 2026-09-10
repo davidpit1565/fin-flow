@@ -1,32 +1,32 @@
 import SwiftUI
 import WidgetKit
 
-struct BudgetRingWidgetView: View {
+struct HealthScoreWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let snapshot: WidgetSnapshot
 
     private var fraction: Double {
-        guard let percent = snapshot.budgetPercent else { return 0 }
-        return min(Double(percent) / 100, 1.0)
+        guard let score = snapshot.healthScore else { return 0 }
+        return min(max(score / 100, 0), 1)
     }
 
-    private var ringColor: Color { FlowWidgetTheme.levelColor(snapshot.budgetLevel) }
+    private var tierColor: Color { FlowWidgetTheme.levelColor(snapshot.healthTier) }
 
     var body: some View {
         switch family {
         case .accessoryCircular:
             Gauge(value: fraction) {
-                Image(systemName: "chart.pie.fill")
+                Image(systemName: "waveform.path.ecg")
             } currentValueLabel: {
-                Text(snapshot.budgetPercent.map { "\(min(Int($0.rounded()), 999))%" } ?? "--")
+                Text(snapshot.healthScore.map { "\(Int($0.rounded()))" } ?? "--")
                     .font(.system(size: 11, weight: .semibold))
             }
             .gaugeStyle(.accessoryCircularCapacity)
         default:
             VStack(spacing: 8) {
                 HStack(spacing: 6) {
-                    WidgetIconBadge(systemName: "target", tint: ringColor)
-                    Text("Budget")
+                    WidgetIconBadge(systemName: "waveform.path.ecg", tint: tierColor)
+                    Text("Health Score")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 0)
@@ -37,13 +37,13 @@ struct BudgetRingWidgetView: View {
                         .stroke(Color.secondary.opacity(0.2), lineWidth: 9)
                     Circle()
                         .trim(from: 0, to: fraction)
-                        .stroke(ringColor, style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                        .stroke(tierColor, style: StrokeStyle(lineWidth: 9, lineCap: .round))
                         .rotationEffect(.degrees(-90))
-                    Text(snapshot.budgetPercent.map { "\(Int($0.rounded()))%" } ?? "--")
+                    Text(snapshot.healthScore.map { "\(Int($0.rounded()))" } ?? "--")
                         .font(.system(.callout, design: .rounded, weight: .bold))
                 }
                 .frame(width: 60, height: 60)
-                Text(snapshot.budgetRemainingLabel.map { "\($0) left" } ?? "No budget set")
+                Text(snapshot.healthTier?.capitalized ?? "Not enough data")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -56,15 +56,15 @@ struct BudgetRingWidgetView: View {
     }
 }
 
-struct BudgetRingWidget: Widget {
-    let kind = "BudgetRingWidget"
+struct HealthScoreWidget: Widget {
+    let kind = "HealthScoreWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: SnapshotProvider()) { entry in
-            BudgetRingWidgetView(snapshot: entry.snapshot)
+            HealthScoreWidgetView(snapshot: entry.snapshot)
         }
-        .configurationDisplayName("Budget Ring")
-        .description("How close you are to your budget for this period.")
+        .configurationDisplayName("Financial Health Score")
+        .description("Your on-device financial health score, from savings rate, budget adherence, and subscription load.")
         .supportedFamilies([.systemSmall, .accessoryCircular])
     }
 }

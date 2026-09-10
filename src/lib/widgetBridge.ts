@@ -1,9 +1,19 @@
 import { registerPlugin } from "@capacitor/core";
-import type { Budget, CurrencyCode, DateFormatPreference, Subscription, Transaction, WeekStart } from "../types";
-import { activeSubscriptions, budgetStatus, currentMonthRange, expensesInRange, upcomingPayments, type BudgetStatus } from "./calc";
+import type { Budget, CurrencyCode, DateFormatPreference, Goal, Subscription, Transaction, WeekStart } from "../types";
+import {
+  activeSubscriptions,
+  budgetStatus,
+  currentMonthRange,
+  expensesInRange,
+  goalProgressPercent,
+  incomeInRange,
+  upcomingPayments,
+  type BudgetStatus,
+} from "./calc";
 import { formatMoney } from "./currency";
 import { todayISO } from "./dates";
 import type { Dictionary } from "./i18n";
+import { computeFinancialHealthScore } from "./insights";
 import { isNative } from "./platform";
 
 /** What the FlowWidgets extension (Home Screen + Lock Screen widgets) reads
@@ -19,6 +29,17 @@ export interface WidgetSnapshot {
   budgetRemainingLabel: string | null;
   /** Next few bills, soonest first, already localized. */
   bills: { name: string; amountLabel: string; dueLabel: string; overdue: boolean }[];
+  /** Null only when there's no basis to compute it (a brand new, empty install). */
+  healthScore: number | null;
+  healthTier: "needs attention" | "fair" | "good" | "excellent" | null;
+  incomeThisMonthLabel: string;
+  expensesThisMonthLabel: string;
+  remainingThisMonthLabel: string;
+  /** The single most relevant in-progress savings goal, if any exist. */
+  goalName: string | null;
+  goalProgressPercent: number | null;
+  goalSavedLabel: string | null;
+  goalTargetLabel: string | null;
   updatedAt: number;
 }
 
@@ -43,13 +64,16 @@ export function buildWidgetSnapshot(
   transactions: Transaction[],
   subscriptions: Subscription[],
   budgets: Budget[],
+  goals: Goal[],
   currency: CurrencyCode,
   startWeekOn: WeekStart,
   dateFormat: DateFormatPreference,
   t: Pick<Dictionary, "common">,
   now = todayISO()
 ): WidgetSnapshot {
-  const spentThisMonthCents = expensesInRange(transactions, currentMonthRange(now));
+  const monthRange = currentMonthRange(now);
+  const spentThisMonthCents = expensesInRange(transactions, monthRange);
+  const incomeThisMonthCents = incomeInRange(transactions, monthRange);
 
   const overallBudget = budgets.find((b) => b.categoryId === null) ?? null;
   let budgetPercent: number | null = null;
@@ -71,6 +95,16 @@ export function buildWidgetSnapshot(
       overdue: u.date < now,
     }));
 
+  const health = computeFinancialHealthScore(transactions, subscriptions, budgets, now);
+
+  // The most relevant goal to show: the oldest one not yet complete, so the
+  // widget tracks a single consistent goal over time rather than jumping to
+  // whichever was edited most recently. Falls back to the oldest goal at all
+  // (already complete) so a widget only ever shows nothing when there truly
+  // are no goals.
+  const sortedGoals = [...goals].sort((a, b) => a.createdAt - b.createdAt);
+  const featuredGoal = sortedGoals.find((g) => g.currentCents < g.targetCents) ?? sortedGoals[0] ?? null;
+
   return {
     currencyCode: currency,
     spentThisMonthLabel: formatMoney(spentThisMonthCents, currency),
@@ -78,6 +112,15 @@ export function buildWidgetSnapshot(
     budgetLevel,
     budgetRemainingLabel,
     bills,
+    healthScore: health.score,
+    healthTier: health.tier,
+    incomeThisMonthLabel: formatMoney(incomeThisMonthCents, currency),
+    expensesThisMonthLabel: formatMoney(spentThisMonthCents, currency),
+    remainingThisMonthLabel: formatMoney(Math.max(incomeThisMonthCents - spentThisMonthCents, 0), currency),
+    goalName: featuredGoal?.name ?? null,
+    goalProgressPercent: featuredGoal ? Math.round(goalProgressPercent(featuredGoal)) : null,
+    goalSavedLabel: featuredGoal ? formatMoney(featuredGoal.currentCents, currency) : null,
+    goalTargetLabel: featuredGoal ? formatMoney(featuredGoal.targetCents, currency) : null,
     updatedAt: Date.now(),
   };
 }
