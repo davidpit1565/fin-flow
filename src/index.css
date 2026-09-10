@@ -593,7 +593,13 @@ ul {
   position: sticky;
   top: 0;
   z-index: 10;
-  margin: 0 -20px;
+  /* Cancels `.screen`'s own padding-top (below) so the top safe-area inset
+     is applied exactly once, by this element's own padding, regardless of
+     `:has()` support -- iOS only shipped `:has()` from 15.4, one point
+     release above this app's 15.0 deployment target, so relying on it to
+     conditionally zero `.screen`'s padding would double the inset on an
+     iOS 15.0-15.3 device instead of skipping it. */
+  margin: calc(-12px - env(safe-area-inset-top)) -20px 0;
   padding: env(safe-area-inset-top) 20px 0;
   background: transparent;
   border-bottom: 1px solid transparent;
@@ -657,13 +663,6 @@ ul {
   font-weight: 750;
   letter-spacing: -0.02em;
   line-height: 1.15;
-}
-
-/* A screen rendering the sticky header bar handles its own top safe-area
-   spacing (see `.screen-header-bar`'s padding above) -- `.screen`'s own
-   padding-top would otherwise double it before the first scroll. */
-.screen:has(> .screen-header-bar) {
-  padding-top: 0;
 }
 
 .home-greeting {
