@@ -61,7 +61,7 @@ export const home = {
 
   subscriptions: "Subscriptions",
   upcoming: "Upcoming",
-  perMonth: (amount: string) => `${amount}/mo`,
+  perMonthSuffix: "/mo",
 
   comingUp: "Coming up",
   viewAll: "View all",
