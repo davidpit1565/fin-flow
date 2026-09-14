@@ -1853,16 +1853,31 @@ input[type="date"] {
 
 /* ---------- tab bar ---------- */
 
+/* Pinned by `position: absolute` to `.app-frame` (its nearest positioned
+   ancestor, since `.app-main` between them is a plain static flex box) --
+   an overlay anchored directly to the frame's own box, the way a native
+   app's tab bar is pinned to the screen, rather than a `sticky` flex
+   sibling of `.app-scroll` whose rest position depended on flex layout and
+   scroll-container geometry lining up exactly right. That dependency is
+   what produced this app's whole run of real-device-only tab bar bugs
+   (a lingering gap below it, a wrong position on cold launch...) even
+   after each one was fixed in isolation -- anchoring directly to the
+   frame's box removes the dependency itself, not just its latest symptom.
+   `.app-frame`'s own height still shrinks for an open keyboard (see
+   `--app-vh-offset-bottom` on it), so this still lifts above the keyboard
+   exactly as before; `.app-scroll`'s own bottom padding (below) keeps
+   scrolled content from running behind this overlay. */
 .tabbar {
-  position: sticky;
+  position: absolute;
   bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 80;
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom);
-  flex-shrink: 0;
 }
 
 .tabbar-inner {
