@@ -46,7 +46,6 @@ function AppInner() {
   const isDark = useTheme(settings?.theme ?? "system");
   useAccentColor(settings?.accentColor);
   usePlatform();
-  useVisualViewportHeight();
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
   const privacyShielded = usePrivacyShield();
@@ -423,66 +422,6 @@ function useAccentColor(accentColor: AccentColor | undefined) {
 function usePlatform(): void {
   useEffect(() => {
     document.documentElement.dataset.platform = Capacitor.getPlatform();
-  }, []);
-}
-
-/** Tracks the gap the on-screen keyboard opens up between the layout
- *  viewport and the real visible one, exposing it as an `--app-vh-offset-bottom`
- *  custom property.
- *
- *  This app's viewport meta (index.html) sets `interactive-widget=resizes-visual`,
- *  under which the iOS/Android on-screen keyboard shrinks only
- *  `window.visualViewport`, not the CSS layout viewport -- so `100dvh` (used
- *  by `.app-frame`) stays full-height with the keyboard up, and a `position:
- *  fixed` element anchored with `bottom: 0` (like `.sheet`) keeps sitting at
- *  the bottom of that full, un-shrunk viewport -- behind the keyboard --
- *  instead of just above it.
- *
- *  Deliberately an *offset* subtracted from `dvh` in index.css, not an
- *  absolute replacement height: ordinary browser-chrome show/hide also
- *  fires `visualViewport` resize events, but moves the layout viewport and
- *  the visual one together, so the offset stays ~0 and `dvh`'s own native,
- *  smoothly-animated recalculation is left alone -- only a genuine keyboard
- *  (which the layout viewport can't see) opens up a nonzero gap. Replacing
- *  `dvh` outright with the raw `visualViewport.height` here previously
- *  fought that native recalculation and made the tab bar visibly jump on
- *  ordinary chrome changes instead. */
-function useVisualViewportHeight(): void {
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    // In standalone (home-screen-installed) display mode on iOS, `visualViewport.height`
-    // can under-report the true visible height by roughly the bottom safe-area inset
-    // (the home-indicator strip) even with no keyboard open -- there's no browser chrome
-    // to explain a mismatch there, unlike in a regular Safari tab. Treating that small,
-    // permanent mismatch as a keyboard-sized offset shrinks `.app-frame` by the same
-    // amount forever, which pushes the tab bar up and leaves a dead strip of plain
-    // background below it -- exactly the gap this is guarding against. A real on-screen
-    // keyboard is always much taller than any safe-area inset (the shortest iPhone
-    // keyboard is still >200px), so only offsets past this floor are treated as one.
-    const KEYBOARD_OFFSET_FLOOR = 100;
-    const update = () => {
-      const offsetBottom = window.innerHeight - vv.height - vv.offsetTop;
-      const keyboardOffset = offsetBottom > KEYBOARD_OFFSET_FLOOR ? offsetBottom : 0;
-      document.documentElement.style.setProperty("--app-vh-offset-bottom", `${keyboardOffset}px`);
-    };
-    update();
-    // On a cold launch in standalone display mode, `visualViewport`'s very first
-    // reading can be transiently off (iOS hasn't finished settling the viewport
-    // against the safe areas yet), which briefly applies a bogus offset and
-    // shrinks `.app-frame` -- and since nothing else fires a `resize`/`scroll`
-    // event on `vv` until the user actually scrolls, it stayed shrunk (tab bar
-    // rendered too high, needing a manual scroll to "unstick" it) until then.
-    // Re-running the same check a moment after mount, once iOS has settled,
-    // corrects it without waiting on user interaction.
-    const settleTimer = window.setTimeout(update, 300);
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      window.clearTimeout(settleTimer);
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-    };
   }, []);
 }
 

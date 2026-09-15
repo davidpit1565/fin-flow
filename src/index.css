@@ -210,16 +210,19 @@ ul {
   max-width: 520px;
   margin: 0 auto;
   height: 100vh; /* fallback for engines without dynamic viewport units */
+  /* index.html's viewport meta sets interactive-widget=resizes-content, so
+     the layout viewport (and therefore dvh) already shrinks natively for an
+     open on-screen keyboard -- no JS-computed offset needed to keep this
+     frame, and anything pinned to its edges, above the keyboard instead of
+     hidden behind it. An earlier version of this rule subtracted a
+     JS-measured `--app-vh-offset-bottom` from dvh instead (paired with
+     interactive-widget=resizes-visual, under which dvh does NOT shrink for
+     the keyboard); that JS measurement could get stuck at a stale nonzero
+     value on some real devices, permanently -- and silently -- shrinking
+     this frame and every element pinned to its bottom edge. Letting the
+     browser's own native dvh recalculation do this removes that failure
+     mode entirely rather than patching its latest symptom. */
   height: 100dvh;
-  /* `--app-vh-offset-bottom` (set from the VisualViewport API in App.tsx,
-     see `useVisualViewportHeight`) is the gap the on-screen keyboard opens
-     up between the layout viewport and the real visible one -- zero
-     whenever there's no keyboard, including during ordinary browser-chrome
-     show/hide, which `dvh` already tracks correctly and smoothly on its
-     own. Subtracting it from `dvh` (rather than replacing `dvh` outright
-     with an absolute JS-computed height) fixes only the keyboard case and
-     never fights or duplicates the native dvh recalculation. */
-  height: calc(100dvh - var(--app-vh-offset-bottom, 0px));
   background: var(--bg);
   position: relative;
   display: flex;
@@ -1691,19 +1694,18 @@ input[type="date"] {
 
 .sheet {
   position: fixed;
-  /* Anchored to the bottom of the full, un-shrunk layout viewport by
-     default -- `--app-vh-offset-bottom` (see useVisualViewportHeight in
-     App.tsx) lifts it by exactly the on-screen keyboard's height once one
-     is open, so the sheet (and its pinned footer button) end up sitting
-     just above the keyboard instead of partly behind it. */
-  bottom: var(--app-vh-offset-bottom, 0px);
+  /* Anchored flush to the bottom of the true visible viewport -- see the
+     interactive-widget=resizes-content note on .app-frame above: the
+     viewport itself (and dvh below) already shrinks for an open on-screen
+     keyboard, so the sheet (and its pinned footer button) end up above the
+     keyboard natively, with no JS-measured offset to keep in sync. */
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
   max-width: 520px;
   max-height: 90vh; /* fallback for engines without dynamic viewport units */
   max-height: 90dvh;
-  max-height: calc((100dvh - var(--app-vh-offset-bottom, 0px)) * 0.9);
   background: var(--surface);
   border-radius: 28px 28px 0 0;
   z-index: 91;
@@ -1874,10 +1876,10 @@ input[type="date"] {
    (a lingering gap below it, a wrong position on cold launch...) even
    after each one was fixed in isolation -- anchoring directly to the
    frame's box removes the dependency itself, not just its latest symptom.
-   `.app-frame`'s own height still shrinks for an open keyboard (see
-   `--app-vh-offset-bottom` on it), so this still lifts above the keyboard
-   exactly as before; `.app-scroll`'s own bottom padding (below) keeps
-   scrolled content from running behind this overlay.
+   `.app-frame`'s own height still shrinks natively for an open keyboard
+   (see the interactive-widget=resizes-content note on it), so this still
+   lifts above the keyboard; `.app-scroll`'s own bottom padding (below)
+   keeps scrolled content from running behind this overlay.
 
    Floats as an inset rounded pill -- side margins, a gap above the safe
    area, a full border/shadow, its own surface tint -- rather than a bar
