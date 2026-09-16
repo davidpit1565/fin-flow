@@ -225,6 +225,12 @@ ul {
   height: 100dvh;
   background: var(--bg);
   position: relative;
+  /* If this frame's own height is ever a little off from the true visible
+     viewport (a real-device viewport-unit quirk, not something reproducible
+     here), this keeps the failure mode a harmless invisible clip instead of
+     genuine page content visibly spilling past the frame's intended bottom
+     edge -- exactly what a real-device report showed once already. */
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -517,43 +523,87 @@ ul {
 .btn-primary {
   background: var(--accent);
   color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-.btn-primary:hover {
+.btn-primary:active {
   background: var(--accent-strong);
 }
 
+/* Secondary/danger-outline buttons read as a floating glass chip, like the
+   tab bar -- translucent + blurred, with the same bright top rim in dark
+   mode where light catching a glass edge actually shows. */
 .btn-secondary {
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border: 1px solid var(--border-strong);
   color: var(--text);
 }
 
-.btn-secondary:hover {
-  background: var(--surface-2);
+.btn-secondary:active {
+  background: color-mix(in srgb, var(--surface-2) 90%, transparent);
+}
+
+:root[data-theme="dark"] .btn-secondary {
+  border-top-color: rgba(255, 255, 255, 0.28);
 }
 
 .btn-ghost {
   color: var(--text-secondary);
 }
 
-.btn-ghost:hover {
+.btn-ghost:active {
   color: var(--text);
 }
 
 .btn-danger {
   background: var(--danger);
   color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 8px color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+.btn-danger:active {
+  background: color-mix(in srgb, var(--danger) 85%, black);
 }
 
 .btn-danger-outline {
-  background: transparent;
+  background: color-mix(in srgb, var(--danger-soft) 55%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border: 1px solid var(--danger-soft);
   color: var(--danger);
 }
 
-.btn-danger-outline:hover {
+.btn-danger-outline:active {
   background: var(--danger-soft);
+}
+
+:root[data-theme="dark"] .btn-danger-outline {
+  border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Real hover only where a pointer can actually hover -- on iOS Safari a
+   tap leaves :hover "stuck" until the next tap elsewhere, since touch has
+   no true hover state. The :active rules above already give instant
+   press feedback (matching Apple's "respond on pointer-down" guidance),
+   so hover only needs to fire for mice/trackpads. */
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover {
+    background: var(--accent-strong);
+  }
+
+  .btn-secondary:hover {
+    background: var(--surface-2);
+  }
+
+  .btn-ghost:hover {
+    color: var(--text);
+  }
+
+  .btn-danger-outline:hover {
+    background: var(--danger-soft);
+  }
 }
 
 .icon-btn {
@@ -569,12 +619,9 @@ ul {
   flex-shrink: 0;
 }
 
-.icon-btn:hover {
+.icon-btn:active {
   background: var(--surface-3);
   color: var(--text);
-}
-
-.icon-btn:active {
   transform: scale(0.92);
 }
 
@@ -593,8 +640,19 @@ ul {
   color: var(--danger);
 }
 
-.icon-btn.danger:hover {
+.icon-btn.danger:active {
   background: var(--danger-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover {
+    background: var(--surface-3);
+    color: var(--text);
+  }
+
+  .icon-btn.danger:hover {
+    background: var(--danger-soft);
+  }
 }
 
 /* ---------- headers ----------
@@ -705,8 +763,12 @@ ul {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
   white-space: nowrap;
+}
+
+.segmented-item:active {
+  transform: scale(0.95);
 }
 
 .segmented-item.active {
@@ -950,17 +1012,24 @@ input[type="date"] {
   color: var(--text-secondary);
   white-space: nowrap;
   border: 1.5px solid transparent;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
-.chip:hover {
+.chip:active {
   background: var(--surface-3);
+  transform: scale(0.95);
 }
 
 .chip-active {
   background: var(--accent-soft);
   color: var(--accent);
   border-color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover {
+    background: var(--surface-3);
+  }
 }
 
 /* ---------- category picker ---------- */
@@ -1086,12 +1155,14 @@ input[type="date"] {
   width: 100%;
 }
 
-.card-pressable:hover {
-  border-color: var(--border-strong);
-}
-
 .card-pressable:active {
   transform: scale(0.985);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-pressable:hover {
+    border-color: var(--border-strong);
+  }
 }
 
 .card-soft {
@@ -1866,30 +1937,39 @@ input[type="date"] {
 
 /* ---------- tab bar ---------- */
 
-/* Pinned by `position: absolute` to `.app-frame` (its nearest positioned
-   ancestor, since `.app-main` between them is a plain static flex box) --
-   an overlay anchored directly to the frame's own box, the way a native
-   app's tab bar is pinned to the screen, rather than a `sticky` flex
-   sibling of `.app-scroll` whose rest position depended on flex layout and
-   scroll-container geometry lining up exactly right. That dependency is
-   what produced this app's whole run of real-device-only tab bar bugs
-   (a lingering gap below it, a wrong position on cold launch...) even
-   after each one was fixed in isolation -- anchoring directly to the
-   frame's box removes the dependency itself, not just its latest symptom.
-   `.app-frame`'s own height still shrinks natively for an open keyboard
-   (see the interactive-widget=resizes-content note on it), so this still
-   lifts above the keyboard; `.app-scroll`'s own bottom padding (below)
-   keeps scrolled content from running behind this overlay.
+/* Pinned by `position: fixed` directly to the true browser viewport --
+   not `.app-frame`. Earlier this was `position: absolute` anchored to
+   `.app-frame` instead (rather than a `sticky` flex sibling of
+   `.app-scroll`, whose rest position depended on flex layout and
+   scroll-container geometry lining up exactly right -- the cause of an
+   earlier run of real-device-only tab bar bugs). That was already better,
+   but still indirectly depended on `.app-frame`'s own height (100dvh)
+   exactly matching the true visible viewport -- and a real-device report
+   of the bar floating well above the bottom, with genuine page content
+   visible peeking in below it, matches `dvh` itself being misreported
+   larger than the actually-visible area in this exact standalone-PWA
+   context (a known class of viewport-unit quirk, distinct from the
+   keyboard-offset bug already fixed elsewhere). `position: fixed` is
+   anchored to the initial containing block by the browser engine itself,
+   bypassing `.app-frame`'s box entirely, so no ancestor's height --
+   right or wrong -- can affect it. `left: 50%` + `transform` and a
+   `max-width` matching `.app-frame`'s own 520px keep it centered the same
+   way `.app-frame` centers itself, so the two still line up at every
+   width up to the >=768px breakpoint below where this is hidden in favor
+   of the sidebar. `.app-scroll`'s own bottom padding (below) keeps
+   scrolled content from running behind this overlay.
 
    Floats as an inset rounded pill -- side margins, a gap above the safe
    area, a full border/shadow, its own surface tint -- rather than a bar
    flush with the screen's edges, matching the tab bar treatment of
    the polished native apps this was compared against directly. */
 .tabbar {
-  position: absolute;
-  left: 12px;
-  right: 12px;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
   bottom: calc(var(--tabbar-float-gap) + env(safe-area-inset-bottom));
+  width: calc(100% - 24px);
+  max-width: calc(520px - 24px);
   z-index: 80;
   background: color-mix(in srgb, var(--surface) 85%, transparent);
   backdrop-filter: saturate(180%) blur(20px);
@@ -1898,6 +1978,14 @@ input[type="date"] {
   border-radius: 28px;
   box-shadow: var(--shadow-lg);
   padding: var(--tabbar-pad) 4px;
+}
+
+/* A translucent glass surface over dark content reads as glass mainly
+   through the light catching its top edge -- a plain uniform border on
+   all four sides (light mode's own subtle dark border already reads fine
+   without this) looks flatter than the material this pill is going for. */
+:root[data-theme="dark"] .tabbar {
+  border-top-color: rgba(255, 255, 255, 0.32);
 }
 
 .tabbar-inner {
@@ -1957,16 +2045,19 @@ input[type="date"] {
   align-items: center;
   justify-content: center;
   margin-top: -28px;
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 20px color-mix(in srgb, var(--accent) 45%, transparent);
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
-.tabbar-add:hover {
+.tabbar-add:active {
   background: var(--accent-strong);
+  transform: scale(0.94);
 }
 
-.tabbar-add:active {
-  transform: scale(0.94);
+@media (hover: hover) and (pointer: fine) {
+  .tabbar-add:hover {
+    background: var(--accent-strong);
+  }
 }
 
 /* The floating pill's own side insets and padding are fixed overhead this
@@ -1977,8 +2068,8 @@ input[type="date"] {
    which would apply everywhere for a problem that's only real this narrow. */
 @media (max-width: 389px) {
   .tabbar {
-    left: 8px;
-    right: 8px;
+    width: calc(100% - 16px);
+    max-width: calc(520px - 16px);
     padding: var(--tabbar-pad) 2px;
   }
 
