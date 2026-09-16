@@ -1915,6 +1915,14 @@ input[type="date"] {
   padding: var(--tabbar-pad) 4px;
 }
 
+/* A translucent glass surface over dark content reads as glass mainly
+   through the light catching its top edge -- a plain uniform border on
+   all four sides (light mode's own subtle dark border already reads fine
+   without this) looks flatter than the material this pill is going for. */
+:root[data-theme="dark"] .tabbar {
+  border-top-color: rgba(255, 255, 255, 0.32);
+}
+
 .tabbar-inner {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
