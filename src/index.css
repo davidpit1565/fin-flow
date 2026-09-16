@@ -534,9 +534,9 @@ ul {
    tab bar -- translucent + blurred, with the same bright top rim in dark
    mode where light catching a glass edge actually shows. */
 .btn-secondary {
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
-  backdrop-filter: saturate(160%) blur(14px);
-  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border: 1px solid var(--border-strong);
   color: var(--text);
 }
@@ -569,8 +569,8 @@ ul {
 
 .btn-danger-outline {
   background: color-mix(in srgb, var(--danger-soft) 55%, transparent);
-  backdrop-filter: saturate(160%) blur(14px);
-  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border: 1px solid var(--danger-soft);
   color: var(--danger);
 }
