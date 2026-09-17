@@ -46,6 +46,7 @@ function AppInner() {
   const isDark = useTheme(settings?.theme ?? "system");
   useAccentColor(settings?.accentColor);
   usePlatform();
+  useStandaloneLayoutNudge();
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
   const privacyShielded = usePrivacyShield();
@@ -422,6 +423,39 @@ function useAccentColor(accentColor: AccentColor | undefined) {
 function usePlatform(): void {
   useEffect(() => {
     document.documentElement.dataset.platform = Capacitor.getPlatform();
+  }, []);
+}
+
+/** Works around a real iOS Safari bug: a standalone (home-screen-installed)
+ *  PWA's very first layout pass after a cold launch computes every `dvh`-based
+ *  size (`.app-frame`'s height, and everything derived from it) against a
+ *  stale viewport snapshot -- it only becomes correct once *something* forces
+ *  WebKit to redo that layout math, which is exactly what a manual pull-down
+ *  scroll does by accident. Forces that same recompute automatically, right
+ *  after launch, so nobody has to discover the workaround by hand.
+ *
+ *  Reading `offsetHeight` forces a synchronous reflow -- it doesn't move
+ *  anything or touch scroll position, it just makes the engine redo layout
+ *  against the viewport's actual current metrics instead of whatever it
+ *  cached at first paint. Scoped to standalone display-mode only: a regular
+ *  browser tab doesn't have this bug. */
+function useStandaloneLayoutNudge(): void {
+  useEffect(() => {
+    if (!window.matchMedia("(display-mode: standalone)").matches) return;
+
+    const forceReflow = () => {
+      const frame = document.querySelector<HTMLElement>(".app-frame");
+      if (frame) void frame.offsetHeight;
+    };
+
+    // The short delay lets the WKWebView's own launch-transition settle
+    // first, matching how long a real manual pull-down takes in practice.
+    const timer = window.setTimeout(forceReflow, 150);
+    window.addEventListener("pageshow", forceReflow);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pageshow", forceReflow);
+    };
   }, []);
 }
 
