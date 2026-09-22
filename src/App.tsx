@@ -426,35 +426,48 @@ function usePlatform(): void {
   }, []);
 }
 
-/** Works around a real iOS Safari bug: a standalone (home-screen-installed)
- *  PWA's very first layout pass after a cold launch computes every `dvh`-based
- *  size (`.app-frame`'s height, and everything derived from it) against a
- *  stale viewport snapshot -- it only becomes correct once *something* forces
- *  WebKit to redo that layout math, which is exactly what a manual pull-down
- *  scroll does by accident. Forces that same recompute automatically, right
- *  after launch, so nobody has to discover the workaround by hand.
+/** Works around a real iOS Safari bug, confirmed still reproducing on a real
+ *  device after a first attempt at this (forcing a reflow via `offsetHeight`)
+ *  did not fix it: a standalone (home-screen-installed) PWA's very first
+ *  paint after a cold launch can have `100dvh` itself resolve to a stale
+ *  value, not merely an uncomputed one -- so forcing WebKit to redo layout
+ *  math against that same still-wrong value changes nothing. A manual pull
+ *  down "fixes" it because *any* real scroll is what makes the engine
+ *  refresh that value, not because it forces a generic reflow.
  *
- *  Reading `offsetHeight` forces a synchronous reflow -- it doesn't move
- *  anything or touch scroll position, it just makes the engine redo layout
- *  against the viewport's actual current metrics instead of whatever it
- *  cached at first paint. Scoped to standalone display-mode only: a regular
- *  browser tab doesn't have this bug. */
+ *  `window.innerHeight`, read directly via a JS API call, is reliably
+ *  correct at that same moment even when the CSS `dvh` unit isn't -- so this
+ *  writes that real measurement to `--app-real-vh`, which `.app-frame` in
+ *  index.css prefers over `100dvh` when present. It then removes the
+ *  property again shortly after, handing height back to plain `100dvh` for
+ *  everything that follows (the on-screen keyboard included) -- an
+ *  indefinitely-pinned pixel value here would silently stop the frame from
+ *  ever tracking the keyboard again, the exact failure mode an earlier,
+ *  continuously-tracking version of this kind of fix had. Scoped to
+ *  standalone display-mode only: a regular browser tab doesn't have this
+ *  bug. */
 function useStandaloneLayoutNudge(): void {
   useEffect(() => {
     if (!window.matchMedia("(display-mode: standalone)").matches) return;
 
-    const forceReflow = () => {
-      const frame = document.querySelector<HTMLElement>(".app-frame");
-      if (frame) void frame.offsetHeight;
+    const root = document.documentElement;
+    let clearTimer: number | undefined;
+
+    const correct = () => {
+      root.style.setProperty("--app-real-vh", `${window.innerHeight}px`);
+      window.clearTimeout(clearTimer);
+      clearTimer = window.setTimeout(() => root.style.removeProperty("--app-real-vh"), 1000);
     };
 
     // The short delay lets the WKWebView's own launch-transition settle
     // first, matching how long a real manual pull-down takes in practice.
-    const timer = window.setTimeout(forceReflow, 150);
-    window.addEventListener("pageshow", forceReflow);
+    const startTimer = window.setTimeout(correct, 150);
+    window.addEventListener("pageshow", correct);
     return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("pageshow", forceReflow);
+      window.clearTimeout(startTimer);
+      window.clearTimeout(clearTimer);
+      window.removeEventListener("pageshow", correct);
+      root.style.removeProperty("--app-real-vh");
     };
   }, []);
 }
