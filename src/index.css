@@ -223,6 +223,19 @@ ul {
      browser's own native dvh recalculation do this removes that failure
      mode entirely rather than patching its latest symptom. */
   height: 100dvh;
+  /* Real-device report (standalone home-screen PWA, cold launch): the whole
+     frame is laid out visibly wrong until the user scrolls, which snaps it
+     into place. This is a distinct, known WebKit bug from the keyboard one
+     above -- on a standalone PWA's very first paint, the *value* `100dvh`
+     resolves to can itself be stale, not just uncomputed; forcing a reflow
+     doesn't help because the underlying viewport metric it reads hasn't
+     updated yet. `window.innerHeight`, read directly via JS at that same
+     moment, is reliably correct where the CSS unit isn't. `useAppRealVh` in
+     App.tsx sets --app-real-vh to that real measurement once, right after
+     launch, then removes it again shortly after -- so this only overrides
+     `100dvh` for that one brief stale window, and dvh stays the ongoing
+     source of truth for everything after (the keyboard included). */
+  height: var(--app-real-vh, 100dvh);
   background: var(--bg);
   position: relative;
   /* If this frame's own height is ever a little off from the true visible
