@@ -15,12 +15,17 @@ import WidgetKit
 /// the same id updates it instead of creating a duplicate.
 @objc(WidgetBridgePlugin)
 public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
-    // CAPBridgedPlugin requires these as `static` -- the bridge reads them
-    // via `type(of: instance)` before/without needing an instance, so an
-    // instance-level `let` here would silently fail to satisfy the protocol.
-    public static let identifier = "WidgetBridgePlugin"
-    public static let jsName = "WidgetBridge"
-    public static let pluginMethods: [CAPPluginMethod] = [
+    // Real build error on Capacitor 8.5.0's CAPBridgedPlugin (confirmed via
+    // Xcode's own expanded diagnostic, not assumed): it requires these as
+    // INSTANCE members, not `static` -- "candidate operates on a type, not
+    // an instance" is Swift's exact wording when a `static` member is
+    // offered where the protocol wants an instance one. This also matches
+    // how the plugin is actually registered, via `registerPluginInstance`
+    // in MainViewController.swift, which already hands the bridge a real
+    // instance rather than relying on the type itself.
+    public let identifier = "WidgetBridgePlugin"
+    public let jsName = "WidgetBridge"
+    public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "updateSnapshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "startBillDueActivity", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "endBillDueActivity", returnType: CAPPluginReturnPromise),
