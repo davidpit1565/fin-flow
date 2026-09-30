@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Bell, CalendarClock, PiggyBank, Sparkles } from "lucide-react";
+import { ArrowRight, Bell, CalendarClock, Lock, PiggyBank } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
 import { useT } from "../lib/i18n";
@@ -24,7 +24,7 @@ const FLOW_MARK = (
 
 function buildSteps(t: Dictionary) {
   return [
-    { icon: Sparkles, title: t.onboarding.step1Title, body: t.onboarding.step1Body },
+    { icon: Lock, title: t.onboarding.step1Title, body: t.onboarding.step1Body },
     { icon: CalendarClock, title: t.onboarding.step2Title, body: t.onboarding.step2Body },
     { icon: PiggyBank, title: t.onboarding.step3Title, body: t.onboarding.step3Body },
   ] as const;

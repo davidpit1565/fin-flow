@@ -42,7 +42,7 @@ test.describe("encrypted backup", () => {
     await page.getByRole("button", { name: "Delete all data" }).click();
     await expect(page.locator(".dialog")).toBeVisible();
     await page.locator(".dialog").getByRole("button", { name: "Delete everything" }).click();
-    await expect(page.getByText("Know where your money goes.")).toBeVisible();
+    await expect(page.getByText("Your money stays yours.")).toBeVisible();
 
     await completeOnboarding(page);
     await openSettings(page);
