@@ -4,7 +4,7 @@ import { addExpense, completeOnboarding } from "./helpers";
 test.describe("onboarding", () => {
   test("completes onboarding and lands on an empty Home", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Know where your money goes.")).toBeVisible();
+    await expect(page.getByText("Your money stays yours.")).toBeVisible();
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page.getByText("Never forget a recurring payment.")).toBeVisible();
     await page.getByRole("button", { name: "Continue" }).click();

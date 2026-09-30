@@ -23,4 +23,8 @@ export const yearInReview = {
   subscriptionsLabel: "Subscriptions",
   currentYearlyTotalLabel: "Current yearly total",
   footnote: (year: number) => `Your ${year} recap is calculated entirely from the transactions and subscriptions on this device.`,
+  shareButtonLabel: "Share my year",
+  shareDialogTitle: "Share your year in Flow",
+  shareReady: "Ready to share",
+  shareFailed: "Couldn't create the share card",
 };

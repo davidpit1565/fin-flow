@@ -1,19 +1,21 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, PartyPopper } from "lucide-react";
+import { ChevronLeft, ChevronRight, PartyPopper, Share as ShareIcon } from "lucide-react";
 import { useApp } from "../store/AppContext";
 import { useNavigation } from "../store/Navigation";
 import { categoryDisplayName, useT } from "../lib/i18n";
 import { buildYearInReview } from "../lib/yearInReview";
 import { formatMoney } from "../lib/currency";
 import { shortDate } from "../lib/dates";
+import { renderYearInReviewCard, shareYearInReviewCard } from "../lib/shareCard";
 import { Card, EmptyState, Money, ScreenHeader } from "../components/ui";
 
 export function YearInReviewScreen() {
-  const { settings, transactions, subscriptions, categories } = useApp();
+  const { settings, transactions, subscriptions, categories, toast, haptic } = useApp();
   const { back } = useNavigation();
   const t = useT();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
+  const [sharing, setSharing] = useState(false);
 
   // Earliest year worth letting the user page back to -- the oldest
   // transaction on file, or just the current year when there's no history
@@ -41,9 +43,33 @@ export function YearInReviewScreen() {
       ? Math.round((review.topCategory.spentCents / review.totalSpentCents) * 100)
       : 0;
 
+  const onShare = async () => {
+    setSharing(true);
+    try {
+      const blob = await renderYearInReviewCard(review, currency, "Flow");
+      await shareYearInReviewCard(blob, `flow-${year}-in-review.png`, t.yearInReview.shareDialogTitle);
+      haptic("success");
+    } catch {
+      toast(t.yearInReview.shareFailed);
+    } finally {
+      setSharing(false);
+    }
+  };
+
   return (
     <div className="screen">
-      <ScreenHeader title={t.yearInReview.title} subtitle={t.yearInReview.subtitle} onBack={back} />
+      <ScreenHeader
+        title={t.yearInReview.title}
+        subtitle={t.yearInReview.subtitle}
+        onBack={back}
+        right={
+          !isEmpty && (
+            <button className="icon-btn" aria-label={t.yearInReview.shareButtonLabel} onClick={onShare} disabled={sharing}>
+              <ShareIcon size={20} strokeWidth={2} />
+            </button>
+          )
+        }
+      />
 
       <div className="year-picker">
         <button

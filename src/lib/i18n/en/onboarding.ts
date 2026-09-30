@@ -5,9 +5,9 @@ export const onboarding = {
   skip: "Skip",
   continueButton: "Continue",
 
-  step1Title: "Know where your money goes.",
+  step1Title: "Your money stays yours.",
   step1Body:
-    "Flow brings your expenses and subscriptions together in one clear view — so you always know what you're spending and where it's going.",
+    "No bank connection, no account, no server. Flow tracks every expense and subscription entirely on your device — your financial data is never uploaded anywhere, by design.",
   step2Title: "Never forget a recurring payment.",
   step2Body: "Track every subscription and recurring charge. Flow shows what's coming up next, so nothing slips past you.",
   step3Title: "Find opportunities to save.",
