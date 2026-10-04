@@ -6,7 +6,8 @@ import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { useApp } from "./store/AppContext";
 import type { AccentColor } from "./types";
-import { isNative } from "./lib/platform";
+import { isIOSNative, isNative } from "./lib/platform";
+import { onNativeAddTapped, onNativeTabSelected, setActiveNativeTab, setNativeTabBarVisible } from "./lib/nativeTabBar";
 import { I18nProvider, useT } from "./lib/i18n";
 import { NavigationProvider, useNavigation, type AnyTab, type Route, type TabId } from "./store/Navigation";
 import { Onboarding } from "./screens/Onboarding";
@@ -40,13 +41,21 @@ function App() {
 
 function AppInner() {
   const { ready, loadError, retryLoad, settings } = useApp();
-  const { current, activeTab, navigate } = useNavigation();
+  const { current, activeTab, navigate, popToRoot } = useNavigation();
   const [adding, setAdding] = useState(false);
 
   const isDark = useTheme(settings?.theme ?? "system");
   useAccentColor(settings?.accentColor);
   usePlatform();
   useStandaloneLayoutNudge();
+  // Mirrors the condition that gates whether the CSS <TabBar> ever mounts at
+  // all below (that JSX sits behind the three early returns just past this
+  // point) -- this hook's effects can't be conditional the same way, since
+  // hooks must run unconditionally before any early return, so the chrome's
+  // own "should the real app even be showing" state has to be passed in
+  // explicitly instead of inferred from render position.
+  const showAppChrome = !loadError && ready && !!settings?.onboarded;
+  useNativeTabBar(activeTab, navigate, popToRoot, () => setAdding(true), showAppChrome);
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
   const privacyShielded = usePrivacyShield();
@@ -124,7 +133,7 @@ function AppInner() {
             {screen}
           </div>
         </main>
-        {activeTab !== "settings" && (
+        {activeTab !== "settings" && !isIOSNative() && (
           <TabBar
             onAdd={() => setAdding(true)}
             onTab={(tab) => navigate(tab, { tab, name: "root" })}
@@ -188,6 +197,44 @@ function useScrollRestoration(key: string) {
   );
 
   return attachRef;
+}
+
+/**
+ * Keeps the native iOS tab bar (see src/lib/nativeTabBar.ts) in sync with
+ * navigation state, and turns its tap events into the same navigate/
+ * popToRoot/onAdd calls the CSS <TabBar>'s own onClick handlers used to make
+ * directly -- this is the only place that logic has to be duplicated, since
+ * the native bar can't call React state setters itself. Every function this
+ * calls already no-ops off iOS native, so this hook is harmless to mount
+ * unconditionally on every platform.
+ */
+function useNativeTabBar(
+  activeTab: AnyTab,
+  navigate: (tab: AnyTab, route: Route) => void,
+  popToRoot: (tab: AnyTab) => void,
+  onAdd: () => void,
+  showChrome: boolean
+) {
+  useEffect(() => {
+    setActiveNativeTab(activeTab);
+    setNativeTabBarVisible(showChrome && activeTab !== "settings");
+  }, [activeTab, showChrome]);
+
+  useEffect(() => {
+    const tabHandle = onNativeTabSelected((tab) => {
+      if (tab === activeTab) popToRoot(tab);
+      else navigate(tab, { tab, name: "root" } as Route);
+    });
+    const addHandle = onNativeAddTapped(onAdd);
+    return () => {
+      void tabHandle.then((h) => h.remove());
+      void addHandle.then((h) => h.remove());
+    };
+    // Re-subscribing on every activeTab change (rather than reading a ref)
+    // keeps the closure's tap-again/popToRoot comparison correct without an
+    // extra ref -- Capacitor listener add/remove is cheap and this only runs
+    // when the active tab actually changes.
+  }, [activeTab, navigate, popToRoot, onAdd]);
 }
 
 function TabBar({ onAdd, onTab }: { onAdd: () => void; onTab: (tab: TabId) => void }) {
