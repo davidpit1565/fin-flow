@@ -62,12 +62,10 @@ export function YearInReviewScreen() {
         title={t.yearInReview.title}
         subtitle={t.yearInReview.subtitle}
         onBack={back}
-        right={
-          !isEmpty && (
-            <button className="icon-btn" aria-label={t.yearInReview.shareButtonLabel} onClick={onShare} disabled={sharing}>
-              <ShareIcon size={20} strokeWidth={2} />
-            </button>
-          )
+        rightAction={
+          isEmpty
+            ? undefined
+            : { icon: ShareIcon, nativeIcon: "share", label: t.yearInReview.shareButtonLabel, onClick: onShare, disabled: sharing }
         }
       />
 

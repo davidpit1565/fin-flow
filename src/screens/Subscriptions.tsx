@@ -50,11 +50,12 @@ export function Subscriptions() {
     <div className="screen">
       <ScreenHeader
         title={t.subscriptions.title}
-        right={
-          <button className="icon-btn" aria-label={t.subscriptions.settingsAriaLabel} onClick={() => push({ tab: "settings", name: "settings" })}>
-            <SettingsIcon size={20} strokeWidth={2} />
-          </button>
-        }
+        rightAction={{
+          icon: SettingsIcon,
+          nativeIcon: "settings",
+          label: t.subscriptions.settingsAriaLabel,
+          onClick: () => push({ tab: "settings", name: "settings" }),
+        }}
       />
 
       <Card className="sub-summary">

@@ -8,6 +8,7 @@ import { useApp } from "./store/AppContext";
 import type { AccentColor } from "./types";
 import { isIOSNative, isNative } from "./lib/platform";
 import { onNativeAddTapped, onNativeTabSelected, setActiveNativeTab, setNativeTabBarVisible } from "./lib/nativeTabBar";
+import { setNativeHeaderVisible } from "./lib/nativeHeader";
 import { I18nProvider, useT } from "./lib/i18n";
 import { NavigationProvider, useNavigation, type AnyTab, type Route, type TabId } from "./store/Navigation";
 import { Onboarding } from "./screens/Onboarding";
@@ -56,6 +57,14 @@ function AppInner() {
   // explicitly instead of inferred from render position.
   const showAppChrome = !loadError && ready && !!settings?.onboarded;
   useNativeTabBar(activeTab, navigate, popToRoot, () => setAdding(true), showAppChrome);
+  // The header bar's own content is pushed by whichever ScreenHeader/Home
+  // is currently mounted (see useNativeHeader in components/ui.tsx) -- this
+  // just gates whether the bar exists at all, same as the tab bar, so a
+  // mid-session onboarding reset (delete-all-data) can't leave a stale
+  // native header floating over the Onboarding screens.
+  useEffect(() => {
+    setNativeHeaderVisible(showAppChrome);
+  }, [showAppChrome]);
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
   const privacyShielded = usePrivacyShield();

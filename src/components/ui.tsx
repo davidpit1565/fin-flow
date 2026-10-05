@@ -1,4 +1,4 @@
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, type LucideIcon } from "lucide-react";
 import {
   useEffect,
   useLayoutEffect,
@@ -15,6 +15,13 @@ import { useApp } from "../store/AppContext";
 import { formatMoney } from "../lib/currency";
 import { useT } from "../lib/i18n";
 import { parseAmountToCents } from "../lib/money";
+import { isIOSNative } from "../lib/platform";
+import {
+  onNativeHeaderAction,
+  onNativeHeaderBack,
+  setNativeHeader,
+  type NativeHeaderTrailingIcon,
+} from "../lib/nativeHeader";
 import type { CurrencyCode } from "../types";
 
 /* ---------- button ---------- */
@@ -320,17 +327,62 @@ export function useHeaderScrolled(threshold = 12): boolean {
   return scrolled;
 }
 
+/** The one trailing icon button a screen's header can show -- every real
+ *  usage across the app turned out to be exactly one `icon-btn` (Settings,
+ *  edit, or share), never anything more elaborate, so this replaces what
+ *  used to be an arbitrary `right?: ReactNode` slot. Having one structured
+ *  shape here (rather than raw JSX) is what lets the same descriptor drive
+ *  both the CSS button (web/Android) and the native header bar's trailing
+ *  button (iOS) from a single source instead of two parallel paths.
+ *  `nativeIcon` is the small closed set NativeHeaderView.swift maps to SF
+ *  Symbols -- it has to be named separately from `icon` since a React
+ *  component can't cross the native bridge. */
+export interface ScreenHeaderAction {
+  icon: LucideIcon;
+  nativeIcon: NativeHeaderTrailingIcon;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+/** Keeps the native header bar (see src/lib/nativeHeader.ts) in sync with
+ *  this screen's own header content, and turns its back/action tap events
+ *  into the same onBack/rightAction.onClick calls the CSS header's own
+ *  onClick handlers would make. A no-op off iOS native (every function it
+ *  calls already guards on isIOSNative()), so safe to call unconditionally
+ *  from every ScreenHeader instance. */
+export function useNativeHeader(title: string, onBack: (() => void) | undefined, showChrome: boolean, rightAction: ScreenHeaderAction | undefined) {
+  useEffect(() => {
+    setNativeHeader({
+      title,
+      showBack: !!onBack,
+      showChrome,
+      trailingIcon: rightAction?.nativeIcon ?? "none",
+      trailingDisabled: !!rightAction?.disabled,
+    });
+  }, [title, onBack, showChrome, rightAction]);
+
+  useEffect(() => {
+    const backHandle = onNativeHeaderBack(() => onBack?.());
+    const actionHandle = onNativeHeaderAction(() => rightAction?.onClick());
+    return () => {
+      void backHandle.then((h) => h.remove());
+      void actionHandle.then((h) => h.remove());
+    };
+  }, [onBack, rightAction]);
+}
+
 export function ScreenHeader({
   title,
   subtitle,
   onBack,
-  right,
+  rightAction,
   largeTitle = true,
 }: {
   title: string;
   subtitle?: string;
   onBack?: () => void;
-  right?: ReactNode;
+  rightAction?: ScreenHeaderAction;
   /** Set false for a screen whose title should stay small/inline throughout
    *  (e.g. a detail screen reached by drilling in), matching how iOS only
    *  uses the large-title treatment on a hierarchy's top-level screens. */
@@ -339,23 +391,43 @@ export function ScreenHeader({
   const t = useT();
   const scrolled = useHeaderScrolled();
   const showSmallTitle = !largeTitle || scrolled;
+  useNativeHeader(title, onBack, showSmallTitle, rightAction);
+  // The outer <header>/.screen-header-bar-inner structure stays mounted
+  // even on iOS native -- its own CSS rules are what reserve its 44px +
+  // safe-area-top of space in normal flow (unlike the floating .tabbar,
+  // there's no separate padding rule computing that space on a parent, so
+  // dropping this element entirely would let content run up under the
+  // native header overlay). Only the visible content and the
+  // blur-triggering "scrolled" class are iOS-native-specific; the native
+  // bar owns that look instead.
+  const showWebChrome = !isIOSNative();
   return (
     <>
-      <header className={`screen-header-bar ${showSmallTitle ? "scrolled" : ""}`}>
+      <header className={`screen-header-bar ${showWebChrome && showSmallTitle ? "scrolled" : ""}`}>
         <div className="screen-header-bar-inner">
-          {onBack && (
-            <button className="icon-btn" onClick={onBack} aria-label={t.common.back}>
-              <ArrowLeft size={20} strokeWidth={2} />
-            </button>
+          {showWebChrome && (
+            <>
+              {onBack && (
+                <button className="icon-btn" onClick={onBack} aria-label={t.common.back}>
+                  <ArrowLeft size={20} strokeWidth={2} />
+                </button>
+              )}
+              {largeTitle ? (
+                <span className="screen-header-bar-title" aria-hidden="true">
+                  {title}
+                </span>
+              ) : (
+                <h1 className="screen-header-bar-title">{title}</h1>
+              )}
+              {rightAction && (
+                <div className="screen-header-right">
+                  <button className="icon-btn" onClick={rightAction.onClick} aria-label={rightAction.label} disabled={rightAction.disabled}>
+                    <rightAction.icon size={20} strokeWidth={2} />
+                  </button>
+                </div>
+              )}
+            </>
           )}
-          {largeTitle ? (
-            <span className="screen-header-bar-title" aria-hidden="true">
-              {title}
-            </span>
-          ) : (
-            <h1 className="screen-header-bar-title">{title}</h1>
-          )}
-          {right && <div className="screen-header-right">{right}</div>}
         </div>
       </header>
       {largeTitle && (

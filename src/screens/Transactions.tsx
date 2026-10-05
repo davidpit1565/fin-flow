@@ -115,11 +115,12 @@ export function Transactions({ onAdd }: { onAdd: () => void }) {
     <div className="screen">
       <ScreenHeader
         title={t.transactions.title}
-        right={
-          <button className="icon-btn" aria-label={t.transactions.settingsButton} onClick={() => push({ tab: "settings", name: "settings" })}>
-            <SettingsIcon size={20} strokeWidth={2} />
-          </button>
-        }
+        rightAction={{
+          icon: SettingsIcon,
+          nativeIcon: "settings",
+          label: t.transactions.settingsButton,
+          onClick: () => push({ tab: "settings", name: "settings" }),
+        }}
       />
 
       <div className="search-row">
