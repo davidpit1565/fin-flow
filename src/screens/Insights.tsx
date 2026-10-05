@@ -119,11 +119,12 @@ export function Insights() {
     <div className="screen">
       <ScreenHeader
         title={t.insights.title}
-        right={
-          <button className="icon-btn" aria-label={t.insights.settingsAriaLabel} onClick={() => push({ tab: "settings", name: "settings" })}>
-            <SettingsIcon size={20} strokeWidth={2} />
-          </button>
-        }
+        rightAction={{
+          icon: SettingsIcon,
+          nativeIcon: "settings",
+          label: t.insights.settingsAriaLabel,
+          onClick: () => push({ tab: "settings", name: "settings" }),
+        }}
       />
 
       {isEmpty ? (

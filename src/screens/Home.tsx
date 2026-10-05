@@ -21,7 +21,8 @@ import {
 } from "../lib/calc";
 import { formatMoney } from "../lib/currency";
 import { iconByName } from "../lib/icons";
-import { Card, IconBadge, Money, ProgressBar, Segmented, useHeaderScrolled } from "../components/ui";
+import { isIOSNative } from "../lib/platform";
+import { Card, IconBadge, Money, ProgressBar, Segmented, useHeaderScrolled, useNativeHeader } from "../components/ui";
 import { CategoryRow } from "../components/rows";
 import { EmptyState } from "../components/ui";
 
@@ -33,6 +34,12 @@ export function Home({ onAdd }: { onAdd: () => void }) {
   const t = useT();
   const [period, setPeriod] = useState<Period>("month");
   const scrolled = useHeaderScrolled();
+  useNativeHeader(t.home.title, undefined, scrolled, {
+    icon: SettingsIcon,
+    nativeIcon: "settings",
+    label: t.home.settingsAriaLabel,
+    onClick: () => push({ tab: "settings", name: "settings" }),
+  });
 
   const now = new Date();
   const hour = now.getHours();
@@ -109,20 +116,28 @@ export function Home({ onAdd }: { onAdd: () => void }) {
 
   return (
     <div className="screen">
-      <header className={`screen-header-bar ${scrolled ? "scrolled" : ""}`}>
+      {/* Stays mounted on iOS native too -- its own CSS rules reserve the
+          44px + safe-area-top of space the native header overlay occupies;
+          only the visible content and the blur-triggering "scrolled" class
+          are web/Android-specific, same as ScreenHeader (components/ui.tsx). */}
+      <header className={`screen-header-bar ${!isIOSNative() && scrolled ? "scrolled" : ""}`}>
         <div className="screen-header-bar-inner">
-          <span className="screen-header-bar-title" aria-hidden="true">
-            {t.home.title}
-          </span>
-          <div className="screen-header-right">
-            <button
-              className="icon-btn"
-              aria-label={t.home.settingsAriaLabel}
-              onClick={() => push({ tab: "settings", name: "settings" })}
-            >
-              <SettingsIcon size={20} strokeWidth={2} />
-            </button>
-          </div>
+          {!isIOSNative() && (
+            <>
+              <span className="screen-header-bar-title" aria-hidden="true">
+                {t.home.title}
+              </span>
+              <div className="screen-header-right">
+                <button
+                  className="icon-btn"
+                  aria-label={t.home.settingsAriaLabel}
+                  onClick={() => push({ tab: "settings", name: "settings" })}
+                >
+                  <SettingsIcon size={20} strokeWidth={2} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </header>
       <div className="screen-large-title-wrap">

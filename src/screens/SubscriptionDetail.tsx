@@ -100,11 +100,12 @@ export function SubscriptionDetail({ subscriptionId }: { subscriptionId: string 
         title={t.subscriptions.detailTitle}
         onBack={back}
         largeTitle={false}
-        right={
-          <button className="icon-btn" aria-label={t.subscriptions.editSubscription} onClick={() => setEditing(true)}>
-            <Pencil size={18} strokeWidth={2} />
-          </button>
-        }
+        rightAction={{
+          icon: Pencil,
+          nativeIcon: "pencil",
+          label: t.subscriptions.editSubscription,
+          onClick: () => setEditing(true),
+        }}
       />
 
       <div className="detail-hero">

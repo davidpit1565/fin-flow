@@ -6,7 +6,9 @@ import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { useApp } from "./store/AppContext";
 import type { AccentColor } from "./types";
-import { isNative } from "./lib/platform";
+import { isIOSNative, isNative } from "./lib/platform";
+import { onNativeAddTapped, onNativeTabSelected, setActiveNativeTab, setNativeTabBarVisible } from "./lib/nativeTabBar";
+import { setNativeHeaderVisible } from "./lib/nativeHeader";
 import { I18nProvider, useT } from "./lib/i18n";
 import { NavigationProvider, useNavigation, type AnyTab, type Route, type TabId } from "./store/Navigation";
 import { Onboarding } from "./screens/Onboarding";
@@ -40,13 +42,29 @@ function App() {
 
 function AppInner() {
   const { ready, loadError, retryLoad, settings } = useApp();
-  const { current, activeTab, navigate } = useNavigation();
+  const { current, activeTab, navigate, popToRoot } = useNavigation();
   const [adding, setAdding] = useState(false);
 
   const isDark = useTheme(settings?.theme ?? "system");
   useAccentColor(settings?.accentColor);
   usePlatform();
   useStandaloneLayoutNudge();
+  // Mirrors the condition that gates whether the CSS <TabBar> ever mounts at
+  // all below (that JSX sits behind the three early returns just past this
+  // point) -- this hook's effects can't be conditional the same way, since
+  // hooks must run unconditionally before any early return, so the chrome's
+  // own "should the real app even be showing" state has to be passed in
+  // explicitly instead of inferred from render position.
+  const showAppChrome = !loadError && ready && !!settings?.onboarded;
+  useNativeTabBar(activeTab, navigate, popToRoot, () => setAdding(true), showAppChrome);
+  // The header bar's own content is pushed by whichever ScreenHeader/Home
+  // is currently mounted (see useNativeHeader in components/ui.tsx) -- this
+  // just gates whether the bar exists at all, same as the tab bar, so a
+  // mid-session onboarding reset (delete-all-data) can't leave a stale
+  // native header floating over the Onboarding screens.
+  useEffect(() => {
+    setNativeHeaderVisible(showAppChrome);
+  }, [showAppChrome]);
   const currentKey = routeKey(current);
   const scrollRestoration = useScrollRestoration(currentKey);
   const privacyShielded = usePrivacyShield();
@@ -124,7 +142,7 @@ function AppInner() {
             {screen}
           </div>
         </main>
-        {activeTab !== "settings" && (
+        {activeTab !== "settings" && !isIOSNative() && (
           <TabBar
             onAdd={() => setAdding(true)}
             onTab={(tab) => navigate(tab, { tab, name: "root" })}
@@ -188,6 +206,54 @@ function useScrollRestoration(key: string) {
   );
 
   return attachRef;
+}
+
+/**
+ * Keeps the native iOS tab bar (see src/lib/nativeTabBar.ts) in sync with
+ * navigation state, and turns its tap events into the same navigate/
+ * popToRoot/onAdd calls the CSS <TabBar>'s own onClick handlers used to make
+ * directly -- this is the only place that logic has to be duplicated, since
+ * the native bar can't call React state setters itself. Every function this
+ * calls already no-ops off iOS native, so this hook is harmless to mount
+ * unconditionally on every platform.
+ */
+function useNativeTabBar(
+  activeTab: AnyTab,
+  navigate: (tab: AnyTab, route: Route) => void,
+  popToRoot: (tab: AnyTab) => void,
+  onAdd: () => void,
+  showChrome: boolean
+) {
+  useEffect(() => {
+    setActiveNativeTab(activeTab);
+    setNativeTabBarVisible(showChrome && activeTab !== "settings");
+  }, [activeTab, showChrome]);
+
+  // `navigate`/`popToRoot`/`onAdd` are fresh closures on every render of
+  // AppInner (onAdd in particular is a plain inline arrow function there),
+  // not just when activeTab changes -- subscribing the native listener in
+  // an effect keyed on them would re-subscribe on nearly every render.
+  // Worse than just wasteful: addListener/removeListener are both async, so
+  // a stale listener's remove() can resolve after its replacement is
+  // already registered, leaving two listeners briefly active and a single
+  // native tap firing the handler twice. Reading through a ref instead lets
+  // the listener itself be registered exactly once, while still always
+  // acting on the latest values.
+  const latest = useRef({ activeTab, navigate, popToRoot, onAdd });
+  latest.current = { activeTab, navigate, popToRoot, onAdd };
+
+  useEffect(() => {
+    const tabHandle = onNativeTabSelected((tab) => {
+      const current = latest.current;
+      if (tab === current.activeTab) current.popToRoot(tab);
+      else current.navigate(tab, { tab, name: "root" } as Route);
+    });
+    const addHandle = onNativeAddTapped(() => latest.current.onAdd());
+    return () => {
+      void tabHandle.then((h) => h.remove());
+      void addHandle.then((h) => h.remove());
+    };
+  }, []);
 }
 
 function TabBar({ onAdd, onTab }: { onAdd: () => void; onTab: (tab: TabId) => void }) {
