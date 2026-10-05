@@ -229,21 +229,31 @@ function useNativeTabBar(
     setNativeTabBarVisible(showChrome && activeTab !== "settings");
   }, [activeTab, showChrome]);
 
+  // `navigate`/`popToRoot`/`onAdd` are fresh closures on every render of
+  // AppInner (onAdd in particular is a plain inline arrow function there),
+  // not just when activeTab changes -- subscribing the native listener in
+  // an effect keyed on them would re-subscribe on nearly every render.
+  // Worse than just wasteful: addListener/removeListener are both async, so
+  // a stale listener's remove() can resolve after its replacement is
+  // already registered, leaving two listeners briefly active and a single
+  // native tap firing the handler twice. Reading through a ref instead lets
+  // the listener itself be registered exactly once, while still always
+  // acting on the latest values.
+  const latest = useRef({ activeTab, navigate, popToRoot, onAdd });
+  latest.current = { activeTab, navigate, popToRoot, onAdd };
+
   useEffect(() => {
     const tabHandle = onNativeTabSelected((tab) => {
-      if (tab === activeTab) popToRoot(tab);
-      else navigate(tab, { tab, name: "root" } as Route);
+      const current = latest.current;
+      if (tab === current.activeTab) current.popToRoot(tab);
+      else current.navigate(tab, { tab, name: "root" } as Route);
     });
-    const addHandle = onNativeAddTapped(onAdd);
+    const addHandle = onNativeAddTapped(() => latest.current.onAdd());
     return () => {
       void tabHandle.then((h) => h.remove());
       void addHandle.then((h) => h.remove());
     };
-    // Re-subscribing on every activeTab change (rather than reading a ref)
-    // keeps the closure's tap-again/popToRoot comparison correct without an
-    // extra ref -- Capacitor listener add/remove is cheap and this only runs
-    // when the active tab actually changes.
-  }, [activeTab, navigate, popToRoot, onAdd]);
+  }, []);
 }
 
 function TabBar({ onAdd, onTab }: { onAdd: () => void; onTab: (tab: TabId) => void }) {

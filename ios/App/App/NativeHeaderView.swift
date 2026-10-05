@@ -32,10 +32,18 @@ struct NativeHeaderView: View {
 
     var body: some View {
         HStack(spacing: 8) {
+            // Both sides always reserve the same 38pt, whether that's a real
+            // button or an invisible spacer -- a real button on only one
+            // side (the common case: root-tab screens have a trailing
+            // Settings icon but no back button) would otherwise leave the
+            // title's centered-within-its-own-frame position shifted
+            // toward the side with nothing in it.
             if model.showBack {
                 iconButton(systemName: "chevron.backward") {
                     model.onBackTap?()
                 }
+            } else {
+                Color.clear.frame(width: 38, height: 38)
             }
             Text(model.title)
                 .font(.system(size: 17, weight: .semibold))
@@ -47,9 +55,6 @@ struct NativeHeaderView: View {
                     model.onActionTap?()
                 }
             } else {
-                // Keeps the title truly centered whether or not a trailing
-                // button exists -- without a same-size spacer on the other
-                // side, the title drifts toward whichever side is empty.
                 Color.clear.frame(width: 38, height: 38)
             }
         }
@@ -98,21 +103,25 @@ final class NativeHeaderController {
     }
 
     /// Pinned full-width to the top of the webview (see
-    /// NativeTabBarController.attach's comment for why `webView` doubles as
-    /// the attach point -- CAPBridgeViewController's `view` *is* the
-    /// WKWebView). No bottom constraint: the view's own fixed 44pt content
-    /// height plus its safe-area-ignoring background determine its size.
-    func attach(to webView: UIView) {
+    /// NativeTabBarController.attach's comment for why `parent.view` doubles
+    /// as the attach point, and for why proper `addChild`/
+    /// `didMove(toParent:)` containment matters). No bottom constraint: the
+    /// view's own fixed 44pt content height plus its safe-area-ignoring
+    /// background determine its size.
+    func attach(to parent: UIViewController) {
         guard hostingController == nil else { return }
         let hosting = UIHostingController(rootView: NativeHeaderView(model: model))
         hosting.view.backgroundColor = .clear
         hosting.view.translatesAutoresizingMaskIntoConstraints = false
+        parent.addChild(hosting)
+        let webView = parent.view
         webView.addSubview(hosting.view)
         NSLayoutConstraint.activate([
             hosting.view.leadingAnchor.constraint(equalTo: webView.leadingAnchor),
             hosting.view.trailingAnchor.constraint(equalTo: webView.trailingAnchor),
             hosting.view.topAnchor.constraint(equalTo: webView.topAnchor),
         ])
+        hosting.didMove(toParent: parent)
         hostingController = hosting
     }
 

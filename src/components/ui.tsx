@@ -362,14 +362,26 @@ export function useNativeHeader(title: string, onBack: (() => void) | undefined,
     });
   }, [title, onBack, showChrome, rightAction]);
 
+  // `onBack`/`rightAction` are fresh closures/objects on nearly every
+  // render (every call site passes an inline arrow function and object
+  // literal), not just when the header's actual content changes --
+  // subscribing in an effect keyed on them would re-subscribe the native
+  // listener constantly. Worse than wasteful: addListener/removeListener
+  // are both async, so an old listener's remove() can resolve after its
+  // replacement is already registered, leaving two briefly active and a
+  // single native tap firing the handler twice. A ref keeps the listener
+  // registered exactly once while still always acting on the latest values.
+  const latest = useRef({ onBack, rightAction });
+  latest.current = { onBack, rightAction };
+
   useEffect(() => {
-    const backHandle = onNativeHeaderBack(() => onBack?.());
-    const actionHandle = onNativeHeaderAction(() => rightAction?.onClick());
+    const backHandle = onNativeHeaderBack(() => latest.current.onBack?.());
+    const actionHandle = onNativeHeaderAction(() => latest.current.rightAction?.onClick());
     return () => {
       void backHandle.then((h) => h.remove());
       void actionHandle.then((h) => h.remove());
     };
-  }, [onBack, rightAction]);
+  }, []);
 }
 
 export function ScreenHeader({

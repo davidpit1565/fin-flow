@@ -109,26 +109,34 @@ final class NativeTabBarController {
         }
     }
 
-    /// Adds the bar as a subview of `webView` itself -- CAPBridgeViewController
-    /// sets `view = webView` (confirmed by reading Capacitor's own source,
-    /// ios/App/App/Pods or node_modules/@capacitor/ios), so there is no
-    /// separate container view to attach to; a WKWebView accepts ordinary
-    /// UIKit subviews like any other UIView, and they composite above its
-    /// web content, which is exactly the floating-overlay behavior the CSS
-    /// `.tabbar` (`position: fixed`) already relied on. Matches the CSS
-    /// pill's own geometry: 12pt side insets, a 16pt gap above the safe
-    /// area (`--tabbar-float-gap`).
-    func attach(to webView: UIView) {
+    /// Adds the bar as a child of `parent` (MainViewController), its view
+    /// placed inside `parent.view` -- which CAPBridgeViewController sets to
+    /// its own WKWebView (confirmed by reading Capacitor's own source,
+    /// node_modules/@capacitor/ios), so there is no separate container view
+    /// to attach to; a WKWebView accepts ordinary UIKit subviews like any
+    /// other UIView, and they composite above its web content, which is
+    /// exactly the floating-overlay behavior the CSS `.tabbar`
+    /// (`position: fixed`) already relied on. Proper `addChild`/
+    /// `didMove(toParent:)` containment (rather than just adding the raw
+    /// view) is what makes UIHostingController correctly receive trait
+    /// collection changes -- Dynamic Type, light/dark mode -- per Apple's
+    /// own container-view-controller pattern. Matches the CSS pill's own
+    /// geometry: 12pt side insets, a 16pt gap above the safe area
+    /// (`--tabbar-float-gap`).
+    func attach(to parent: UIViewController) {
         guard hostingController == nil else { return }
         let hosting = UIHostingController(rootView: NativeTabBarView(model: model))
         hosting.view.backgroundColor = .clear
         hosting.view.translatesAutoresizingMaskIntoConstraints = false
+        parent.addChild(hosting)
+        let webView = parent.view
         webView.addSubview(hosting.view)
         NSLayoutConstraint.activate([
             hosting.view.leadingAnchor.constraint(equalTo: webView.leadingAnchor, constant: 12),
             hosting.view.trailingAnchor.constraint(equalTo: webView.trailingAnchor, constant: -12),
             hosting.view.bottomAnchor.constraint(equalTo: webView.safeAreaLayoutGuide.bottomAnchor, constant: -16),
         ])
+        hosting.didMove(toParent: parent)
         hostingController = hosting
     }
 

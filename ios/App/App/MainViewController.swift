@@ -8,13 +8,14 @@ import Capacitor
 /// `capacitorDidLoad()` runs inside `loadView()`, right after Capacitor sets
 /// `view = webView` -- so `self.view` here already *is* the WKWebView, which
 /// is exactly what NativeTabBarController/NativeHeaderController attach
-/// their SwiftUI overlays to.
+/// their SwiftUI overlays to (as a proper child view controller of `self`,
+/// not just a bare subview -- see either controller's `attach` doc comment).
 class MainViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(WidgetBridgePlugin())
         bridge?.registerPluginInstance(NativeTabBarPlugin())
         bridge?.registerPluginInstance(NativeHeaderPlugin())
-        NativeTabBarController.shared.attach(to: self.view)
-        NativeHeaderController.shared.attach(to: self.view)
+        NativeTabBarController.shared.attach(to: self)
+        NativeHeaderController.shared.attach(to: self)
     }
 }
